@@ -1024,10 +1024,17 @@ fun ProfileScreen(
                                 department = trimmedDept,
                                 municipality = trimmedMuni,
                                 address = trimmedAddress,
-                                hourlyRate = currentUser?.hourlyRate,
+                                hourlyRate = hourlyRateInput.toDoubleOrNull(),
                                 workPhotos = portfolioPhotos.toList(),
                                 workDescription = workDescriptionInput.trim()
                             )
+                            // Desbloquea la navegación de inmediato si el perfil quedó completo.
+                            if (trimmedName.isNotBlank() && !photoUrlInput.isNullOrBlank() &&
+                                editCategories.isNotEmpty() && trimmedDept.isNotBlank() &&
+                                trimmedMuni.isNotBlank() && trimmedAddress.isNotBlank() &&
+                                (hourlyRateInput.toDoubleOrNull() ?: 0.0) > 0.0) {
+                                viewModel.setRequireProfileCompletion(false)
+                            }
                             showSuccessMessage = "Información actualizada exitosamente"
                             activeSubScreen = null
                         },
