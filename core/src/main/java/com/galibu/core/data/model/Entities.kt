@@ -16,7 +16,10 @@ fun UserProfile.hasMissingRequiredFields(): Boolean {
 }
 
 fun UserProfile.hasMissingProfessionalFields(): Boolean {
-    return workCategory.isNullOrBlank() || hourlyRate == null || hourlyRate <= 0.0
+    // Solo se exige la categoría: la tarifa por hora puede quedar sin definir
+    // (no hay campo en la edición de perfil para todos los casos) y no debe
+    // bloquear la navegación del usuario.
+    return workCategory.isNullOrBlank()
 }
 
 @JsonClass(generateAdapter = true)

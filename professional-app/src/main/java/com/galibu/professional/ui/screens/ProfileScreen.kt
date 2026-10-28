@@ -1031,8 +1031,7 @@ fun ProfileScreen(
                             // Desbloquea la navegación de inmediato si el perfil quedó completo.
                             if (trimmedName.isNotBlank() && !photoUrlInput.isNullOrBlank() &&
                                 editCategories.isNotEmpty() && trimmedDept.isNotBlank() &&
-                                trimmedMuni.isNotBlank() && trimmedAddress.isNotBlank() &&
-                                (hourlyRateInput.toDoubleOrNull() ?: 0.0) > 0.0) {
+                                trimmedMuni.isNotBlank() && trimmedAddress.isNotBlank()) {
                                 viewModel.setRequireProfileCompletion(false)
                             }
                             showSuccessMessage = "Información actualizada exitosamente"
