@@ -190,6 +190,32 @@ class GalibuRepository(
         }
     }
 
+    /**
+     * Garantiza que el usuario actual tenga el rol que exige la app en la que
+     * corre la sesión. Si su rol es distinto (p. ej. CLIENT en la app de
+     * profesionales) y no es BOTH, se expande a BOTH vía backend.
+     * Devuelve true si el rol quedó alineado (o ya lo estaba).
+     */
+    suspend fun ensureRole(intendedRole: String): Boolean = withContext(Dispatchers.IO) {
+        val user = _currentUser.value ?: return@withContext false
+        if (user.role.equals(intendedRole, ignoreCase = true) || user.role.equals("BOTH", ignoreCase = true)) {
+            return@withContext true
+        }
+        try {
+            val expanded = apiService.addRole(AddRoleDto(intendedRole))
+            val profile = try { apiService.getMe() } catch (e: Exception) {
+                Log.e("GalibuRepository", "No se pudo releer el perfil tras expandir el rol: ${e.localizedMessage}")
+                expanded
+            }
+            userProfileDao.insertUser(profile)
+            setCurrentUser(profile)
+            true
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "No se pudo expandir el rol a $intendedRole: ${e.localizedMessage}")
+            false
+        }
+    }
+
     /** Timestamp de la última ejecución de refreshJobs (para throttle). */
     private var lastRefreshJobsMs = 0L
     private val REFRESH_JOBS_THROTTLE_MS = 60_000L

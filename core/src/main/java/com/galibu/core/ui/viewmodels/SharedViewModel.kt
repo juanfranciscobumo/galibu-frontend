@@ -64,6 +64,12 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     fun setAppRole(role: String) {
         appRole = role
         _activeRole.value = role
+        // Si la sesión ya estaba restaurada con el rol de la otra app, expándela.
+        viewModelScope.launch {
+            if (repository.ensureRole(role)) {
+                _activeRole.value = role
+            }
+        }
     }
 
     val activeBannerNotification = MutableStateFlow<AppNotification?>(null)
@@ -208,6 +214,9 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 if (repository.restoreSession()) {
+                    // Si la cuenta existe con el rol de la otra app, se expande a
+                    // BOTH para que pueda usar esta app sin 403.
+                    appRole?.let { repository.ensureRole(it) }
                     repository.refreshAll()
                 }
             } catch (e: Exception) {
