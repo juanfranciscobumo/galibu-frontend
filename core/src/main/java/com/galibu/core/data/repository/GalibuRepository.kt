@@ -1028,7 +1028,11 @@ class GalibuRepository(
 
     // --- Job Requests ---
 
-    fun getAllProfessionals(): Flow<List<UserProfile>> = userProfileDao.getProfessionalsFlow()
+    fun getAllProfessionals(): Flow<List<UserProfile>> =
+        combine(userProfileDao.getProfessionalsFlow(), _currentUser) { list, user ->
+            val currentId = user?.id
+            if (currentId.isNullOrBlank()) list else list.filter { it.id != currentId }
+        }
 
     fun getAllJobs(): Flow<List<JobRequest>> = jobRequestDao.getAllJobsFlow()
     @OptIn(ExperimentalCoroutinesApi::class)
