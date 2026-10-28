@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
         )
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
+        viewModel.setAppRole("CLIENT")
 
         setContent {
             GalibuTheme {
@@ -237,9 +238,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::viewModel.isInitialized) {
-            viewModel.refreshAll()
-        }
+        // No se llama refreshAll() aquí para evitar llamadas innecesarias a la API.
+        // Cada pantalla gestiona su propia carga de datos cuando se muestra.
     }
 }
 

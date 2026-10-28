@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.galibu.core.ui.theme.*
+import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import kotlinx.coroutines.delay
 
@@ -56,14 +58,43 @@ fun ProfessionalVerificationScreen(
     
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var capturedBase64 by remember { mutableStateOf<String?>(null) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
+            capturedBase64 = null
             selectedImageUri = uri
             hasPhotoSelected = true
         }
+    }
+
+    val launchVerificationCamera = rememberCameraCaptureLauncher(
+        maxDim = 1024,
+        onImageCaptured = { base64 ->
+            selectedImageUri = null
+            capturedBase64 = base64
+            hasPhotoSelected = true
+        },
+        onError = { message -> viewModel.showAlert("Aviso", message) }
+    )
+
+    if (showPhotoSourceDialog) {
+        PhotoSourceDialog(
+            title = "Foto del documento",
+            message = "Elige de dónde deseas obtener la foto del documento:",
+            onDismiss = { showPhotoSourceDialog = false },
+            onGallerySelected = {
+                showPhotoSourceDialog = false
+                galleryLauncher.launch("image/*")
+            },
+            onCameraSelected = {
+                showPhotoSourceDialog = false
+                launchVerificationCamera()
+            }
+        )
     }
 
     val scope = rememberCoroutineScope()
@@ -260,7 +291,7 @@ fun ProfessionalVerificationScreen(
                     .clip(RoundedCornerShape(16.dp))
                     .background(CardSurface)
                     .border(1.dp, PolishBorder, RoundedCornerShape(16.dp))
-                    .clickable { galleryLauncher.launch("image/*") }
+                    .clickable { showPhotoSourceDialog = true }
                     .testTag("upload_box"),
                 contentAlignment = Alignment.Center
             ) {
@@ -283,7 +314,8 @@ fun ProfessionalVerificationScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         // Real selected image preview using Coil
                         AsyncImage(
-                            model = selectedImageUri,
+                            model = capturedBase64?.let { com.galibu.core.ui.utils.ImageUtils.getCoilModel(it) }
+                                ?: selectedImageUri,
                             contentDescription = "Vista previa del documento",
                             modifier = Modifier
                                 .fillMaxSize()
@@ -341,6 +373,7 @@ fun ProfessionalVerificationScreen(
                             onClick = { 
                                 hasPhotoSelected = false 
                                 selectedImageUri = null
+                                capturedBase64 = null
                             },
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
@@ -400,7 +433,13 @@ fun ProfessionalVerificationScreen(
                         delay(200)
                         uploadProgress += 0.1f
                     }
-                    val realBytes = selectedImageUri?.let { getBytesFromUri(context, it) } ?: byteArrayOf(1, 2, 3)
+                    val realBytes = capturedBase64?.let { b64 ->
+                        try {
+                            android.util.Base64.decode(b64.substringAfter("base64,"), android.util.Base64.DEFAULT)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } ?: selectedImageUri?.let { getBytesFromUri(context, it) } ?: byteArrayOf(1, 2, 3)
                     viewModel.submitVerification(selectedDocType, realBytes)
                     isUploading = false
                     hasPhotoSelected = false

@@ -69,16 +69,19 @@ class AuthFlowTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `login rejects role mismatch and clears tokens`() = runTest {
-        val user = createUser(id = "u1", email = "a@test.com", role = "PROFESSIONAL")
-        coEvery { mockApi.login(any()) } returns tokens(user)
+    fun `login with opposite role expands to BOTH`() = runTest {
+        val existing = createUser(id = "u1", email = "a@test.com", role = "PROFESSIONAL")
+        coEvery { mockApi.login(any()) } returns tokens(existing)
+        val expanded = createUser(id = "u1", email = "a@test.com", role = "BOTH")
+        coEvery { mockApi.addRole(any()) } returns expanded
+        coEvery { mockApi.getMe() } returns expanded
         tokenStore.saveTokens("a", "r")
 
         val msg = repository.login("a@test.com", "secreto123", "CLIENT")
 
-        assertTrue(msg != null && msg.contains("rol"))
-        assertTrue(!tokenStore.hasTokens())
-        assertNull(repository.currentUser.value)
+        assertNull(msg)
+        assertEquals("BOTH", repository.currentUser.value?.role)
+        assertTrue(tokenStore.hasTokens())
     }
 
     @Test

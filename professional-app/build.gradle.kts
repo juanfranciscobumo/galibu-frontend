@@ -12,7 +12,7 @@ val localProps = Properties().apply {
   val f = rootProject.file("local.properties")
   if (f.exists()) load(f.inputStream())
 }
-val apiUrl: String = localProps.getProperty("apiUrl", "http://192.168.1.7:8080/api/")
+val apiUrl: String = localProps.getProperty("apiUrl", "https://galibu-backend.onrender.com/api/")
 
 android {
   namespace = "com.galibu.professional"

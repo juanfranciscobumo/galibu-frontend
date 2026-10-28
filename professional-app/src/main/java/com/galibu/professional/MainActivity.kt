@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
         AppTelemetry.init("professional", BuildConfig.VERSION_NAME)
 
         viewModel = ViewModelProvider(this)[ProfessionalViewModel::class.java]
+        viewModel.setAppRole("PROFESSIONAL")
 
         setContent {
             GalibuTheme {
@@ -217,9 +218,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::viewModel.isInitialized) {
-            viewModel.refreshAll()
-            // Mantiene el saldo al día y permite avisar si el webhook acreditó
-            // una recarga mientras la app estaba en segundo plano.
+            // Solo refresca el wallet (saldo + movimientos) para detectar recargas
+            // acreditadas por webhook mientras la app estaba en segundo plano.
+            // Los jobs se refrescan en cada pantalla cuando se muestra.
             viewModel.refreshWallet()
         }
     }

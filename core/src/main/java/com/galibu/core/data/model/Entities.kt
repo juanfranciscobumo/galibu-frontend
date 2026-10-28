@@ -15,6 +15,10 @@ fun UserProfile.hasMissingRequiredFields(): Boolean {
         address.isNullOrBlank()
 }
 
+fun UserProfile.hasMissingProfessionalFields(): Boolean {
+    return workCategory.isNullOrBlank() || hourlyRate == null || hourlyRate <= 0.0
+}
+
 @JsonClass(generateAdapter = true)
 @Entity(tableName = "user_profiles")
 data class UserProfile(

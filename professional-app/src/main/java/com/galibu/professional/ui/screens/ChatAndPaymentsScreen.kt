@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.GalibuRatingSheet
+import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.theme.*
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import kotlinx.coroutines.delay
@@ -46,6 +48,7 @@ fun ChatAndPaymentsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showImageSourceDialog by remember { mutableStateOf(false) }
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
@@ -61,6 +64,39 @@ fun ChatAndPaymentsScreen(
                 e.printStackTrace()
             }
         }
+    }
+
+    val launchChatCamera = rememberCameraCaptureLauncher(
+        maxDim = 1024,
+        onImageCaptured = { base64 ->
+            try {
+                val bytes = android.util.Base64.decode(
+                    base64.substringAfter("base64,"),
+                    android.util.Base64.DEFAULT
+                )
+                viewModel.sendImageMessage(bytes)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                viewModel.showAlert("Aviso", "No se pudo enviar la foto.")
+            }
+        },
+        onError = { message -> viewModel.showAlert("Aviso", message) }
+    )
+
+    if (showImageSourceDialog) {
+        PhotoSourceDialog(
+            title = "Adjuntar foto",
+            message = "Elige de dónde deseas obtener la foto:",
+            onDismiss = { showImageSourceDialog = false },
+            onGallerySelected = {
+                showImageSourceDialog = false
+                imagePickerLauncher.launch("image/*")
+            },
+            onCameraSelected = {
+                showImageSourceDialog = false
+                launchChatCamera()
+            }
+        )
     }
 
     val currentUser by viewModel.currentUser.collectAsState()
@@ -584,7 +620,7 @@ fun ChatAndPaymentsScreen(
                     .size(46.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .border(width = 1.dp, color = Color(0xFFE2E8F0), shape = RoundedCornerShape(12.dp))
-                    .clickable { imagePickerLauncher.launch("image/*") },
+                    .clickable { showImageSourceDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

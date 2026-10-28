@@ -57,10 +57,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Log
 import coil.compose.AsyncImage
 import com.galibu.core.ui.theme.*
+import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
+import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.professional.BuildConfig
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import com.galibu.core.ui.utils.ImageUtils
@@ -362,6 +365,8 @@ fun AuthScreen(
         }
     }
 
+    // Fotos de trabajos: galería o cámara
+    var showWorkPhotoSourceDialog by remember { mutableStateOf(false) }
     val workPhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -370,6 +375,12 @@ fun AuthScreen(
             workPhotos.add(base64 ?: uri.toString())
         }
     }
+
+    val launchWorkCamera = rememberCameraCaptureLauncher(
+        maxDim = 640,
+        onImageCaptured = { base64 -> workPhotos.add(base64) },
+        onError = { message -> viewModel.showAlert("Aviso", message) }
+    )
 
     // ==================== GOOGLE SIGN-IN ====================
     fun handleGoogleAccountSelect(selectedEmail: String, idToken: String?, displayName: String?, photoUrl: String?) {
@@ -406,22 +417,21 @@ fun AuthScreen(
                         return@loginWithGoogle
                     }
 
-                    // Verificar conflicto de roles — esta app solo permite PROFESSIONAL
-                    if (user.role == "CLIENT") {
-                        viewModel.showAlert("Cuenta no permitida", "Esta cuenta está registrada como Cliente. Descarga la app \"Galibu Clientes\" para usarla.", true)
-                        viewModel.logout()
-                        return@loginWithGoogle
-                    }
+                    // Si la cuenta ya existía como cliente, el backend la expande a
+                    // BOTH durante el login: ya puede usar esta app sin bloqueos.
 
                     // Verificar si perfil está completo (sin teléfono: ya no se pide)
                     val profileComplete = user.department?.isNotBlank() == true &&
                             user.municipality?.isNotBlank() == true &&
                             user.address?.isNotBlank() == true
 
-                    if (profileComplete) {
+                    // Un cliente que se expande a profesional todavía no tiene
+                    // categoría/tarifa: se fuerza a completar el perfil.
+                    val proDataComplete = !user.hasMissingProfessionalFields()
+
+                    if (profileComplete && proDataComplete) {
                         onAuthSuccess()
                     } else {
-                        // Perfil incompleto: entrar y exigir completarlo en Editar perfil.
                         viewModel.setRequireProfileCompletion(true)
                         onAuthSuccess()
                     }
@@ -585,7 +595,7 @@ fun AuthScreen(
                 specialtiesList = specialtiesList,
                 launchCamera = launchCamera,
                 signupPhotoPickerLauncher = signupPhotoPickerLauncher,
-                workPhotoPickerLauncher = workPhotoPickerLauncher,
+                onAddWorkPhotoClick = { showWorkPhotoSourceDialog = true },
                 fetchLocationByGps = fetchLocationByGps,
                 gpsDetectedDept = gpsRegDept,
                 gpsDetectedMuni = gpsRegMuni,
@@ -610,6 +620,22 @@ fun AuthScreen(
             onCameraSelected = {
                 showProfilePhotoSourceDialog = false
                 launchCamera()
+            }
+        )
+    }
+
+    if (showWorkPhotoSourceDialog) {
+        PhotoSourceDialog(
+            title = "Agregar foto del trabajo",
+            message = "Elige de dónde deseas obtener la foto:",
+            onDismiss = { showWorkPhotoSourceDialog = false },
+            onGallerySelected = {
+                showWorkPhotoSourceDialog = false
+                workPhotoPickerLauncher.launch("image/*")
+            },
+            onCameraSelected = {
+                showWorkPhotoSourceDialog = false
+                launchWorkCamera()
             }
         )
     }
@@ -842,7 +868,7 @@ private fun AuthContent(
     specialtiesList: List<String>,
     launchCamera: () -> Unit,
     signupPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
-    workPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
+    onAddWorkPhotoClick: () -> Unit,
     fetchLocationByGps: () -> Unit,
     gpsDetectedDept: String?,
     gpsDetectedMuni: String?,
@@ -955,7 +981,7 @@ private fun AuthContent(
                 specialtiesList = specialtiesList,
                 launchCamera = launchCamera,
                 signupPhotoPickerLauncher = signupPhotoPickerLauncher,
-                workPhotoPickerLauncher = workPhotoPickerLauncher,
+                onAddWorkPhotoClick = onAddWorkPhotoClick,
                 fetchLocationByGps = fetchLocationByGps,
                 gpsDetectedDept = gpsDetectedDept,
                 gpsDetectedMuni = gpsDetectedMuni,
@@ -1282,7 +1308,7 @@ private fun RegistrationContent(
     specialtiesList: List<String>,
     launchCamera: () -> Unit,
     signupPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
-    workPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
+    onAddWorkPhotoClick: () -> Unit,
     fetchLocationByGps: () -> Unit,
     gpsDetectedDept: String?,
     gpsDetectedMuni: String?,
@@ -1560,7 +1586,7 @@ private fun RegistrationContent(
                     ) {
                         // Add photo box
                         Card(
-                            onClick = { workPhotoPickerLauncher.launch("image/*") },
+                            onClick = { onAddWorkPhotoClick() },
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             shape = RoundedCornerShape(12.dp),

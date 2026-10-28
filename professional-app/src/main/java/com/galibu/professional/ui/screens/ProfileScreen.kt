@@ -58,8 +58,11 @@ import com.galibu.core.ui.theme.*
 import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
+import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.ServiceCategoryTag
+import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.data.model.hasMissingRequiredFields
+import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 
 enum class ProfileSubScreen {
@@ -310,6 +313,36 @@ fun ProfileScreen(
         }
     }
 
+    // Elige entre galería o cámara para las fotos del portafolio.
+    var showPortfolioPhotoSourceDialog by remember { mutableStateOf(false) }
+    val launchPortfolioCamera = rememberCameraCaptureLauncher(
+        maxDim = 640,
+        onImageCaptured = { base64 ->
+            if (portfolioPhotos.size >= MAX_PORTFOLIO_PHOTOS) {
+                viewModel.showWarning("Puedes agregar hasta $MAX_PORTFOLIO_PHOTOS fotos al portafolio.")
+            } else {
+                portfolioPhotos.add(base64)
+            }
+        },
+        onError = { message -> viewModel.showError(message) }
+    )
+
+    if (showPortfolioPhotoSourceDialog) {
+        PhotoSourceDialog(
+            title = "Agregar foto al portafolio",
+            message = "Elige de dónde deseas obtener la foto:",
+            onDismiss = { showPortfolioPhotoSourceDialog = false },
+            onGallerySelected = {
+                showPortfolioPhotoSourceDialog = false
+                portfolioPhotoPickerLauncher.launch("image/*")
+            },
+            onCameraSelected = {
+                showPortfolioPhotoSourceDialog = false
+                launchPortfolioCamera()
+            }
+        )
+    }
+
     val launchCamera = {
         val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         if (hasPermission) {
@@ -353,7 +386,7 @@ fun ProfileScreen(
                     ) {
                         IconButton(
                             onClick = {
-                                if (forceEdit && (currentUser?.hasMissingRequiredFields() == true)) {
+                                if (forceEdit && (currentUser?.hasMissingRequiredFields() == true || currentUser?.hasMissingProfessionalFields() == true)) {
                                     viewModel.showError("Completa tu perfil para continuar usando la app.")
                                 } else {
                                     activeSubScreen = null
@@ -892,7 +925,7 @@ fun ProfileScreen(
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                             .clickable {
-                                                portfolioPhotoPickerLauncher.launch("image/*")
+                                                showPortfolioPhotoSourceDialog = true
                                             }
                                             .testTag("edit_portfolio_add_photo"),
                                         contentAlignment = Alignment.Center

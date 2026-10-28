@@ -190,12 +190,23 @@ class GalibuRepository(
         }
     }
 
+    /** Timestamp de la última ejecución de refreshJobs (para throttle). */
+    private var lastRefreshJobsMs = 0L
+    private val REFRESH_JOBS_THROTTLE_MS = 60_000L
+
     /**
      * Pulls jobs from the backend (mine + marketplace when the role allows it)
      * and merges them into Room with the usual stale-cleanup.
+     * Throttled: no ejecuta más de una vez cada 30 segundos para reducir llamadas a la API.
      */
     suspend fun refreshJobs() {
         val user = _currentUser.value ?: return
+        val now = System.currentTimeMillis()
+        if (lastRefreshJobsMs > 0L && now - lastRefreshJobsMs < REFRESH_JOBS_THROTTLE_MS) {
+            Log.d("GalibuRepository", "refreshJobs throttled (última ejecución hace ${now - lastRefreshJobsMs}ms)")
+            return
+        }
+        lastRefreshJobsMs = now
         val includeOpen = user.role.equals("PROFESSIONAL", ignoreCase = true) || user.role.equals("BOTH", ignoreCase = true)
         val jobs = apiService.jobs(
             clientId = user.id,
@@ -203,6 +214,14 @@ class GalibuRepository(
             status = if (includeOpen) "OPEN" else null
         )
         syncJobsSnapshot(jobs, isFromCache = false, user.id)
+    }
+
+    /**
+     * Fuerza un refresh de jobs ignorando el throttle (para pull-to-refresh manual).
+     */
+    suspend fun forceRefreshJobs() {
+        lastRefreshJobsMs = 0L
+        refreshJobs()
     }
 
     /**
@@ -263,7 +282,7 @@ class GalibuRepository(
             try { refreshProfessionals() } catch (e: Exception) {
                 Log.e("GalibuRepository", "refreshAll professionals falló: ${e.localizedMessage}")
             }
-            try { refreshJobs() } catch (e: Exception) {
+            try { forceRefreshJobs() } catch (e: Exception) {
                 Log.e("GalibuRepository", "refreshAll jobs falló: ${e.localizedMessage}")
             }
             try { refreshBids() } catch (e: Exception) {
@@ -465,7 +484,25 @@ class GalibuRepository(
             return@withTransaction false
         }
         tokenStore.saveTokens(auth.accessToken, auth.refreshToken)
-        val backendUser = auth.user ?: return@withTransaction false
+        var backendUser = auth.user ?: return@withTransaction false
+
+        // Google: si la cuenta ya existía con otro rol, se habilita el rol de
+        // esta app en el backend (pasa a BOTH). Antes solo se cambiaba en local
+        // y el siguiente getMe() lo revertía.
+        if (backendUser.role != role && backendUser.role != "BOTH") {
+            backendUser = try {
+                val expanded = apiService.addRole(AddRoleDto(role))
+                try { apiService.getMe() } catch (me: Exception) {
+                    Log.e("GalibuRepository", "No se pudo releer el perfil tras expandir el rol (Google): ${me.localizedMessage}")
+                    expanded
+                }
+            } catch (e: Exception) {
+                Log.e("GalibuRepository", "No se pudo expandir el rol (Google) a $role: ${e.localizedMessage}")
+                AppTelemetry.error("auth", "Google: fallo al expandir rol", e)
+                tokenStore.clear()
+                return@withTransaction false
+            }
+        }
         var target: UserProfile? = backendUser
 
         // Upload work photos if we have a context
@@ -494,7 +531,8 @@ class GalibuRepository(
         }
 
         if (target != null) {
-            val targetRole = if (target.role != role && target.role != "BOTH") "BOTH" else target.role
+            // El backend ya resolvió la expansión de rol; se usa el rol real.
+            val targetRole = target.role
             val finalPhotoUrl = if ((targetRole == "CLIENT" || targetRole == "BOTH") && context != null && !avatarUrl.isNullOrEmpty()) {
                 val defaultPhoto = if (targetRole == "CLIENT") {
                     "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop"
@@ -554,17 +592,29 @@ class GalibuRepository(
                 return@withTransaction "No se pudo iniciar sesión. Inténtalo nuevamente."
             }
             tokenStore.saveTokens(auth.accessToken, auth.refreshToken)
-            val profile = auth.user
+            var profile = auth.user
             if (profile == null) {
                 tokenStore.clear()
                 AppTelemetry.warn("auth", "Login sin perfil en la respuesta")
                 return@withTransaction "No se pudo iniciar sesión. Inténtalo nuevamente."
             }
+            // Expansión automática: la cuenta ya existe con otro rol, así que se
+            // habilita el rol que pide esta app (el usuario pasa a BOTH).
             if (profile.role != role && profile.role != "BOTH") {
-                Log.w("GalibuRepository", "Login fallido por discrepancia de rol: registrado como ${profile.role} pero intentando ingresar con $role.")
-                tokenStore.clear()
-                AppTelemetry.warn("auth", "Login con rol incorrecto", mapOf("role" to role))
-                return@withTransaction "Este correo está registrado bajo el rol de ${if (profile.role == "CLIENT") "Cliente" else "Profesional"}. Selecciona el rol correspondiente para ingresar."
+                profile = try {
+                    val expanded = apiService.addRole(AddRoleDto(role))
+                    try { apiService.getMe() } catch (me: Exception) {
+                        Log.e("GalibuRepository", "No se pudo releer el perfil tras expandir el rol: ${me.localizedMessage}")
+                        expanded
+                    }
+                } catch (e: Exception) {
+                    Log.e("GalibuRepository", "No se pudo expandir el rol a $role: ${e.localizedMessage}")
+                    AppTelemetry.error("auth", "Fallo al expandir rol", e)
+                    tokenStore.clear()
+                    return@withTransaction "No pudimos habilitar tu perfil como " +
+                        "${if (role == "CLIENT") "Cliente" else "Profesional"}. " +
+                        "Verifica tu conexión e inténtalo de nuevo."
+                }
             }
             userProfileDao.insertUser(profile)
             setCurrentUser(profile)

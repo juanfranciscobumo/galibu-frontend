@@ -54,6 +54,7 @@ import androidx.compose.ui.layout.ContentScale
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
 import com.galibu.core.data.model.hasMissingRequiredFields
+import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.data.model.isDirectChat
 import com.galibu.core.data.remote.RatingDto
 import com.galibu.core.ui.components.CategoryBadge
@@ -209,17 +210,6 @@ fun ProfessionalDashboardScreen(
 
     // Re-chequeo periódico de mis solicitudes: detecta oferta aceptada,
     // cliente que finaliza/califica y servicio completado (campanita + push).
-    LaunchedEffect(currentUser?.id) {
-        if (currentUser?.id.isNullOrEmpty()) return@LaunchedEffect
-        viewModel.refreshMyJobs()
-        while (true) {
-            delay(30_000)
-            try {
-                viewModel.refreshMyJobs()
-            } catch (e: Exception) {}
-        }
-    }
-
     // Permiso de notificaciones del sistema (Android 13+) para las push de eventos.
     val pushPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -249,14 +239,32 @@ fun ProfessionalDashboardScreen(
     // El subformulario de Perfil (editar/foto/clave) oculta el menú inferior.
     var hideBottomBar by rememberSaveable { mutableStateOf(false) }
 
+    // Re-chequeo periódico de mis solicitudes: solo mientras el usuario está
+    // en la pestaña "Profesionales" (donde se muestran los jobs). Se detiene
+    // automáticamente al salir de esa pestaña o de la pantalla.
+    LaunchedEffect(currentUser?.id, selectedTab) {
+        if (currentUser?.id.isNullOrEmpty()) return@LaunchedEffect
+        if (selectedTab != "Profesionales") return@LaunchedEffect
+        viewModel.refreshMyJobs()
+        while (true) {
+            delay(60_000)
+            try {
+                viewModel.refreshMyJobs()
+            } catch (e: Exception) {}
+        }
+    }
+
     // Completado forzoso tras Google: ir a Perfil, abrir edición y bloquear
     // el resto hasta guardar todos los campos obligatorios.
     val requireCompletion by viewModel.requireProfileCompletion.collectAsState()
     LaunchedEffect(requireCompletion, currentUser) {
+        val user = currentUser
+        if (user != null && (user.hasMissingRequiredFields() || user.hasMissingProfessionalFields())) {
+            viewModel.setRequireProfileCompletion(true)
+        }
         if (requireCompletion) {
             selectedTab = "Perfil"
-            val user = currentUser
-            if (user != null && !user.hasMissingRequiredFields()) {
+            if (user != null && !user.hasMissingRequiredFields() && !user.hasMissingProfessionalFields()) {
                 viewModel.setRequireProfileCompletion(false)
             }
         }

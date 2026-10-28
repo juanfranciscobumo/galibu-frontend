@@ -56,6 +56,16 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     private val _activeRole = MutableStateFlow<String?>(null)
     val activeRole: StateFlow<String?> = _activeRole.asStateFlow()
 
+    /** Rol de la app en la que corre la sesión (CLIENT/PROFESSIONAL). Para usuarios BOTH
+     *  define el modo activo y se usa para corregir el peer del chat y la dirección del
+     *  rating tras restaurar la sesión. */
+    private var appRole: String? = null
+
+    fun setAppRole(role: String) {
+        appRole = role
+        _activeRole.value = role
+    }
+
     val activeBannerNotification = MutableStateFlow<AppNotification?>(null)
 
     private val _isGlobalLoading = MutableStateFlow(false)
@@ -226,12 +236,13 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             currentUser.collect { user ->
                 if (user != null) {
-                    if (user.role == "CLIENT") {
-                        _activeRole.value = "CLIENT"
-                    } else if (user.role == "PROFESSIONAL") {
-                        _activeRole.value = "PROFESSIONAL"
-                    } else if (user.role == "BOTH" && _activeRole.value == null) {
-                        _activeRole.value = "CLIENT"
+                    // El modo activo lo define la app en la que corre la sesión.
+                    // Un usuario BOTH trabaja como cliente en la app de clientes y
+                    // como profesional en la de profesionales (antes caía siempre
+                    // en CLIENT, incluso al restaurar sesión en la app profesional).
+                    _activeRole.value = appRole ?: when (user.role) {
+                        "PROFESSIONAL" -> "PROFESSIONAL"
+                        else -> "CLIENT"
                     }
                 } else {
                     _activeRole.value = null
@@ -415,7 +426,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                     context = getApplication<Application>()
                 )
                 if (success) {
-                    _activeRole.value = role
+                    _activeRole.value = appRole ?: role
                 }
                 onResult(success)
             } catch (e: Exception) {
@@ -434,7 +445,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 kotlinx.coroutines.delay(1000)
                 val errorMsg = repository.login(email, password, role)
                 if (errorMsg == null) {
-                    _activeRole.value = role
+                    _activeRole.value = appRole ?: role
                 }
                 onResult(errorMsg)
             } catch (e: Exception) {

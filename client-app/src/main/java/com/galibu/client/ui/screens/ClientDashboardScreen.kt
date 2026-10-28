@@ -214,8 +214,10 @@ import com.galibu.core.ui.components.CategorySingleSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.GalibuRatingSheet
+import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.RequestSummaryCard
 import com.galibu.core.ui.components.ServiceCategoryTag
+import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.theme.PolishBg
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishBorder
@@ -573,10 +575,16 @@ fun ClientDashboardScreen(
         }
     }
 
-    // Al volver desde la app profesional, el contador de ofertas se actualiza
-    // de inmediato en lugar de esperar el siguiente ciclo de sincronización.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+    // Carga inicial de datos solo al entrar a la pantalla (no en cada onResume).
+    LaunchedEffect(Unit) {
         viewModel.refreshAll()
+        if (openBidJobIds.isNotEmpty()) {
+            viewModel.refreshClientBids(openBidJobIds)
+        }
+    }
+
+    // Al volver desde la app profesional, solo se refrescan las bids (no todos los jobs).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if (openBidJobIds.isNotEmpty()) {
             viewModel.refreshClientBids(openBidJobIds)
         }
@@ -1457,40 +1465,22 @@ fun InicioTab(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = onPostJob,
-                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Nueva solicitud")
+            if (totalJobs > 0) {
+                Button(
+                    onClick = onPostJob,
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Crear solicitud")
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                HomeStatCard(
-                    count = totalJobs,
-                    label = "Solicitudes totales",
-                    icon = Icons.Default.Description,
-                    iconBg = Color(0xFFEDE9FE),
-                    iconTint = Color(0xFF7C3AED),
-                    modifier = Modifier.weight(1f)
-                )
-                HomeStatCard(
-                    count = inProgressJobs,
-                    label = "En progreso",
-                    icon = Icons.Default.CheckCircle,
-                    iconBg = Color(0xFFDCFCE7),
-                    iconTint = Color(0xFF16A34A),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // (Stat cards removidos por solicitud del usuario)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -1535,58 +1525,44 @@ fun InicioTab(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (filteredJobs.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFF8FAFC))
-                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
-                    .padding(vertical = 36.dp, horizontal = 24.dp),
-                contentAlignment = Alignment.Center
+                    .padding(vertical = 50.dp, horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFE2E8F0)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Description,
-                            contentDescription = null,
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        "No tienes solicitudes activas",
-                        color = PolishDark,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "Cuando publiques una solicitud aparecerá aquí con sus ofertas",
-                        color = PolishGrayText,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = onPostJob,
-                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.height(44.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Crear solicitud", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    tint = PolishGrayText,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "No tienes solicitudes activas",
+                    color = PolishDark,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Cuando publiques una solicitud aparecerá aquí con sus ofertas",
+                    color = PolishGrayText,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = onPostJob,
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(44.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Crear solicitud", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         } else {
@@ -3319,6 +3295,7 @@ fun JobPostForm(
 
     val jobPhotos = remember { mutableStateListOf<String>() }
     val context = LocalContext.current
+    var showJobPhotoSourceDialog by remember { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -3335,6 +3312,31 @@ fun JobPostForm(
                 else onShowError("No pudimos procesar esa imagen.")
             }
         }
+    }
+
+    val launchJobCamera = rememberCameraCaptureLauncher(
+        maxDim = 640,
+        onImageCaptured = { base64 ->
+            if (jobPhotos.size >= 6) onShowError("Puedes agregar hasta 6 fotos.")
+            else jobPhotos.add(base64)
+        },
+        onError = { message -> onShowError(message) }
+    )
+
+    if (showJobPhotoSourceDialog) {
+        PhotoSourceDialog(
+            title = "Agregar foto de la solicitud",
+            message = "Elige de dónde deseas obtener la foto:",
+            onDismiss = { showJobPhotoSourceDialog = false },
+            onGallerySelected = {
+                showJobPhotoSourceDialog = false
+                photoPickerLauncher.launch("image/*")
+            },
+            onCameraSelected = {
+                showJobPhotoSourceDialog = false
+                launchJobCamera()
+            }
+        )
     }
 
     // Departamentos con el detectado primero (si coincide con el catálogo).
@@ -3598,7 +3600,7 @@ fun JobPostForm(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White)
                                 .border(1.dp, PolishBorder, RoundedCornerShape(12.dp))
-                                .clickable { photoPickerLauncher.launch("image/*") },
+                                .clickable { showJobPhotoSourceDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
