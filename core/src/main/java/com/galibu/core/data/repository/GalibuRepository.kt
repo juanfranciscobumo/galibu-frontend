@@ -1097,7 +1097,6 @@ class GalibuRepository(
 
     suspend fun insertJobDirectly(job: JobRequest) = withContext(Dispatchers.IO) {
         jobRequestDao.insertJob(job)
-        firebaseService.pushJobToCloud(job)
         if (!job.professionalId.isNullOrEmpty()) {
             val notification = AppNotification(
                 userId = job.professionalId,
@@ -1182,11 +1181,6 @@ class GalibuRepository(
                 return@withTransaction null
             }
             jobRequestDao.insertJob(created)
-            try {
-                firebaseService.pushJobToCloud(created)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "Dual-write del hilo de chat a Firestore falló: ${e.localizedMessage}")
-            }
             AppTelemetry.event("chat.start", mapOf("jobId" to created.id))
             return@withTransaction created.id
         }
@@ -1258,11 +1252,6 @@ class GalibuRepository(
                 throw e
             }
             jobRequestDao.insertJob(created)
-            try {
-                firebaseService.pushJobToCloud(created)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "Dual-write del job a Firestore falló: ${e.localizedMessage}")
-            }
             AppTelemetry.event(
                 "job.create",
                 mapOf(
@@ -1314,11 +1303,6 @@ class GalibuRepository(
                     )
                 )
                 jobRequestDao.insertJob(created)
-                try {
-                    firebaseService.pushJobToCloud(created)
-                } catch (e: Exception) {
-                    Log.e("GalibuRepository", "Dual-write del direct-hire a Firestore falló: ${e.localizedMessage}")
-                }
                 AppTelemetry.event("job.hire", mapOf("jobId" to created.id, "category" to proSpecialty))
                 return@withTransaction created.id
             } catch (e: Exception) {
@@ -1500,11 +1484,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(cancelled)
-        try {
-            firebaseService.pushJobToCloud(cancelled)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write del cancel a Firestore falló: ${e.localizedMessage}")
-        }
 
         // Delete local bids for this job
         try {
@@ -1643,15 +1622,13 @@ class GalibuRepository(
         val job = jobRequestDao.getJobByIdSync(jobId) ?: return@withContext
         if (job.status == "PENDING_RATING" || job.status == "COMPLETED") return@withContext
 
-        val cloudJob = firebaseService.getJobFromCloud(jobId)
-        val finalJob = cloudJob ?: job
+        val finalJob = job
         val finalAddress = if (finalJob.address.isNotBlank()) finalJob.address else if (job.address.isNotBlank()) job.address else "Cl. 51 #62-25, Rionegro, Antioquia, Colombia"
         val updatedJob = finalJob.copy(
             status = "PENDING_RATING",
             address = finalAddress
         )
         jobRequestDao.insertJob(updatedJob)
-        firebaseService.pushJobToCloud(updatedJob)
 
         // System message in chat
         val systemMsg = ChatMessage(
@@ -1717,26 +1694,13 @@ class GalibuRepository(
 
         // Complete job request in DB. Firestore es best-effort: si falla, el
         // cierre local ya quedó aplicado y no debe romper el flujo del usuario.
-        val cloudJob = try {
-            firebaseService.getJobFromCloud(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo leer el trabajo desde Firestore: ${e.localizedMessage}")
-            AppTelemetry.error("payment", "No se pudo leer el trabajo desde Firestore", e)
-            null
-        }
-        val finalJob = cloudJob ?: job
+        val finalJob = job
         val finalAddress = if (finalJob.address.isNotBlank()) finalJob.address else if (job.address.isNotBlank()) job.address else "Cl. 51 #62-25, Rionegro, Antioquia, Colombia"
         val completedJob = finalJob.copy(
             status = "COMPLETED",
             address = finalAddress
         )
         jobRequestDao.insertJob(completedJob)
-        try {
-            firebaseService.pushJobToCloud(completedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo sincronizar el cierre en Firestore: ${e.localizedMessage}")
-            AppTelemetry.error("payment", "No se pudo sincronizar el cierre en Firestore", e)
-        }
 
         // System message in chat
         val systemMsg = ChatMessage(
@@ -1791,15 +1755,7 @@ class GalibuRepository(
         } catch (e: Exception) {
             Log.e("GalibuRepository", "submitServiceRating backend falló, se conserva local: ${e.localizedMessage}")
         }
-        
-        val cloudJob = try {
-            firebaseService.getJobFromCloud(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "submitServiceRating: no se pudo leer Firestore, se usa copia local: ${e.localizedMessage}")
-            AppTelemetry.error("rating", "No se pudo leer el trabajo desde Firestore", e)
-            null
-        }
-        val finalJob = cloudJob ?: job
+        val finalJob = job
         val finalAddress = if (finalJob.address.isNotBlank()) finalJob.address else if (job.address.isNotBlank()) job.address else "Cl. 51 #62-25, Rionegro, Antioquia, Colombia"
         
         val updatedJob = if (isClientRating) {
@@ -1821,12 +1777,6 @@ class GalibuRepository(
         jobRequestDao.insertJob(updatedJob)
         // La calificación ya quedó persistida (backend + local): un fallo de
         // Firestore no debe mostrarse como error al usuario.
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "submitServiceRating: no se pudo sincronizar la calificación en Firestore: ${e.localizedMessage}")
-            AppTelemetry.error("rating", "No se pudo sincronizar la calificación en Firestore", e)
-        }
 
         // Re-calculate average ratings
         if (isClientRating) {
@@ -1935,11 +1885,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write del accept a Firestore falló: ${e.localizedMessage}")
-        }
 
         // System message in chat (chat stays on Firebase)
         val welcomeMsg = ChatMessage(
@@ -1965,11 +1910,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write del reject a Firestore falló: ${e.localizedMessage}")
-        }
         AppTelemetry.event("job.reject_direct", mapOf("jobId" to jobId))
     }
 
@@ -1981,11 +1921,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write del start a Firestore falló: ${e.localizedMessage}")
-        }
         val startMsg = ChatMessage(
             jobId = updatedJob.id,
             senderId = "system",
@@ -2015,11 +1950,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write del finish a Firestore falló: ${e.localizedMessage}")
-        }
         val finishMsg = ChatMessage(
             jobId = updatedJob.id,
             senderId = "system",
@@ -2049,11 +1979,6 @@ class GalibuRepository(
         } catch (e: Exception) {
             Log.e("GalibuRepository", "Error limpiando bids locales de $jobId: ${e.localizedMessage}")
         }
-        try {
-            firebaseService.deleteJobFromCloud(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-delete del job en Firestore falló: ${e.localizedMessage}")
-        }
         AppTelemetry.event("job.delete", mapOf("jobId" to jobId))
     }
 
@@ -2065,11 +1990,6 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        try {
-            firebaseService.pushJobToCloud(updatedJob)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Dual-write de la contraoferta a Firestore falló: ${e.localizedMessage}")
-        }
 
         // System message in chat (chat stays on Firebase)
         val senderText = if (isClient) "El cliente" else "El profesional"

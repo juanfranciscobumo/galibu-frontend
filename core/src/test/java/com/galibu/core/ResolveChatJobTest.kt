@@ -88,7 +88,6 @@ class ResolveChatJobTest : BaseRepositoryTest() {
 
         assertTrue(result != null && result.startsWith("chat_pro_1_"))
         assertEquals(result, fakeJobDao.getJobByIdSync(result!!)?.id)
-        coVerify { mockFirebase.pushJobToCloud(any()) }
     }
 
     @Test
