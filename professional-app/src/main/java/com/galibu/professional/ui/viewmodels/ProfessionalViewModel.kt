@@ -230,14 +230,21 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 onComplete()
             } catch (e: Exception) {
                 Log.e("ProfessionalViewModel", "Falla enviar propuesta: ${e.localizedMessage}")
-                val user = currentUser.value
-                val warning = AppNotification(
-                    userId = user?.id ?: "",
-                    title = "Oferta Guardada Localmente ⏳",
-                    body = "Tu propuesta de $$amount COP se guardó localmente. Error de sincronización Firebase: ${e.localizedMessage}"
-                )
-                database.appNotificationDao().insertNotification(warning)
-                showWarning("Tu oferta se guardó localmente y se sincronizará automáticamente al recuperar la conexión.")
+                val msg = e.localizedMessage ?: ""
+                val userFacing = when {
+                    msg.contains("403") || msg.contains("verificar", ignoreCase = true) ->
+                        "No pudimos enviar la oferta: debes verificar tu identidad antes de ofertar."
+                    msg.contains("409") || msg.contains("propia solicitud", ignoreCase = true) ->
+                        "No puedes ofertar en tu propia solicitud."
+                    msg.contains("409") || msg.contains("no admite ofertas", ignoreCase = true) ->
+                        "La solicitud ya no admite ofertas en su estado actual."
+                    msg.contains("Unable to resolve host", ignoreCase = true) ||
+                        msg.contains("timeout", ignoreCase = true) ||
+                        msg.contains("IOException", ignoreCase = true) ->
+                        "Sin conexión: no se pudo enviar la oferta. Inténtalo de nuevo."
+                    else -> "No se pudo enviar la oferta: ${msg.ifBlank { "error desconocido" }}"
+                }
+                showError(userFacing)
             } finally {
                 hideLoading()
             }
