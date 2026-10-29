@@ -44,18 +44,6 @@ class ResolveChatJobTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `resolveChatJobId falls back to Firestore for legacy threads`() = runTest {
-        coEvery { mockApi.getJob("chat_old") } throws RuntimeException("404")
-        val legacy = createJob(id = "chat_old", status = "NEGOTIATING", clientId = "client_1")
-        coEvery { mockFirebase.getJobFromCloud("chat_old") } returns legacy
-
-        val result = repository.resolveChatJobId("pro_1", "Pro", "Plomería", jobId = "chat_old")
-
-        assertEquals("chat_old", result)
-        assertEquals("chat_old", fakeJobDao.getJobByIdSync("chat_old")?.id)
-    }
-
-    @Test
     fun `resolveChatJobId reuses active job with professional instead of creating`() = runTest {
         setCurrentUserDirect(createUser(id = "client_1", email = "c@test.com", role = "CLIENT"))
         fakeJobDao.insertJob(

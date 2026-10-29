@@ -1143,19 +1143,6 @@ class GalibuRepository(
                     }
                     return@withTransaction backend.id
                 }
-                // Legacy direct-chat threads may live only in Firestore.
-                val cloud = try {
-                    firebaseService.getJobFromCloud(jobId)
-                } catch (e: Exception) {
-                    Log.e("GalibuRepository", "Error descargando job $jobId para chat: ${e.localizedMessage}")
-                    null
-                }
-                if (cloud != null) {
-                    try { jobRequestDao.insertJob(cloud) } catch (e: Exception) {
-                        Log.e("GalibuRepository", "Error guardando job $jobId en Room: ${e.localizedMessage}")
-                    }
-                    return@withTransaction cloud.id
-                }
             }
             findActiveJobWithProfessional(proId)?.let { return@withTransaction it.id }
             val user = _currentUser.value ?: return@withTransaction null
