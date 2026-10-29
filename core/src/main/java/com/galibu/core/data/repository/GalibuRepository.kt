@@ -892,11 +892,7 @@ class GalibuRepository(
         }
         val updated = user.copy(balance = tx.balanceAfter)
         userProfileDao.insertUser(updated)
-        try {
-            firebaseService.syncUserProfileToCloud(updated)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "rechargeBalance dual-write falló: ${e.localizedMessage}")
-        }
+        // Firebase ya no es fuente de verdad para el perfil: el backend (MySQL) lo es.
         setCurrentUser(updated)
         
         // Add push notification
@@ -1028,7 +1024,7 @@ class GalibuRepository(
             )
         }
         userProfileDao.insertUser(updatedUser)
-        try { firebaseService.syncUserProfileToCloud(updatedUser) } catch (ignored: Exception) { }
+        // Perfil persistido en backend; Firebase ya no es fuente de verdad.
         setCurrentUser(updatedUser)
         AppTelemetry.event("profile.verification", mapOf("docType" to docType))
     }
@@ -1399,11 +1395,7 @@ class GalibuRepository(
                 throw e
             }
             bidDao.insertBid(saved)
-            try {
-                firebaseService.pushBidToCloud(jobId, saved)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "Dual-write de la bid a Firestore falló: ${e.localizedMessage}")
-            }
+            // Oferta persistida en backend; Firestore ya no es fuente de verdad para bids.
 
             // Refresh the job (the server flips OPEN -> NEGOTIATING on first bid).
             refreshJobDetails(jobId)

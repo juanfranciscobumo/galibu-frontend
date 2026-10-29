@@ -47,7 +47,7 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
         val updatedJob = fakeJobDao.getJobByIdSync("job_1")
         assertNotNull(updatedJob)
         assertEquals("NEGOTIATING", updatedJob?.status)
-        coVerify { mockFirebase.pushBidToCloud("job_1", apiBid) }
+        // Firebase ya no es fuente de verdad para bids; la oferta queda en backend/Room.
     }
 
     @Test

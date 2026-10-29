@@ -37,7 +37,6 @@ class SubmitBidUpsertTest : BaseRepositoryTest() {
         assertEquals(1, bids.size)
         assertEquals("bid_job_1_pro_1", bids[0].id)
         assertEquals("NEGOTIATING", fakeJobDao.getJobByIdSync("job_1")?.status)
-        coVerify { mockFirebase.pushBidToCloud("job_1", apiBid) }
     }
 
     @Test
