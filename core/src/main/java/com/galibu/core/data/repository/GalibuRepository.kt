@@ -454,13 +454,28 @@ class GalibuRepository(
         }
     }
 
+    /**
+     * Sincroniza los mensajes de un chat desde el backend (fuente de verdad) hacia Room.
+     * Devuelve null porque ya no usamos listeners de Firestore para el chat.
+     */
     fun syncChatsForJob(jobId: String): com.google.firebase.firestore.ListenerRegistration? {
-        return firebaseService.listenToChats(jobId) { chats ->
-            repositoryScope.launch {
-                chats.forEach { chat ->
-                    chatMessageDao.insertMessage(chat)
-                }
+        repositoryScope.launch {
+            try {
+                val msgs = apiService.jobChats(jobId)
+                msgs.forEach { chatMessageDao.insertMessage(it) }
+            } catch (e: Exception) {
+                Log.e("GalibuRepository", "Error sincronizando chat $jobId desde backend: ${e.localizedMessage}")
             }
+        }
+        return null
+    }
+
+    suspend fun refreshChatsForJob(jobId: String) = withContext(Dispatchers.IO) {
+        try {
+            val msgs = apiService.jobChats(jobId)
+            msgs.forEach { chatMessageDao.insertMessage(it) }
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "Error refrescando chat $jobId: ${e.localizedMessage}")
         }
     }
 
@@ -1529,9 +1544,19 @@ class GalibuRepository(
 
     suspend fun sendMessage(jobId: String, message: ChatMessage) = withContext(Dispatchers.IO) {
         try {
-            firebaseService.sendChatMessageToCloud(message)
+            val saved = apiService.sendChat(jobId, com.galibu.core.data.remote.CreateChatMessageRequest(
+                text = message.text,
+                type = message.type
+            ))
+            chatMessageDao.insertMessage(saved)
         } catch (e: Exception) {
-            Log.e("GalibuRepository", "sendMessage failed for job $jobId", e)
+            Log.e("GalibuRepository", "sendMessage backend falló, se intenta Firebase: ${e.localizedMessage}")
+            try {
+                firebaseService.sendChatMessageToCloud(message)
+                chatMessageDao.insertMessage(message)
+            } catch (fe: Exception) {
+                Log.e("GalibuRepository", "sendMessage Firebase también falló: ${fe.localizedMessage}")
+            }
         }
     }
 
@@ -1571,11 +1596,24 @@ class GalibuRepository(
         // Actualiza el estado local de inmediato para que el contador de no leídos
         // desaparezca al abrir el chat, sin depender de la sincronización remota.
         chatMessageDao.markMessagesAsRead(jobId, currentUserId)
-        firebaseService.markChatMessagesAsReadInCloud(jobId, currentUserId)
+        try {
+            apiService.markChatsRead(jobId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "markAsRead backend falló, se intenta Firebase: ${e.localizedMessage}")
+            firebaseService.markChatMessagesAsReadInCloud(jobId, currentUserId)
+        }
     }
 
     suspend fun deleteMessage(jobId: String, messageId: String) = withContext(Dispatchers.IO) {
-        firebaseService.deleteChatMessageFromCloud(jobId, messageId)
+        try {
+            apiService.deleteChat(jobId, messageId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "deleteMessage backend falló, se intenta Firebase: ${e.localizedMessage}")
+            firebaseService.deleteChatMessageFromCloud(jobId, messageId)
+        }
+        try { chatMessageDao.deleteMessage(messageId) } catch (e: Exception) {
+            Log.e("GalibuRepository", "deleteMessage local falló: ${e.localizedMessage}")
+        }
     }
 
     suspend fun deleteMessage(messageId: String) = withContext(Dispatchers.IO) {

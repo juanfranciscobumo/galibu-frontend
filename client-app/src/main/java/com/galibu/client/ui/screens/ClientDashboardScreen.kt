@@ -547,6 +547,16 @@ fun ClientDashboardScreen(
         onDispose { viewModel.stopListeningToChats(regs) }
     }
 
+    // Polling de mensajes de chat desde el backend (fuente de verdad) para
+    // mantener las conversaciones actualizadas sin depender de Firestore.
+    LaunchedEffect(myActiveChatIds) {
+        if (myActiveChatIds.isEmpty()) return@LaunchedEffect
+        while (true) {
+            viewModel.refreshChatsForJobs(myActiveChatIds)
+            kotlinx.coroutines.delay(5000)
+        }
+    }
+
     // Contador del menú: solo mensajes sin leer de conversaciones activas.
     // Antes contaba también los mensajes de servicios completados/cancelados y
     // por eso se veía un número rojo aunque no hubiera conversaciones en pantalla.

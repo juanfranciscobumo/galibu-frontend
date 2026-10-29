@@ -69,6 +69,12 @@ data class VerificationSubmitDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class CreateChatMessageRequest(
+    val text: String,
+    val type: String? = "text"
+)
+
+@JsonClass(generateAdapter = true)
 data class PasswordChangeDto(
     val currentPassword: String,
     val newPassword: String

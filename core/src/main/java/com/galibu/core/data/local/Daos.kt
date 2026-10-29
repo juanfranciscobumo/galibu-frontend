@@ -129,6 +129,9 @@ interface ChatMessageDao {
     @Query("UPDATE chat_messages SET read = 1 WHERE jobId = :jobId AND senderId != :currentUserId")
     suspend fun markMessagesAsRead(jobId: String, currentUserId: String)
 
+    @Query("DELETE FROM chat_messages WHERE id = :messageId")
+    suspend fun deleteMessage(messageId: String)
+
     @Query("DELETE FROM chat_messages")
     suspend fun deleteAllChatMessages()
 }

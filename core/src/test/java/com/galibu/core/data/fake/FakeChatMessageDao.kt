@@ -20,6 +20,10 @@ class FakeChatMessageDao : ChatMessageDao {
         messages.value = messages.value.filter { it.id != message.id } + message
     }
 
+    override suspend fun deleteMessage(messageId: String) {
+        messages.value = messages.value.filter { it.id != messageId }
+    }
+
     override suspend fun markMessagesAsRead(jobId: String, currentUserId: String) {
         messages.value = messages.value.map { message ->
             if (message.jobId == jobId && message.senderId != currentUserId) {

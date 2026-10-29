@@ -1,6 +1,7 @@
 package com.galibu.core.data.remote
 
 import com.galibu.core.data.model.Bid
+import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
 import retrofit2.Call
@@ -138,6 +139,19 @@ interface ApiService {
 
     @GET("users/{userId}/ratings")
     suspend fun userRatings(@Path("userId") userId: String): List<RatingDto>
+
+    // Chat
+    @GET("jobs/{jobId}/chats")
+    suspend fun jobChats(@Path("jobId") jobId: String): List<ChatMessage>
+
+    @POST("jobs/{jobId}/chats")
+    suspend fun sendChat(@Path("jobId") jobId: String, @Body req: CreateChatMessageRequest): ChatMessage
+
+    @POST("jobs/{jobId}/chats/read")
+    suspend fun markChatsRead(@Path("jobId") jobId: String)
+
+    @DELETE("jobs/{jobId}/chats/{messageId}")
+    suspend fun deleteChat(@Path("jobId") jobId: String, @Path("messageId") messageId: String)
 
     // Geo (public)
     @GET("geo/departments")

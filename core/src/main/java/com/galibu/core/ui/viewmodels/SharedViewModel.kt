@@ -370,6 +370,16 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         return jobIds.map { repository.syncChatsForJob(it) }
     }
 
+    fun refreshChatsForJobs(jobIds: List<String>) {
+        viewModelScope.launch {
+            jobIds.forEach { jobId ->
+                try { repository.refreshChatsForJob(jobId) } catch (e: Exception) {
+                    Log.e("SharedViewModel", "Falla refrescar chat $jobId: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
     fun stopListeningToChats(listeners: List<com.google.firebase.firestore.ListenerRegistration?>) {
         listeners.forEach { registration ->
             try {

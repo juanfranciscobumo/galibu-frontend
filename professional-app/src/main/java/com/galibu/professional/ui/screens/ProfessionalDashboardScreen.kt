@@ -187,6 +187,14 @@ fun ProfessionalDashboardScreen(
         onDispose { viewModel.stopListeningToChats(regs) }
     }
 
+    LaunchedEffect(myChatJobIds) {
+        if (myChatJobIds.isEmpty()) return@LaunchedEffect
+        while (true) {
+            viewModel.refreshChatsForJobs(myChatJobIds)
+            kotlinx.coroutines.delay(5000)
+        }
+    }
+
     // Conversaciones activas (las mismas que muestra el tab Mensajes).
     val activeChatJobIds = remember(allJobs, allMessages, currentUser) {
         val sentIds = allMessages.filter { it.senderId == currentUser?.id }.map { it.jobId }.toSet()
