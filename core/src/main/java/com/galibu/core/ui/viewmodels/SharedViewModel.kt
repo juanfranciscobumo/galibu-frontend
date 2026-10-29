@@ -665,36 +665,6 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         return uploaded
     }
 
-    fun toggleUserRole() {
-        viewModelScope.launch {
-            try {
-                val user = currentUser.value ?: return@launch
-                val targetRole = if (user.role == "CLIENT") {
-                    "PROFESSIONAL"
-                } else if (user.role == "PROFESSIONAL") {
-                    "CLIENT"
-                } else {
-                    if (_activeRole.value == "CLIENT") "PROFESSIONAL" else "CLIENT"
-                }
-                if (user.role == "BOTH") {
-                    _activeRole.value = targetRole
-                    showLoading("Cambiando vista de rol...")
-                    kotlinx.coroutines.delay(800)
-                    return@launch
-                }
-                val updatedProfile = user.copy(role = targetRole)
-                showLoading("Cambiando vista de rol...")
-                kotlinx.coroutines.delay(800)
-                repository.updateUserDirectly(updatedProfile)
-                _activeRole.value = targetRole
-            } catch (e: Exception) {
-                Log.e("SharedViewModel", "Falla al cambiar de rol: ${e.localizedMessage}")
-            } finally {
-                hideLoading()
-            }
-        }
-    }
-
     fun updateUserDirectly(profile: UserProfile) {
         viewModelScope.launch {
             repository.updateUserDirectly(profile)

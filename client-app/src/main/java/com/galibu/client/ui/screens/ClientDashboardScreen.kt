@@ -491,7 +491,12 @@ fun ClientDashboardScreen(
 
 
     val professionalModels = remember(professionals) {
-        professionals.filter { it.role.equals("PROFESSIONAL", ignoreCase = true) || it.role.equals("BOTH", ignoreCase = true) }.map { profile ->
+        professionals.filter {
+            (it.role.equals("PROFESSIONAL", ignoreCase = true) || it.role.equals("BOTH", ignoreCase = true)) &&
+                // Una cuenta BOTH sin categoría todavía no ha completado su perfil
+                // profesional (p. ej. un cliente que abrió la app profesional y salió).
+                !it.workCategory.isNullOrBlank()
+        }.map { profile ->
             ProfessionalModel(
                 id = profile.id,
                 name = profile.name,

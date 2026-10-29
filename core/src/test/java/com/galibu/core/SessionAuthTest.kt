@@ -1,6 +1,7 @@
 package com.galibu.core
 
 import io.mockk.coEvery
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,10 +50,24 @@ class SessionAuthTest : BaseRepositoryTest() {
 
         fakeJobDao.insertJob(createJob(id = "stale_job", status = "OPEN", clientId = "u1"))
 
-        repository.refreshJobs()
+        repository.forceRefreshJobs()
 
         assertEquals("job_new", fakeJobDao.getJobByIdSync("job_new")?.id)
         assertNull(fakeJobDao.getJobByIdSync("stale_job"))
+    }
+
+    @Test
+    fun `professionals flow excludes the logged-in user`() = runTest {
+        tokenStore.saveTokens("access-1", "refresh-1")
+        val user = createUser(id = "u1", email = "u1@test.com", role = "BOTH")
+        coEvery { mockApi.getMe() } returns user
+        repository.restoreSession()
+
+        fakeUserDao.insertUser(createUser(id = "pro_1", email = "pro@test.com"))
+
+        val visible = repository.getAllProfessionals().first()
+
+        assertEquals(listOf("pro_1"), visible.map { it.id })
     }
 
     @Test
