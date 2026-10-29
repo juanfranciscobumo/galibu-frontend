@@ -32,6 +32,7 @@ import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private fun getBytesFromUri(context: Context, uri: Uri): ByteArray? {
     return try {
@@ -165,7 +166,7 @@ fun ProfessionalVerificationScreen(
         }
 
         // Current status card
-        val status = "VERIFIED"
+        val status = currentUser?.verificationStatus ?: "NOT_STARTED"
         val statusCardBg = when (status) {
             "VERIFIED" -> Color(0xFFE8F5E9)
             "PENDING" -> Color(0xFFE3F2FD)
@@ -457,8 +458,7 @@ fun ProfessionalVerificationScreen(
                 // Automatically approve when countdown hits 0
                 val user = currentUser
                 if (user != null && user.verificationStatus == "PENDING") {
-                    val verifiedUser = user.copy(verificationStatus = "VERIFIED")
-                    viewModel.updateUserDirectly(verifiedUser)
+                    viewModel.repository.completeVerification()
                     viewModel.triggerSimulatedFcmPush(
                         "Identidad Verificada Exitosamente 🎉",
                         "El pipeline inteligente de Firebase procesó tu ID de manera exitosa. ¡Tu perfil cuenta ahora con sello verificado y puedes ofertar!"
@@ -506,12 +506,13 @@ fun ProfessionalVerificationScreen(
                     onClick = {
                         val user = currentUser
                         if (user != null) {
-                            val verifiedUser = user.copy(verificationStatus = "VERIFIED")
-                            viewModel.updateUserDirectly(verifiedUser)
-                            viewModel.triggerSimulatedFcmPush(
-                                "Identidad Verificada Exitosamente 🎉",
-                                "Tu ID ha sido verificado mediante aprobación instantánea del administrador. ¡Ya puedes ofertar!"
-                            )
+                            scope.launch {
+                                viewModel.repository.completeVerification()
+                                viewModel.triggerSimulatedFcmPush(
+                                    "Identidad Verificada Exitosamente 🎉",
+                                    "Tu ID ha sido verificado mediante aprobación instantánea del administrador. ¡Ya puedes ofertar!"
+                                )
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),

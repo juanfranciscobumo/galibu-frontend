@@ -63,6 +63,12 @@ data class AddRoleDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class VerificationSubmitDto(
+    val documentType: String? = null,
+    val documentPhotoUrl: String? = null
+)
+
+@JsonClass(generateAdapter = true)
 data class PasswordChangeDto(
     val currentPassword: String,
     val newPassword: String

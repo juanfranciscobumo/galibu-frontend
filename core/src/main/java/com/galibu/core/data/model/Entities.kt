@@ -2,6 +2,7 @@ package com.galibu.core.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import java.io.Serializable
 
@@ -30,6 +31,7 @@ data class UserProfile(
     val email: String = "",
     val phone: String = "",
     val role: String = "", // "CLIENT" or "PROFESSIONAL"
+    @Json(name = "verified")
     val isVerified: Boolean = true,
     val rating: Float = 5.0f,
     val completedJobs: Int = 0,

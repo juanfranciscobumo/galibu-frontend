@@ -254,9 +254,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                     kotlinx.coroutines.delay(10000)
                     val user = repository.currentUser.value
                     if (user != null && user.verificationStatus == "PENDING") {
-                        val verifiedUser = user.copy(verificationStatus = "VERIFIED")
-                        repository.updateUserDirectly(verifiedUser)
-                        
+                        repository.completeVerification()
+
                         val successNotif = AppNotification(
                             userId = user.id,
                             title = "Identidad Verificada Exitosamente 🎉",
