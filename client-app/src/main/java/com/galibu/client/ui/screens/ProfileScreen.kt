@@ -1012,7 +1012,15 @@ fun ProfileScreen(
                                 viewModel.showError("La nueva contraseña y su confirmación no coinciden")
                                 return@Button
                             }
-                            viewModel.changePassword(currentPasswordInput.trim(), newPasswordInput.trim()) { errorMsg ->
+                            if (newPasswordInput.length < 8) {
+                                viewModel.showError("La nueva contraseña debe tener al menos 8 caracteres.")
+                                return@Button
+                            }
+                            if (newPasswordInput.length > 72) {
+                                viewModel.showError("La nueva contraseña no puede superar los 72 caracteres.")
+                                return@Button
+                            }
+                            viewModel.changePassword(currentPasswordInput, newPasswordInput) { errorMsg ->
                                 if (errorMsg == null) {
                                     showSuccessMessage = "La contraseña ha sido cambiada exitosamente"
                                     currentPasswordInput = ""
@@ -1436,7 +1444,14 @@ fun ProfileScreen(
                             title = "Cambiar contraseña",
                             onClick = { 
                                 showSuccessMessage = null
-                                activeSubScreen = ProfileSubScreen.CHANGE_PASSWORD 
+                                if (currentUser?.authProvider == "GOOGLE") {
+                                    viewModel.showInfo(
+                                        "Tu cuenta está vinculada a Google. " +
+                                            "Cambia tu contraseña desde tu cuenta de Google."
+                                    )
+                                } else {
+                                    activeSubScreen = ProfileSubScreen.CHANGE_PASSWORD 
+                                }
                             }
                         )
 

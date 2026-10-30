@@ -842,18 +842,48 @@ class GalibuRepository(
     }
 
     suspend fun changePassword(currentPassword: String, newPassword: String): String? = withContext(Dispatchers.IO) {
+        if (currentPassword.isBlank()) {
+            return@withContext "Ingresa tu contraseña actual."
+        }
+        if (newPassword.length < 8) {
+            return@withContext "La nueva contraseña debe tener al menos 8 caracteres."
+        }
+        if (newPassword.length > 72) {
+            return@withContext "La nueva contraseña no puede superar los 72 caracteres."
+        }
         try {
             apiService.changePassword(PasswordChangeDto(currentPassword, newPassword))
             AppTelemetry.event("profile.password")
             null
         } catch (e: HttpException) {
-            if (e.code() == 401) "La contraseña actual es incorrecta"
-            else "No se pudo cambiar la contraseña en el servidor."
+            val serverMessage = backendErrorMessage(e)
+            when (e.code()) {
+                401 -> serverMessage ?: "La contraseña actual es incorrecta"
+                in 400..499 -> serverMessage
+                    ?: "No se pudo cambiar la contraseña. Revisa los datos e inténtalo de nuevo."
+                else -> "No se pudo cambiar la contraseña en el servidor."
+            }
         } catch (e: IOException) {
             "Sin conexión: no se pudo cambiar la contraseña."
         } catch (e: Exception) {
             "No se pudo cambiar la contraseña: ${e.localizedMessage}"
         }
+    }
+
+    /** Extrae el campo `message` del JSON de error del backend, si viene. */
+    private fun backendErrorMessage(e: HttpException): String? {
+        val body = try {
+            e.response()?.errorBody()?.string().orEmpty()
+        } catch (ignored: Exception) {
+            ""
+        }
+        val raw = Regex("\"message\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"")
+            .find(body)?.groupValues?.getOrNull(1) ?: return null
+        return raw
+            .replace("\\n", "\n")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\")
+            .ifBlank { null }
     }
 
     suspend fun getUserById(id: String): UserProfile? = withContext(Dispatchers.IO) {

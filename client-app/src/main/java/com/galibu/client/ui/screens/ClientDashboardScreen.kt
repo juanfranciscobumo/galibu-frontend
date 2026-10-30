@@ -696,7 +696,14 @@ fun ClientDashboardScreen(
                     },
                     onChangePassword = {
                         passwordSuccessMessage = null
-                        showChangePassword = true
+                        if (currentUser?.authProvider == "GOOGLE") {
+                            viewModel.showInfo(
+                                "Tu cuenta está vinculada a Google. " +
+                                    "Cambia tu contraseña desde tu cuenta de Google."
+                            )
+                        } else {
+                            showChangePassword = true
+                        }
                     },
                     onDeleteAccount = { showDeleteAccountDialog = true },
                     onLogout = { showLogoutDialog = true },
@@ -4653,7 +4660,15 @@ fun ChangePasswordScreen(
                         onError("La nueva contraseña y su confirmación no coinciden")
                         return@Button
                     }
-                    onSubmit(currentPassword.trim(), newPassword.trim()) { errorMsg ->
+                    if (newPassword.length < 8) {
+                        onError("La nueva contraseña debe tener al menos 8 caracteres.")
+                        return@Button
+                    }
+                    if (newPassword.length > 72) {
+                        onError("La nueva contraseña no puede superar los 72 caracteres.")
+                        return@Button
+                    }
+                    onSubmit(currentPassword, newPassword) { errorMsg ->
                         if (errorMsg == null) {
                             currentPassword = ""
                             newPassword = ""

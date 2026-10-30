@@ -49,7 +49,8 @@ data class UserProfile(
     val workDescription: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val hourlyRate: Double? = null,
-    val acceptedTerms: Boolean = false
+    val acceptedTerms: Boolean = false,
+    val authProvider: String = "LOCAL"
 ) : Serializable
 
 @JsonClass(generateAdapter = true)
