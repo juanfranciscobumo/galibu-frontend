@@ -413,9 +413,7 @@ class GalibuRepository(
         workCategory = workCategory,
         hourlyRate = hourlyRate,
         workPhotos = workPhotos,
-        workDescription = workDescription,
-        documentType = documentType,
-        documentPhotoUrl = documentPhotoSimulatedUrl
+        workDescription = workDescription
     )
 
     /**
@@ -1019,45 +1017,6 @@ class GalibuRepository(
         }
     }
     fun isFirebaseInitialized() = firebaseService.isFirebaseInitialized()
-
-    // --- Document Verification ---
-
-    suspend fun submitVerificationDocuments(docType: String, docBytes: ByteArray) = withContext(Dispatchers.IO) {
-        val user = _currentUser.value ?: return@withContext
-        val docUrl = firebaseService.uploadIdentityDocument(user.id, docBytes)
-
-        val updatedUser = try {
-            apiService.submitVerification(
-                com.galibu.core.data.remote.VerificationSubmitDto(docType, docUrl)
-            )
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "submitVerification backend falló, se conserva local: ${e.localizedMessage}")
-            user.copy(
-                documentType = docType,
-                documentPhotoSimulatedUrl = docUrl,
-                verificationStatus = "PENDING"
-            )
-        }
-        userProfileDao.insertUser(updatedUser)
-        // Perfil persistido en backend; Firebase ya no es fuente de verdad.
-        setCurrentUser(updatedUser)
-        AppTelemetry.event("profile.verification", mapOf("docType" to docType))
-    }
-
-    suspend fun completeVerification() = withContext(Dispatchers.IO) {
-        val updated = try {
-            apiService.completeVerification()
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "completeVerification backend falló: ${e.localizedMessage}")
-            val user = _currentUser.value ?: return@withContext null
-            user.copy(verificationStatus = "VERIFIED", isVerified = true)
-        }
-        if (updated != null) {
-            userProfileDao.insertUser(updated)
-            setCurrentUser(updated)
-        }
-        updated
-    }
 
     // --- Job Requests ---
 

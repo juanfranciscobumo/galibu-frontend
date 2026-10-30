@@ -176,29 +176,6 @@ class FirebaseService {
     }
 
     /**
-     * Upload professional's verification document.
-     * Simulated as uploading files to Firebase Storage: `gs://ofreceya-jobs/documents/{userId}_id.jpg`
-     */
-    suspend fun uploadIdentityDocument(userId: String, documentBytes: ByteArray): String {
-        Log.d("FirebaseService", "Uploading identity document for user: $userId to Firebase Storage.")
-        
-        if (isFirebaseInitialized()) {
-            try {
-                val storageRef = FirebaseStorage.getInstance().reference
-                val documentRef = storageRef.child("documents/${userId}_id.jpg")
-                documentRef.putBytes(documentBytes).awaitTask()
-                val downloadUrl = documentRef.downloadUrl.awaitTask()
-                return downloadUrl.toString()
-            } catch (e: Exception) {
-                Log.e("FirebaseService", "Error uploading identity document to Firebase Storage: ${e.localizedMessage}. Usando fallback de simulación.")
-            }
-        }
-        
-        // Simulation/Fallback return path inside real environment to prevent crash
-        return "https://firebasestorage.googleapis.com/v0/b/ofreceya-jobs.appspot.com/o/documents%2F${userId}_id.jpg?alt=media&token=simulated-token"
-    }
-
-    /**
      * Upload user's work/portfolio photo.
      * Simulated as uploading files to Firebase Storage: `gs://ofreceya-jobs/work_photos/{userId}_{photoId}.jpg`
      */

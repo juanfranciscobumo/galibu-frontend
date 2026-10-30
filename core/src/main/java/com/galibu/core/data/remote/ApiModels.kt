@@ -52,20 +52,12 @@ data class UpdateProfileDto(
     val workCategory: String? = null,
     val hourlyRate: Double? = null,
     val workPhotos: String? = null,
-    val workDescription: String? = null,
-    val documentType: String? = null,
-    val documentPhotoUrl: String? = null
+    val workDescription: String? = null
 )
 
 @JsonClass(generateAdapter = true)
 data class AddRoleDto(
     val role: String
-)
-
-@JsonClass(generateAdapter = true)
-data class VerificationSubmitDto(
-    val documentType: String? = null,
-    val documentPhotoUrl: String? = null
 )
 
 @JsonClass(generateAdapter = true)

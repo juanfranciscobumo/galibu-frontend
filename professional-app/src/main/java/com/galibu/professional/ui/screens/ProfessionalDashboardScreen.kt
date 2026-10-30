@@ -158,7 +158,6 @@ sealed class ProfessionalScreenState {
 @Composable
 fun ProfessionalDashboardScreen(
     viewModel: ProfessionalViewModel,
-    onNavigateToVerification: () -> Unit,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNegotiation: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -695,51 +694,6 @@ fun ProfessionalDashboardScreen(
                         }
                     }
 
-                    // --- VERIFICATION DEMAND BANNER ---
-                    if (false) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .border(1.dp, Color(0xFFFCA5A5), RoundedCornerShape(12.dp))
-                                .clickable { onNavigateToVerification() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = "Warning",
-                                    tint = proRedStyle,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Validación requerida de identidad 🛡️",
-                                        color = proTextMain,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Valida tu documento de identidad para recibir clientes de forma segura.",
-                                        color = proTextSec,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = "Verificar",
-                                    tint = proPrimary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // --- DIRECT HIRING REQUESTS ---
@@ -755,7 +709,6 @@ fun ProfessionalDashboardScreen(
                         directMappedJobs.forEach { job ->
                             JobRequestItem(
                                 job = job,
-                                isVerified = currentUser?.isVerified == true,
                                 balance = currentUser?.balance ?: 150000.0,
                                 hasBid = job.id in jobIdsWithBids,
                                 onAccept = {
@@ -854,7 +807,6 @@ fun ProfessionalDashboardScreen(
                                 val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    isVerified = currentUser?.isVerified == true,
                                     balance = currentUser?.balance ?: 150000.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
@@ -868,10 +820,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if (currentUser?.isVerified != true) {
-                                            viewModel.showAlert("Aviso", "Valida tu identidad de profesional primero")
-                                            onNavigateToVerification()
-                                        } else if ((currentUser?.balance ?: 150000.0) <= 0.0) {
+                                        if ((currentUser?.balance ?: 150000.0) <= 0.0) {
                                             showRechargeDialog = true
                                         } else {
                                             viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
@@ -917,7 +866,6 @@ fun ProfessionalDashboardScreen(
                                 val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    isVerified = currentUser?.isVerified == true,
                                     balance = currentUser?.balance ?: 150000.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
@@ -931,10 +879,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if (currentUser?.isVerified != true) {
-                                            viewModel.showAlert("Aviso", "Valida tu identidad de profesional primero")
-                                            onNavigateToVerification()
-                                        } else if ((currentUser?.balance ?: 150000.0) <= 0.0) {
+                                        if ((currentUser?.balance ?: 150000.0) <= 0.0) {
                                             showRechargeDialog = true
                                         } else {
                                             viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
@@ -3086,7 +3031,6 @@ fun ProfessionalDashboardScreen(
 @Composable
 fun JobRequestItem(
     job: ProDisplayJob,
-    isVerified: Boolean,
     balance: Double,
     onAccept: () -> Unit,
     onContraofertar: (Double) -> Unit,

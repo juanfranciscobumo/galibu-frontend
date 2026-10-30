@@ -38,12 +38,6 @@ interface ApiService {
     @POST("users/me/roles")
     suspend fun addRole(@Body req: AddRoleDto): UserProfile
 
-    @POST("users/me/verification")
-    suspend fun submitVerification(@Body req: VerificationSubmitDto): UserProfile
-
-    @POST("users/me/verification/complete")
-    suspend fun completeVerification(): UserProfile
-
     @PATCH("users/me/password")
     suspend fun changePassword(@Body req: PasswordChangeDto)
 

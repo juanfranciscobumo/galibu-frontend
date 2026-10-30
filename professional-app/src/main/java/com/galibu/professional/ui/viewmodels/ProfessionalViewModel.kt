@@ -232,8 +232,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 Log.e("ProfessionalViewModel", "Falla enviar propuesta: ${e.localizedMessage}")
                 val msg = e.localizedMessage ?: ""
                 val userFacing = when {
-                    msg.contains("403") || msg.contains("verificar", ignoreCase = true) ->
-                        "No pudimos enviar la oferta: debes verificar tu identidad antes de ofertar."
+                    msg.contains("403") || msg.contains("Solo un profesional", ignoreCase = true) ->
+                        "Solo un perfil profesional puede enviar ofertas."
                     msg.contains("409") || msg.contains("propia solicitud", ignoreCase = true) ->
                         "No puedes ofertar en tu propia solicitud."
                     msg.contains("409") || msg.contains("no admite ofertas", ignoreCase = true) ->
@@ -245,42 +245,6 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                     else -> "No se pudo enviar la oferta: ${msg.ifBlank { "error desconocido" }}"
                 }
                 showError(userFacing)
-            } finally {
-                hideLoading()
-            }
-        }
-    }
-
-    fun submitVerification(docType: String, docBytes: ByteArray) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando y encriptando documentos de verificación...")
-                repository.submitVerificationDocuments(docType, docBytes)
-                
-                viewModelScope.launch {
-                    kotlinx.coroutines.delay(10000)
-                    val user = repository.currentUser.value
-                    if (user != null && user.verificationStatus == "PENDING") {
-                        repository.completeVerification()
-
-                        val successNotif = AppNotification(
-                            userId = user.id,
-                            title = "Identidad Verificada Exitosamente 🎉",
-                            body = "El pipeline inteligente de Firebase procesó tu ID ($docType). Tu cuenta cuenta ahora con sello verificado y puedes ofertar."
-                        )
-                        database.appNotificationDao().insertNotification(successNotif)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "Falla verificación de documentos: ${e.localizedMessage}")
-                val user = currentUser.value
-                val warning = AppNotification(
-                    userId = user?.id ?: "",
-                    title = "Documentos Guardados Localmente ⏳",
-                    body = "Tus documentos se guardaron para verificación local. Falló la subida remota a Firebase: ${e.localizedMessage}"
-                )
-                database.appNotificationDao().insertNotification(warning)
-                showWarning("Tus documentos se guardaron localmente y se enviarán a verificación al recuperar la conexión.")
             } finally {
                 hideLoading()
             }

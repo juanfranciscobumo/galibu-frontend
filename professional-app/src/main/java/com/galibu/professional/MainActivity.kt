@@ -145,7 +145,6 @@ class MainActivity : ComponentActivity() {
                                         )
                                         "PROFESSIONAL_DASHBOARD" -> ProfessionalDashboardScreen(
                                             viewModel = viewModel,
-                                            onNavigateToVerification = { currentRoute = "PROFESSIONAL_VERIFICATION" },
                                             onNavigateToChat = { jobId ->
                                                 viewModel.selectJob(jobId)
                                                 currentRoute = "CHAT"
@@ -154,11 +153,6 @@ class MainActivity : ComponentActivity() {
                                                 viewModel.selectJob(jobId)
                                                 currentRoute = "NEGOTIATION"
                                             }
-                                        )
-                                        "PROFESSIONAL_VERIFICATION" -> ProfessionalVerificationScreen(
-                                            viewModel = viewModel,
-                                            modifier = Modifier.padding(bottom = 0.dp),
-                                            onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" }
                                         )
                                         "NEGOTIATION" -> PriceNegotiationScreen(
                                             viewModel = viewModel,
