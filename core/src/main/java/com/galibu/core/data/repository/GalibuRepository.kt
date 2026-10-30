@@ -1421,20 +1421,8 @@ class GalibuRepository(
         bidDao.insertBid(accepted)
         refreshJobDetails(accepted.jobId)
         refreshBidsForJob(accepted.jobId)
-
-        // Send entry chat system message (chat stays on Firebase).
-        val welcomeMsg = ChatMessage(
-            jobId = accepted.jobId,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "¡Presupuesto pactado en $$${accepted.amount} COP! Chat seguro iniciado. Coordinen los detalles aquí."
-        )
-        chatMessageDao.insertMessage(welcomeMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(welcomeMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-        }
+        // El mensaje de sistema "Chat seguro iniciado" lo crea el backend y llega
+        // a ambos participantes por el polling del chat.
     }
 
     suspend fun rejectBid(bidId: String) = withContext(Dispatchers.IO) {
@@ -1451,10 +1439,9 @@ class GalibuRepository(
 
     suspend fun cancelJob(jobId: String, reason: String = "") = withContext(Dispatchers.IO) {
         val localJob = jobRequestDao.getJobByIdSync(jobId)
-        val currentUser = _currentUser.value
         val wasAccepted = localJob?.status in listOf("ACCEPTED", "IN_PROGRESS", "PENDING_RATING")
         val cancelled = try {
-            apiService.cancelJob(jobId)
+            apiService.cancelJob(jobId, reason.ifBlank { null })
         } catch (e: Exception) {
             Log.e("GalibuRepository", "cancelJob falló en backend: ${e.localizedMessage}")
             throw e
@@ -1467,22 +1454,7 @@ class GalibuRepository(
         } catch (e: Exception) {
             Log.e("GalibuRepository", "Error limpiando bids locales de $jobId: ${e.localizedMessage}")
         }
-
-        // Send system message in chat if chat exists (chat stays on Firebase)
-        if (wasAccepted && currentUser != null) {
-            val systemMsg = ChatMessage(
-                jobId = jobId,
-                senderId = "system",
-                senderName = "Sistema",
-                text = "⚠️ Este trabajo ha sido cancelado por ${currentUser.name}${if (reason.isNotEmpty()) ": $reason" else ""}."
-            )
-            chatMessageDao.insertMessage(systemMsg)
-            try {
-                firebaseService.sendChatMessageToCloud(systemMsg)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-            }
-        }
+        // El aviso de cancelación en el chat lo crea el backend.
         AppTelemetry.event("job.cancel", mapOf("jobId" to jobId, "wasAccepted" to wasAccepted.toString()))
     }
 
@@ -1498,21 +1470,11 @@ class GalibuRepository(
     fun getBidsByProfessional(professionalId: String): Flow<List<Bid>> = bidDao.getBidsForProfessionalFlow(professionalId)
 
     suspend fun sendMessage(jobId: String, message: ChatMessage) = withContext(Dispatchers.IO) {
-        try {
-            val saved = apiService.sendChat(jobId, com.galibu.core.data.remote.CreateChatMessageRequest(
-                text = message.text,
-                type = message.type
-            ))
-            chatMessageDao.insertMessage(saved)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "sendMessage backend falló, se intenta Firebase: ${e.localizedMessage}")
-            try {
-                firebaseService.sendChatMessageToCloud(message)
-                chatMessageDao.insertMessage(message)
-            } catch (fe: Exception) {
-                Log.e("GalibuRepository", "sendMessage Firebase también falló: ${fe.localizedMessage}")
-            }
-        }
+        val saved = apiService.sendChat(jobId, com.galibu.core.data.remote.CreateChatMessageRequest(
+            text = message.text,
+            type = message.type
+        ))
+        chatMessageDao.insertMessage(saved)
     }
 
     suspend fun sendChatMessage(jobId: String, text: String) = withContext(Dispatchers.IO) {
@@ -1554,8 +1516,7 @@ class GalibuRepository(
         try {
             apiService.markChatsRead(jobId)
         } catch (e: Exception) {
-            Log.e("GalibuRepository", "markAsRead backend falló, se intenta Firebase: ${e.localizedMessage}")
-            firebaseService.markChatMessagesAsReadInCloud(jobId, currentUserId)
+            Log.e("GalibuRepository", "markAsRead falló en backend: ${e.localizedMessage}")
         }
     }
 
@@ -1563,8 +1524,7 @@ class GalibuRepository(
         try {
             apiService.deleteChat(jobId, messageId)
         } catch (e: Exception) {
-            Log.e("GalibuRepository", "deleteMessage backend falló, se intenta Firebase: ${e.localizedMessage}")
-            firebaseService.deleteChatMessageFromCloud(jobId, messageId)
+            Log.e("GalibuRepository", "deleteMessage falló en backend: ${e.localizedMessage}")
         }
         try { chatMessageDao.deleteMessage(messageId) } catch (e: Exception) {
             Log.e("GalibuRepository", "deleteMessage local falló: ${e.localizedMessage}")
@@ -1606,7 +1566,7 @@ class GalibuRepository(
         )
         jobRequestDao.insertJob(updatedJob)
 
-        // System message in chat
+        // System message in chat (flujo local de cierre y pago)
         val systemMsg = ChatMessage(
             jobId = jobId,
             senderId = "system",
@@ -1614,7 +1574,6 @@ class GalibuRepository(
             text = "Servicio finalizado en campo. Se encuentra en estado 'Pendiente de Calificación' hasta que ambos usuarios (Cliente y Profesional) se califiquen mutuamente."
         )
         chatMessageDao.insertMessage(systemMsg)
-        firebaseService.sendChatMessageToCloud(systemMsg)
 
         // Create alert notifications
         val alertClient = AppNotification(
@@ -1678,7 +1637,7 @@ class GalibuRepository(
         )
         jobRequestDao.insertJob(completedJob)
 
-        // System message in chat
+        // System message in chat (flujo local de pago)
         val systemMsg = ChatMessage(
             jobId = jobId,
             senderId = "system",
@@ -1686,12 +1645,6 @@ class GalibuRepository(
             text = "¡Ambas calificaciones completadas! Pago de $${String.format(Locale.US, "%,.0f", finalPrice)} COP liberado con éxito usando $paymentMethod. El servicio ha sido marcado como COMPLETADO."
         )
         chatMessageDao.insertMessage(systemMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(systemMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo sincronizar el mensaje de pago en Firestore: ${e.localizedMessage}")
-            AppTelemetry.error("payment", "No se pudo sincronizar el mensaje de pago en Firestore", e)
-        }
 
         // Create alert notifications
         val alertClient = AppNotification(
@@ -1861,20 +1814,7 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-
-        // System message in chat (chat stays on Firebase)
-        val welcomeMsg = ChatMessage(
-            jobId = updatedJob.id,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "¡El profesional aceptó la solicitud de contratación directa! Chat seguro iniciado."
-        )
-        chatMessageDao.insertMessage(welcomeMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(welcomeMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-        }
+        // El mensaje "Chat seguro iniciado" lo crea el backend.
         AppTelemetry.event("job.accept_direct", mapOf("jobId" to jobId))
     }
 
@@ -1897,18 +1837,7 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        val startMsg = ChatMessage(
-            jobId = updatedJob.id,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "¡El profesional inició el servicio! El trabajo está en progreso."
-        )
-        chatMessageDao.insertMessage(startMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(startMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-        }
+        // El mensaje "servicio iniciado" lo crea el backend.
         AppTelemetry.event("job.start", mapOf("jobId" to jobId))
     }
 
@@ -1926,18 +1855,7 @@ class GalibuRepository(
             throw e
         }
         jobRequestDao.insertJob(updatedJob)
-        val finishMsg = ChatMessage(
-            jobId = updatedJob.id,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "¡Servicio finalizado! Ya puedes calificar el trabajo realizado."
-        )
-        chatMessageDao.insertMessage(finishMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(finishMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-        }
+        // El mensaje "servicio finalizado" lo crea el backend.
         AppTelemetry.event("job.finish", mapOf("jobId" to jobId, "stars" to stars.toString()))
     }
 
@@ -1967,20 +1885,7 @@ class GalibuRepository(
         }
         jobRequestDao.insertJob(updatedJob)
 
-        // System message in chat (chat stays on Firebase)
-        val senderText = if (isClient) "El cliente" else "El profesional"
-        val sysMsg = ChatMessage(
-            jobId = jobId,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "¡$senderText propuso una nueva tarifa de $${amount.toInt()}/h!"
-        )
-        chatMessageDao.insertMessage(sysMsg)
-        try {
-            firebaseService.sendChatMessageToCloud(sysMsg)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "No se pudo enviar mensaje de sistema al chat: ${e.localizedMessage}")
-        }
+        // El mensaje "nueva tarifa propuesta" lo crea el backend.
         AppTelemetry.event(
             "job.counter_direct",
             mapOf("jobId" to jobId, "amount" to amount.toString(), "sender" to if (isClient) "CLIENT" else "PROFESSIONAL")

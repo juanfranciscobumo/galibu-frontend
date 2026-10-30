@@ -1028,15 +1028,6 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    // --- Firebase Sync Controls ---
-
-    val isCloudSyncEnabled: StateFlow<Boolean> = firebaseService.isCloudSyncEnabled
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
-
-    fun toggleCloudSync(enabled: Boolean) {
-        firebaseService.toggleCloudSync(enabled)
-    }
-
     fun triggerSimulatedFcmPush(title: String, body: String) {
         viewModelScope.launch {
             val user = currentUser.value ?: return@launch

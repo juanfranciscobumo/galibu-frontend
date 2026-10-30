@@ -68,7 +68,7 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `acceptDirectHire applies server job and posts chat message`() = runTest {
+    fun `acceptDirectHire applies server job`() = runTest {
         fakeJobDao.insertJob(
             createJob(
                 id = "job_1",
@@ -94,9 +94,7 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
         assertEquals("ACCEPTED", updatedJob?.status)
 
         val msgList = fakeChatDao.getMessagesForJobFlow("job_1").first()
-        assertEquals(1, msgList.size)
-        assertEquals("system", msgList[0].senderId)
-        assertTrue(msgList[0].text.contains("acept"))
+        assertTrue(msgList.isEmpty()) // el mensaje de sistema lo crea el backend
     }
 
     @Test
@@ -133,7 +131,7 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `submitCounterOfferDirectHire applies server counter and posts chat message`() = runTest {
+    fun `submitCounterOfferDirectHire applies server counter`() = runTest {
         fakeJobDao.insertJob(
             createJob(
                 id = "job_1",
@@ -161,8 +159,7 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
         assertEquals("CLIENT", updatedJob?.counterOfferSender)
 
         val msgList = fakeChatDao.getMessagesForJobFlow("job_1").first()
-        assertEquals(1, msgList.size)
-        assertEquals("system", msgList[0].senderId)
+        assertTrue(msgList.isEmpty()) // el mensaje de sistema lo crea el backend
     }
 
     @Test

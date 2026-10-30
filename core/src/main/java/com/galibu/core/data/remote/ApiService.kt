@@ -68,7 +68,7 @@ interface ApiService {
     suspend fun createJob(@Body req: CreateJobDto): JobRequest
 
     @PATCH("jobs/{id}/cancel")
-    suspend fun cancelJob(@Path("id") id: String): JobRequest
+    suspend fun cancelJob(@Path("id") id: String, @Query("reason") reason: String? = null): JobRequest
 
     @DELETE("jobs/{id}")
     suspend fun deleteJob(@Path("id") id: String)
