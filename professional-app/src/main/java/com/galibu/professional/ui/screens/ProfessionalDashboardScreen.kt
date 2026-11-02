@@ -246,15 +246,23 @@ fun ProfessionalDashboardScreen(
     // El subformulario de Perfil (editar/foto/clave) oculta el menú inferior.
     var hideBottomBar by rememberSaveable { mutableStateOf(false) }
 
-    // Re-chequeo periódico de mis solicitudes: solo mientras el usuario está
-    // en la pestaña "Profesionales" (donde se muestran los jobs). Se detiene
-    // automáticamente al salir de esa pestaña o de la pantalla.
+    // Al cargar la pantalla, verifica si llegó un push FCM mientras estaba fuera
+    // y refresca los jobs si es necesario.
+    LaunchedEffect(currentUser?.id) {
+        if (currentUser != null) {
+            viewModel.checkPendingJobRefresh()
+            viewModel.refreshMyJobs()
+        }
+    }
+
+    // Re-chequeo periódico de mis solicitudes: polling largo de respaldo cada 5 min.
+    // Los cambios inmediatos llegan por push FCM (checkPendingJobRefresh al entrar).
+    // Se ejecuta en ambas pestañas que muestran jobs ("Inicio" y "Profesionales").
     LaunchedEffect(currentUser?.id, selectedTab) {
         if (currentUser?.id.isNullOrEmpty()) return@LaunchedEffect
-        if (selectedTab != "Profesionales") return@LaunchedEffect
-        viewModel.refreshMyJobs()
+        if (selectedTab !in listOf("Inicio", "Profesionales")) return@LaunchedEffect
         while (true) {
-            delay(60_000)
+            delay(300_000)
             try {
                 viewModel.refreshMyJobs()
             } catch (e: Exception) {}

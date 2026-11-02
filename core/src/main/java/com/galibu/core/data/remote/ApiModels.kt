@@ -33,6 +33,12 @@ data class RefreshRequestDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class DeviceTokenRequestDto(
+    val fcmToken: String,
+    val platform: String = "ANDROID"
+)
+
+@JsonClass(generateAdapter = true)
 data class AuthResponseDto(
     val accessToken: String = "",
     val refreshToken: String = "",

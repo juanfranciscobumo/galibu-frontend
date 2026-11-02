@@ -446,6 +446,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 )
                 if (success) {
                     _activeRole.value = appRole ?: role
+                    registerFcmToken()
                 }
                 onResult(success)
             } catch (e: Exception) {
@@ -465,6 +466,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 val errorMsg = repository.login(email, password, role)
                 if (errorMsg == null) {
                     _activeRole.value = appRole ?: role
+                    registerFcmToken()
                 }
                 onResult(errorMsg)
             } catch (e: Exception) {
@@ -479,6 +481,46 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
             } finally {
                 hideLoading()
             }
+        }
+    }
+
+    /**
+     * Registra el token FCM (si existe) en el backend tras iniciar sesión.
+     */
+    private fun registerFcmToken() {
+        viewModelScope.launch {
+            try {
+                val token = firebaseService.getStoredFcmToken(getApplication<Application>())
+                if (token?.isNotBlank() == true) {
+                    repository.registerDeviceToken(token, "ANDROID")
+                }
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "registerFcmToken falló: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    /**
+     * Fuerza un refresco de jobs ignorando el throttle (se invoca al recibir un push FCM).
+     */
+    fun forceRefreshJobs() {
+        viewModelScope.launch {
+            try {
+                repository.forceRefreshJobs()
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "forceRefreshJobs falló: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    /**
+     * Verifica si hay un refresh pendiente de jobs por push FCM y lo ejecuta.
+     * Se llama al reanudar la pantalla de solicitudes.
+     */
+    fun checkPendingJobRefresh() {
+        val firebase = FirebaseService()
+        if (firebase.hasPendingJobRefresh(getApplication<Application>())) {
+            forceRefreshJobs()
         }
     }
 

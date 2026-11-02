@@ -46,6 +46,54 @@ class FirebaseService {
         return auth != null
     }
 
+    // --- FCM token y pendiente de refresh (SharedPreferences) ---
+
+    private companion object {
+        const val FCM_PREFS = "galibu_fcm"
+        const val FCM_TOKEN_KEY = "fcm_token"
+        const val PENDING_REFRESH_KEY = "pending_job_refresh"
+    }
+
+    /**
+     * Guarda el token FCM en SharedPreferences (llamado desde GalibuMessagingService.onNewToken).
+     */
+    fun storeFcmToken(context: android.content.Context, token: String) {
+        context.getSharedPreferences(FCM_PREFS, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putString(FCM_TOKEN_KEY, token)
+            .apply()
+    }
+
+    /**
+     * Lee el token FCM guardado (para registrarlo en el backend tras iniciar sesión).
+     */
+    fun getStoredFcmToken(context: android.content.Context): String? {
+        return context.getSharedPreferences(FCM_PREFS, android.content.Context.MODE_PRIVATE)
+            .getString(FCM_TOKEN_KEY, null)
+    }
+
+    /**
+     * Marca que hay un refresh pendiente de jobs (llamado desde GalibuMessagingService.onMessageReceived).
+     */
+    fun markPendingJobRefresh(context: android.content.Context) {
+        context.getSharedPreferences(FCM_PREFS, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PENDING_REFRESH_KEY, true)
+            .apply()
+    }
+
+    /**
+     * Verifica y borra la marca de refresh pendiente. Devuelve true si había uno pendiente.
+     */
+    fun hasPendingJobRefresh(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences(FCM_PREFS, android.content.Context.MODE_PRIVATE)
+        val pending = prefs.getBoolean(PENDING_REFRESH_KEY, false)
+        if (pending) {
+            prefs.edit().remove(PENDING_REFRESH_KEY).apply()
+        }
+        return pending
+    }
+
     /**
      * Firebase Auth Sign Out
      */

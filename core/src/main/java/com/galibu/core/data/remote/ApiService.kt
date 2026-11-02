@@ -162,6 +162,10 @@ interface ApiService {
 
     @POST("geo/categories")
     suspend fun addCategory(@Body req: Map<String, String>): NamedDto
+
+    // Dispositivos / Push FCM
+    @POST("devices/token")
+    suspend fun registerDeviceToken(@Body req: DeviceTokenRequestDto)
 }
 
 /** Synchronous variant used by the token authenticator (own bare client, no auth loop). */

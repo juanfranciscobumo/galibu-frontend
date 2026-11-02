@@ -15,6 +15,7 @@ import com.galibu.core.data.remote.BoldOrderStatusResponse
 import com.galibu.core.data.remote.CreateJobDto
 import com.galibu.core.data.remote.GoogleLoginRequestDto
 import com.galibu.core.data.remote.LoginRequestDto
+import com.galibu.core.data.remote.DeviceTokenRequestDto
 import com.galibu.core.data.remote.PasswordChangeDto
 import com.galibu.core.data.remote.RefreshRequestDto
 import com.galibu.core.data.remote.RegisterRequestDto
@@ -218,7 +219,7 @@ class GalibuRepository(
 
     /** Timestamp de la última ejecución de refreshJobs (para throttle). */
     private var lastRefreshJobsMs = 0L
-    private val REFRESH_JOBS_THROTTLE_MS = 60_000L
+    private val REFRESH_JOBS_THROTTLE_MS = 300_000L // 5 min: polling largo de respaldo; los cambios inmediatos via push FCM
 
     /**
      * Pulls jobs from the backend (mine + marketplace when the role allows it)
@@ -867,6 +868,15 @@ class GalibuRepository(
             "Sin conexión: no se pudo cambiar la contraseña."
         } catch (e: Exception) {
             "No se pudo cambiar la contraseña: ${e.localizedMessage}"
+        }
+    }
+
+    suspend fun registerDeviceToken(fcmToken: String, platform: String = "ANDROID") = withContext(Dispatchers.IO) {
+        try {
+            apiService.registerDeviceToken(DeviceTokenRequestDto(fcmToken, platform))
+            AppTelemetry.event("device.token.registered")
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "registerDeviceToken falló: ${e.localizedMessage}")
         }
     }
 
