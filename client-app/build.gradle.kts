@@ -64,6 +64,7 @@ android {
 
 dependencies {
   implementation(project(":core"))
+  implementation(project(":professional-app"))
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   implementation(libs.androidx.activity.compose)

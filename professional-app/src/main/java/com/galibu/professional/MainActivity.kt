@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ApiConfig.baseUrl = BuildConfig.API_URL
-        AppTelemetry.init("professional", BuildConfig.VERSION_NAME)
+        AppTelemetry.init("professional", "1.0")
 
         viewModel = ViewModelProvider(this)[ProfessionalViewModel::class.java]
         viewModel.setAppRole("PROFESSIONAL")

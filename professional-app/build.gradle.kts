@@ -1,7 +1,6 @@
 plugins {
-  alias(libs.plugins.android.application)
+  alias(libs.plugins.android.library)
   alias(libs.plugins.kotlin.compose)
-  alias(libs.plugins.google.services)
   alias(libs.plugins.google.devtools.ksp)
 }
 
@@ -19,37 +18,15 @@ android {
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.galibu.professional"
     minSdk = 24
-    targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     buildConfigField("String", "API_URL", "\"$apiUrl\"")
   }
 
-  signingConfigs {
-    create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      val ksFile = file(keystorePath)
-      if (ksFile.exists()) {
-        storeFile = ksFile
-        storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = "upload"
-        keyPassword = System.getenv("KEY_PASSWORD")
-      }
-    }
-  }
-
   buildTypes {
     release {
-      isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      val releaseSigning = signingConfigs.getByName("release")
-      if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
-        signingConfig = releaseSigning
-      }
     }
   }
   compileOptions {
