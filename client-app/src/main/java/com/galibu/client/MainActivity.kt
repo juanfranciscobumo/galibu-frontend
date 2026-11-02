@@ -69,7 +69,6 @@ class MainActivity : ComponentActivity() {
         )
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
-        viewModel.setAppRole("CLIENT")
         proViewModel = ViewModelProvider(this)[ProfessionalViewModel::class.java]
         proViewModel.setAppRole("PROFESSIONAL")
 
@@ -117,6 +116,9 @@ class MainActivity : ComponentActivity() {
                     AppTelemetry.setUser(currentUser?.id, currentUser?.role)
                     if (currentUser == null) {
                         currentRoute = "AUTH"
+                    } else if (currentRoute == "AUTH" && activeRole == null) {
+                        val initialRole = if (currentUser?.role?.equals("PROFESSIONAL", ignoreCase = true) == true) "PROFESSIONAL" else "CLIENT"
+                        viewModel.setAppRole(initialRole)
                     } else if (currentRoute == "AUTH") {
                         currentRoute = if (activeRole == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
                     }
@@ -130,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
                 // Keep the splash until the persisted-session check finishes, so a
                 // restored session never flashes the login screen on cold start.
-                val stillLoading = showSplash || !sessionReady
+                val stillLoading = showSplash || !sessionReady || (currentUser != null && activeRole == null)
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -210,6 +212,11 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToNotifications = {
                                                     selectedTab = "ALERTS"
                                                     currentRoute = "NOTIFICATIONS_HISTORY"
+                                                },
+                                                onSwitchRole = {
+                                                    viewModel.setAppRole("CLIENT")
+                                                    proViewModel.setAppRole("CLIENT")
+                                                    currentRoute = "AUTH"
                                                 }
                                             )
                                         }
@@ -260,36 +267,14 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToNotifications = {
                                                     selectedTab = "ALERTS"
                                                     currentRoute = "NOTIFICATIONS_HISTORY"
+                                                },
+                                                onSwitchRole = {
+                                                    viewModel.setAppRole("PROFESSIONAL")
+                                                    currentRoute = "AUTH"
                                                 }
                                             )
                                         }
                                     }
-                                }
-                            }
-
-                            // Botón de cambio a modo profesional (solo si el usuario tiene esa capacidad).
-                            val canSwitchToPro = currentUser?.role?.let {
-                                it.equals("PROFESSIONAL", ignoreCase = true) || it.equals("BOTH", ignoreCase = true)
-                            } == true
-                            if (canSwitchToPro) {
-                                IconButton(
-                                    onClick = {
-                                        if (activeRole == "PROFESSIONAL") {
-                                            viewModel.setAppRole("CLIENT")
-                                        } else {
-                                            viewModel.setAppRole("PROFESSIONAL")
-                                        }
-                                        currentRoute = "AUTH"
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(top = 4.dp, end = 4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.SwapHoriz,
-                                        contentDescription = "Cambiar de modo",
-                                        tint = if (activeRole == "PROFESSIONAL") Color.White else PolishBlue
-                                    )
                                 }
                             }
 

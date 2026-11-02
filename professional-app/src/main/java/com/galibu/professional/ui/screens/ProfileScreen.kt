@@ -81,7 +81,8 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
     onNavigateToNotifications: () -> Unit = {},
     forceEdit: Boolean = false,
-    onSubScreenOpen: (Boolean) -> Unit = {}
+    onSubScreenOpen: (Boolean) -> Unit = {},
+    onSwitchRole: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -1630,6 +1631,16 @@ fun ProfileScreen(
                             title = "Ayuda y soporte",
                             onClick = { showSupportDialog = true }
                         )
+
+                        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true) {
+                            ProfileOptionCard(
+                                icon = Icons.Default.SwapHoriz,
+                                iconBgColor = Color(0xFFEFF6FF),
+                                iconColor = Color(0xFF2563EB),
+                                title = "Cambiar a modo cliente",
+                                onClick = onSwitchRole
+                            )
+                        }
 
                         ProfileOptionCard(
                             icon = Icons.AutoMirrored.Filled.Logout,
