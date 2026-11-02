@@ -36,6 +36,7 @@ data class UserProfile(
     val rating: Float = 5.0f,
     val completedJobs: Int = 0,
     val balance: Double = 0.0,
+    val freeAcceptancesRemaining: Int = 0,
     val documentType: String? = null,
     val documentPhotoSimulatedUrl: String? = null,
     val workCategory: String? = null,

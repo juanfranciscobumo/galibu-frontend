@@ -16,7 +16,7 @@ import com.galibu.core.data.model.*
         ChatMessage::class,
         AppNotification::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -67,6 +67,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v17 -> v18: trabajos gratuitos de cortesía restantes para profesionales. */
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN freeAcceptancesRemaining INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -79,7 +86,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_13_14,
                     MIGRATION_14_15,
                     MIGRATION_15_16,
-                    MIGRATION_16_17
+                    MIGRATION_16_17,
+                    MIGRATION_17_18
                 )
                 .fallbackToDestructiveMigration(true)
                 .build()

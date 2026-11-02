@@ -706,7 +706,7 @@ fun ProfessionalDashboardScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 150000.0)}",
+                                        text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 0.0)}",
                                         color = Color.White,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Black,
@@ -732,7 +732,7 @@ fun ProfessionalDashboardScreen(
                         directMappedJobs.forEach { job ->
                             JobRequestItem(
                                 job = job,
-                                balance = currentUser?.balance ?: 150000.0,
+                                balance = currentUser?.balance ?: 0.0,
                                 hasBid = job.id in jobIdsWithBids,
                                 onAccept = {
                                     scope.launch {
@@ -830,7 +830,7 @@ fun ProfessionalDashboardScreen(
                                 val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    balance = currentUser?.balance ?: 150000.0,
+                                    balance = currentUser?.balance ?: 0.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
                                     onAcceptBidCounter = {
@@ -843,7 +843,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if ((currentUser?.balance ?: 150000.0) <= 0.0) {
+                                        if ((currentUser?.balance ?: 0.0) <= 0.0) {
                                             showRechargeDialog = true
                                         } else {
                                             viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
@@ -889,7 +889,7 @@ fun ProfessionalDashboardScreen(
                                 val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    balance = currentUser?.balance ?: 150000.0,
+                                    balance = currentUser?.balance ?: 0.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
                                     onAcceptBidCounter = {
@@ -902,7 +902,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if ((currentUser?.balance ?: 150000.0) <= 0.0) {
+                                        if ((currentUser?.balance ?: 0.0) <= 0.0) {
                                             showRechargeDialog = true
                                         } else {
                                             viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
@@ -1065,7 +1065,7 @@ fun ProfessionalDashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 150000.0)}",
+                                    text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 0.0)}",
                                     color = Color.White,
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Black
@@ -1081,7 +1081,7 @@ fun ProfessionalDashboardScreen(
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
-                                    val leftAttempts = ((currentUser?.balance ?: 150000.0) / 3000).toInt()
+                                    val leftAttempts = (currentUser?.freeAcceptancesRemaining ?: 0) + ((currentUser?.balance ?: 0.0) / 3000).toInt()
                                     Text(
                                         text = "Capacidad restante: $leftAttempts aceptaciones",
                                         color = Color.White.copy(alpha = 0.9f),
@@ -1903,7 +1903,7 @@ fun ProfessionalDashboardScreen(
                     fontWeight = FontWeight.Medium
                 )
 
-                if ((currentUser?.balance ?: 150000.0) <= 0.0) {
+                if ((currentUser?.balance ?: 0.0) <= 0.0) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
