@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -210,6 +211,30 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     }
+                                }
+                            }
+
+                            // Botón de cambio a modo profesional (solo si el usuario tiene esa capacidad).
+                            val canSwitchToPro = currentUser?.role?.let {
+                                it.equals("PROFESSIONAL", ignoreCase = true) || it.equals("BOTH", ignoreCase = true)
+                            } == true
+                            if (canSwitchToPro && currentRoute == "CLIENT_DASHBOARD") {
+                                val ctx = LocalContext.current
+                                IconButton(
+                                    onClick = {
+                                        ctx.startActivity(
+                                            android.content.Intent(ctx, com.galibu.professional.MainActivity::class.java)
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 4.dp, end = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SwapHoriz,
+                                        contentDescription = "Cambiar a modo profesional",
+                                        tint = PolishBlue
+                                    )
                                 }
                             }
 
