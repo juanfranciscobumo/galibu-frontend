@@ -219,7 +219,7 @@ class GalibuRepository(
 
     /** Timestamp de la última ejecución de refreshJobs (para throttle). */
     private var lastRefreshJobsMs = 0L
-    private val REFRESH_JOBS_THROTTLE_MS = 300_000L // 5 min: polling largo de respaldo; los cambios inmediatos via push FCM
+    private val REFRESH_JOBS_THROTTLE_MS = 60_000L // respaldo del push FCM; evita saturar la API
 
     /**
      * Pulls jobs from the backend (mine + marketplace when the role allows it)
@@ -1852,21 +1852,46 @@ class GalibuRepository(
     }
 
     suspend fun finishService(jobId: String, stars: Int, comment: String) = withContext(Dispatchers.IO) {
-        val updatedJob = try {
-            apiService.finishService(
+        try {
+            val updatedJob = apiService.finishService(
                 jobId,
                 com.galibu.core.data.remote.RatingRequestDto(
                     stars = stars.coerceIn(1, 5),
                     comment = comment.ifBlank { null }
                 )
             )
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "finishService falló en backend: ${e.localizedMessage}")
-            throw e
+            jobRequestDao.insertJob(updatedJob)
+            // El mensaje "servicio finalizado" lo crea el backend.
+            AppTelemetry.event("job.finish", mapOf("jobId" to jobId, "stars" to stars.toString()))
+        } catch (e: HttpException) {
+            // El otro participante ya finalizó el servicio (COMPLETED): este
+            // segundo cierre solo registra la calificación, sin volver a cerrar.
+            val remote = if (e.code() == 409) {
+                runCatching { apiService.getJob(jobId) }.getOrNull()
+            } else {
+                null
+            }
+            if (remote?.status == "COMPLETED") {
+                try {
+                    apiService.rateJob(
+                        jobId,
+                        com.galibu.core.data.remote.RatingRequestDto(
+                            stars = stars.coerceIn(1, 5),
+                            comment = comment.ifBlank { null }
+                        )
+                    )
+                } catch (rateError: HttpException) {
+                    // 409 = ya calificó antes (reintento): la operación es idempotente.
+                    if (rateError.code() != 409) throw rateError
+                }
+                val refreshed = runCatching { apiService.getJob(jobId) }.getOrNull()
+                if (refreshed != null) jobRequestDao.insertJob(refreshed)
+                AppTelemetry.event("job.rate_after_finish", mapOf("jobId" to jobId, "stars" to stars.toString()))
+            } else {
+                Log.e("GalibuRepository", "finishService falló en backend: ${e.localizedMessage}")
+                throw e
+            }
         }
-        jobRequestDao.insertJob(updatedJob)
-        // El mensaje "servicio finalizado" lo crea el backend.
-        AppTelemetry.event("job.finish", mapOf("jobId" to jobId, "stars" to stars.toString()))
     }
 
     suspend fun cancelJobRequest(jobId: String) = withContext(Dispatchers.IO) {

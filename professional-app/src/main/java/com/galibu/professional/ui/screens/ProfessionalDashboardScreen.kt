@@ -255,14 +255,13 @@ fun ProfessionalDashboardScreen(
         }
     }
 
-    // Re-chequeo periódico de mis solicitudes: polling largo de respaldo cada 5 min.
-    // Los cambios inmediatos llegan por push FCM (checkPendingJobRefresh al entrar).
+    // Re-chequeo periódico de mis solicitudes: respaldo del push FCM cada 60 s.
     // Se ejecuta en ambas pestañas que muestran jobs ("Inicio" y "Profesionales").
     LaunchedEffect(currentUser?.id, selectedTab) {
         if (currentUser?.id.isNullOrEmpty()) return@LaunchedEffect
         if (selectedTab !in listOf("Inicio", "Profesionales")) return@LaunchedEffect
         while (true) {
-            delay(300_000)
+            delay(60_000)
             try {
                 viewModel.refreshMyJobs()
             } catch (e: Exception) {}
@@ -442,6 +441,22 @@ fun ProfessionalDashboardScreen(
     var showProRatingSheet by remember { mutableStateOf(false) }
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
     var showClientRatingsHistory by remember { mutableStateOf(false) }
+
+    // Al abrir el detalle se consulta el estado fresco del backend (una sola
+    // petición) para no finalizar sobre datos viejos cuando el cliente ya cerró.
+    LaunchedEffect(selectedJobForProfileDetails?.id) {
+        val id = selectedJobForProfileDetails?.id ?: return@LaunchedEffect
+        val snap = try {
+            viewModel.repository.getJobSnapshot(id)
+        } catch (e: Exception) {
+            null
+        } ?: return@LaunchedEffect
+        selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(
+            status = snap.status,
+            clientRatingOfPro = snap.clientRatingOfPro,
+            proRatingOfClient = snap.proRatingOfClient
+        )
+    }
 
     LaunchedEffect(selectedClientIdForProfile, selectedJobForProfileDetails?.id) {
         clientDetailCounterOfferAmount = ""
@@ -2914,26 +2929,43 @@ fun ProfessionalDashboardScreen(
                 // Cerrar la hoja de inmediato: la finalización sigue en segundo
                 // plano y el overlay de carga queda visible encima.
                 showProRatingSheet = false
-                viewModel.finishService(ratingJob.id, rating, comment) {
-                    scope.launch {
-                        val snap = try {
-                            viewModel.repository.getJobSnapshot(ratingJob.id)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        if (snap != null && snap.status == "COMPLETED" && snap.clientRatingOfPro != null) {
-                            // El cliente ya finalizó y calificó: volver al home.
+                if (ratingJob.status == "COMPLETED") {
+                    // El cliente ya cerró el servicio: solo se registra la
+                    // calificación del profesional (no se vuelve a finalizar).
+                    viewModel.submitRating(
+                        ratingJob.id,
+                        rating.toFloat(),
+                        comment,
+                        isClientRating = false,
+                        onSuccess = {
                             selectedJobForProfileDetails = null
                             selectedClientIdForProfile = null
                             selectedTab = "Inicio"
                             viewModel.showAlert("Aviso", "¡Servicio completado! Gracias por calificar.")
-                        } else {
-                            // Reflejar el nuevo estado en pantalla sin salir de ella.
-                            selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(
-                                status = snap?.status ?: "COMPLETED",
-                                proRatingOfClient = snap?.proRatingOfClient,
-                                clientRatingOfPro = snap?.clientRatingOfPro
-                            )
+                        }
+                    )
+                } else {
+                    viewModel.finishService(ratingJob.id, rating, comment) {
+                        scope.launch {
+                            val snap = try {
+                                viewModel.repository.getJobSnapshot(ratingJob.id)
+                            } catch (e: Exception) {
+                                null
+                            }
+                            if (snap != null && snap.status == "COMPLETED" && snap.clientRatingOfPro != null) {
+                                // El cliente ya finalizó y calificó: volver al home.
+                                selectedJobForProfileDetails = null
+                                selectedClientIdForProfile = null
+                                selectedTab = "Inicio"
+                                viewModel.showAlert("Aviso", "¡Servicio completado! Gracias por calificar.")
+                            } else {
+                                // Reflejar el nuevo estado en pantalla sin salir de ella.
+                                selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(
+                                    status = snap?.status ?: "COMPLETED",
+                                    proRatingOfClient = snap?.proRatingOfClient,
+                                    clientRatingOfPro = snap?.clientRatingOfPro
+                                )
+                            }
                         }
                     }
                 }
