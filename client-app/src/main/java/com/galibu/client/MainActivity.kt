@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.client.ui.screens.*
 import com.galibu.client.ui.viewmodels.ClientViewModel
+import com.galibu.professional.ui.screens.*
+import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import com.galibu.core.ui.theme.*
 import com.galibu.core.ui.components.GalibuLoadingOverlay
 import com.galibu.core.ui.components.GalibuAlertDialog
@@ -41,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: ClientViewModel
+    private lateinit var proViewModel: ProfessionalViewModel
     private val pendingOpenJobId = androidx.compose.runtime.mutableStateOf<String?>(null)
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -67,6 +70,8 @@ class MainActivity : ComponentActivity() {
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
         viewModel.setAppRole("CLIENT")
+        proViewModel = ViewModelProvider(this)[ProfessionalViewModel::class.java]
+        proViewModel.setAppRole("PROFESSIONAL")
 
         setContent {
             GalibuTheme {
@@ -108,12 +113,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(currentUser) {
+                LaunchedEffect(currentUser, activeRole) {
                     AppTelemetry.setUser(currentUser?.id, currentUser?.role)
                     if (currentUser == null) {
                         currentRoute = "AUTH"
                     } else if (currentRoute == "AUTH") {
-                        currentRoute = "CLIENT_DASHBOARD"
+                        currentRoute = if (activeRole == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
                     }
                 }
 
@@ -162,54 +167,102 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxSize(),
                             ) { innerPadding ->
                                 Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                                    when (currentRoute) {
-                                        "AUTH" -> AuthScreen(
-                                            viewModel = viewModel,
-                                            onAuthSuccess = { currentRoute = "CLIENT_DASHBOARD" }
-                                        )
-                                        "CLIENT_DASHBOARD" -> ClientDashboardScreen(
-                                            viewModel = viewModel,
-                                            onNavigateToJobBids = { jobId ->
-                                                viewModel.selectJob(jobId)
-                                                currentRoute = "NEGOTIATION"
-                                            },
-                                            onNavigateToChat = { jobId ->
-                                                viewModel.selectJob(jobId)
-                                                currentRoute = "CHAT"
-                                            },
-                                            onNavigateToNotifications = {
-                                                selectedTab = "ALERTS"
-                                                currentRoute = "NOTIFICATIONS_HISTORY"
-                                            }
-                                        )
-                                        "NEGOTIATION" -> PriceNegotiationScreen(
-                                            viewModel = viewModel,
-                                            onOpenChat = { jobId ->
-                                                viewModel.selectJob(jobId)
-                                                currentRoute = "CHAT"
-                                            },
-                                            onBack = { currentRoute = "CLIENT_DASHBOARD" }
-                                        )
-                                        "CHAT" -> ChatAndPaymentsScreen(
-                                            viewModel = viewModel,
-                                            onBack = { currentRoute = "CLIENT_DASHBOARD" }
-                                        )
-                                        "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
-                                            viewModel = viewModel,
-                                            onBack = { currentRoute = "CLIENT_DASHBOARD" },
-                                            onOpenJob = { jobId ->
-                                                viewModel.selectJob(jobId)
-                                                viewModel.markJobNotificationsAsRead(jobId)
-                                                currentRoute = "NEGOTIATION"
-                                            }
-                                        )
-                                        "PROFILE" -> ProfileScreen(
-                                            viewModel = viewModel,
-                                            onNavigateToNotifications = {
-                                                selectedTab = "ALERTS"
-                                                currentRoute = "NOTIFICATIONS_HISTORY"
-                                            }
-                                        )
+                                    if (activeRole == "PROFESSIONAL") {
+                                        when (currentRoute) {
+                                            "AUTH" -> com.galibu.professional.ui.screens.AuthScreen(
+                                                viewModel = proViewModel,
+                                                onAuthSuccess = { currentRoute = "PROFESSIONAL_DASHBOARD" }
+                                            )
+                                            "PROFESSIONAL_DASHBOARD" -> ProfessionalDashboardScreen(
+                                                viewModel = proViewModel,
+                                                onNavigateToChat = { jobId ->
+                                                    proViewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onNavigateToNegotiation = { jobId ->
+                                                    proViewModel.selectJob(jobId)
+                                                    currentRoute = "NEGOTIATION"
+                                                }
+                                            )
+                                            "NEGOTIATION" -> PriceNegotiationScreen(
+                                                viewModel = proViewModel,
+                                                onOpenChat = { jobId ->
+                                                    proViewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" }
+                                            )
+                                            "CHAT" -> ChatAndPaymentsScreen(
+                                                viewModel = proViewModel,
+                                                onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" }
+                                            )
+                                            "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
+                                                viewModel = proViewModel,
+                                                onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" },
+                                                onOpenJob = { jobId ->
+                                                    proViewModel.selectJob(jobId)
+                                                    proViewModel.markJobNotificationsAsRead(jobId)
+                                                    currentRoute = "NEGOTIATION"
+                                                }
+                                            )
+                                            "PROFILE" -> ProfileScreen(
+                                                viewModel = proViewModel,
+                                                onNavigateToNotifications = {
+                                                    selectedTab = "ALERTS"
+                                                    currentRoute = "NOTIFICATIONS_HISTORY"
+                                                }
+                                            )
+                                        }
+                                    } else {
+                                        when (currentRoute) {
+                                            "AUTH" -> AuthScreen(
+                                                viewModel = viewModel,
+                                                onAuthSuccess = { currentRoute = "CLIENT_DASHBOARD" }
+                                            )
+                                            "CLIENT_DASHBOARD" -> ClientDashboardScreen(
+                                                viewModel = viewModel,
+                                                onNavigateToJobBids = { jobId ->
+                                                    viewModel.selectJob(jobId)
+                                                    currentRoute = "NEGOTIATION"
+                                                },
+                                                onNavigateToChat = { jobId ->
+                                                    viewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onNavigateToNotifications = {
+                                                    selectedTab = "ALERTS"
+                                                    currentRoute = "NOTIFICATIONS_HISTORY"
+                                                }
+                                            )
+                                            "NEGOTIATION" -> PriceNegotiationScreen(
+                                                viewModel = viewModel,
+                                                onOpenChat = { jobId ->
+                                                    viewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onBack = { currentRoute = "CLIENT_DASHBOARD" }
+                                            )
+                                            "CHAT" -> ChatAndPaymentsScreen(
+                                                viewModel = viewModel,
+                                                onBack = { currentRoute = "CLIENT_DASHBOARD" }
+                                            )
+                                            "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
+                                                viewModel = viewModel,
+                                                onBack = { currentRoute = "CLIENT_DASHBOARD" },
+                                                onOpenJob = { jobId ->
+                                                    viewModel.selectJob(jobId)
+                                                    viewModel.markJobNotificationsAsRead(jobId)
+                                                    currentRoute = "NEGOTIATION"
+                                                }
+                                            )
+                                            "PROFILE" -> ProfileScreen(
+                                                viewModel = viewModel,
+                                                onNavigateToNotifications = {
+                                                    selectedTab = "ALERTS"
+                                                    currentRoute = "NOTIFICATIONS_HISTORY"
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -218,13 +271,15 @@ class MainActivity : ComponentActivity() {
                             val canSwitchToPro = currentUser?.role?.let {
                                 it.equals("PROFESSIONAL", ignoreCase = true) || it.equals("BOTH", ignoreCase = true)
                             } == true
-                            if (canSwitchToPro && currentRoute == "CLIENT_DASHBOARD") {
-                                val ctx = LocalContext.current
+                            if (canSwitchToPro) {
                                 IconButton(
                                     onClick = {
-                                        ctx.startActivity(
-                                            android.content.Intent(ctx, com.galibu.professional.MainActivity::class.java)
-                                        )
+                                        if (activeRole == "PROFESSIONAL") {
+                                            viewModel.setAppRole("CLIENT")
+                                        } else {
+                                            viewModel.setAppRole("PROFESSIONAL")
+                                        }
+                                        currentRoute = "AUTH"
                                     },
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -232,8 +287,8 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.SwapHoriz,
-                                        contentDescription = "Cambiar a modo profesional",
-                                        tint = PolishBlue
+                                        contentDescription = "Cambiar de modo",
+                                        tint = if (activeRole == "PROFESSIONAL") Color.White else PolishBlue
                                     )
                                 }
                             }
