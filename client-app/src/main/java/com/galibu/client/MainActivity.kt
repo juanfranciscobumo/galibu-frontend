@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
                                                 onSwitchRole = {
                                                     viewModel.setAppRole("CLIENT")
                                                     proViewModel.setAppRole("CLIENT")
-                                                    currentRoute = "AUTH"
+                                                    currentRoute = "CLIENT_DASHBOARD"
                                                 }
                                             )
                                         }
@@ -270,7 +270,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onSwitchRole = {
                                                     viewModel.setAppRole("PROFESSIONAL")
-                                                    currentRoute = "AUTH"
+                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
                                                 }
                                             )
                                         }
