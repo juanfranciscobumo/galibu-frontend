@@ -111,6 +111,7 @@ import androidx.compose.material.icons.filled.Rocket
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -413,6 +414,7 @@ fun ClientDashboardScreen(
     onNavigateToJobBids: (String) -> Unit,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onSwitchRole: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -708,6 +710,7 @@ fun ClientDashboardScreen(
                     onDeleteAccount = { showDeleteAccountDialog = true },
                     onLogout = { showLogoutDialog = true },
                     onSupport = { viewModel.showAlert("Aviso", "Reporte enviado con éxito") },
+                    onSwitchRole = onSwitchRole,
                     successMessage = passwordSuccessMessage,
                     onDismissSuccess = { passwordSuccessMessage = null }
                 )
@@ -2240,6 +2243,7 @@ fun PerfilTab(
     onDeleteAccount: () -> Unit,
     onLogout: () -> Unit,
     onSupport: () -> Unit,
+    onSwitchRole: () -> Unit = {},
     successMessage: String? = null,
     onDismissSuccess: () -> Unit = {}
 ) {
@@ -2402,6 +2406,17 @@ fun PerfilTab(
             iconBgColor = blueIconBg,
             iconColor = blueIconColor
         )
+
+        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true ||
+            currentUser?.role?.equals("PROFESSIONAL", ignoreCase = true) == true) {
+            ProfileMenuItem(
+                icon = Icons.Default.SwapHoriz,
+                title = "Cambiar a modo profesional",
+                onClick = onSwitchRole,
+                iconBgColor = Color(0xFFEFF6FF),
+                iconColor = Color(0xFF2563EB)
+            )
+        }
 
         ProfileMenuItem(
             icon = Icons.AutoMirrored.Filled.Logout,

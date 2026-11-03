@@ -239,6 +239,10 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToNotifications = {
                                                     selectedTab = "ALERTS"
                                                     currentRoute = "NOTIFICATIONS_HISTORY"
+                                                },
+                                                onSwitchRole = {
+                                                    viewModel.setAppRole("PROFESSIONAL")
+                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
                                                 }
                                             )
                                             "NEGOTIATION" -> PriceNegotiationScreen(
