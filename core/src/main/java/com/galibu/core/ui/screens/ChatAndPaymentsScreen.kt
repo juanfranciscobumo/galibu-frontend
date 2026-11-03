@@ -1,4 +1,4 @@
-package com.galibu.professional.ui.screens
+package com.galibu.core.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -29,21 +29,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.data.model.ChatMessage
+import com.galibu.core.data.model.UserProfile
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.GalibuRatingSheet
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.theme.*
-import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
+import com.galibu.core.ui.viewmodels.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
+/**
+ * Pantalla de chat y pagos compartida entre el modo cliente y el modo profesional.
+ * Solo difieren en la resolución del nombre del contraparte cuando aún no hay
+ * profesional asignado (lógica del cliente con bids) y en textos de fallback.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatAndPaymentsScreen(
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -110,6 +116,24 @@ fun ChatAndPaymentsScreen(
 
     val messages by viewModel.messages.collectAsState()
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
+
+    // Ofertas del job (útil en modo cliente cuando aún no hay profesional asignado).
+    val jobBids by viewModel.selectedJobBids.collectAsState()
+
+    // Contraparte cuando aún no hay profesional asignado (oferta sin aceptar).
+    val peerBid = remember(jobBids) {
+        jobBids.filter { !it.professionalId.isNullOrBlank() }.maxByOrNull { it.createdAt }
+    }
+    val peerNameFromBid = peerBid?.professionalName?.takeIf { it.isNotBlank() }
+    val peerPhotoFromBid = peerBid?.professionalPhoto?.takeIf { it.isNotBlank() }
+    // Nombre del remitente tomado de los mensajes (cubre pre-oferta sin bid ni asignado).
+    val peerNameFromMessages = remember(messages, currentUser) {
+        messages.filter { it.senderId != currentUser?.id }
+            .maxByOrNull { it.timestamp }?.senderName?.takeIf { it.isNotBlank() }
+    }
+    val resolvedPeerName = job?.professionalName?.takeIf { it.isNotBlank() }
+        ?: (if (activeRole == "CLIENT") peerNameFromBid ?: peerNameFromMessages else null)
+        ?: peerNameFromMessages
 
     var messageText by remember { mutableStateOf("") }
     val lazyListState = rememberLazyListState()
@@ -188,7 +212,7 @@ fun ChatAndPaymentsScreen(
         }
     }
 
-    var otherUserProfile by remember { mutableStateOf<com.galibu.core.data.model.UserProfile?>(null) }
+    var otherUserProfile by remember { mutableStateOf<UserProfile?>(null) }
     LaunchedEffect(job, activeRole) {
         val otherUserId = if (activeRole == "CLIENT") job?.professionalId else job?.clientId
         if (otherUserId != null) {
@@ -196,11 +220,13 @@ fun ChatAndPaymentsScreen(
         }
     }
 
-    val otherUserPhotoUrl = remember(otherUserProfile, job, activeRole) {
+    val otherUserPhotoUrl = remember(otherUserProfile, job, activeRole, peerPhotoFromBid) {
         val otherUserId = if (activeRole == "CLIENT") job?.professionalId else job?.clientId
         val dbPhoto = otherUserProfile?.profilePhotoUrl
         if (!dbPhoto.isNullOrEmpty()) {
             dbPhoto
+        } else if (activeRole == "CLIENT" && !peerPhotoFromBid.isNullOrEmpty()) {
+            peerPhotoFromBid
         } else {
             when (otherUserId) {
                 "bot_carlos" -> "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop"
@@ -216,9 +242,9 @@ fun ChatAndPaymentsScreen(
             .background(Color(0xFFFAFAFA))
     ) {
         val targetUserName = if (activeRole == "CLIENT") {
-            job?.professionalName ?: "Carlos Mendoza"
+            resolvedPeerName ?: "Profesional"
         } else {
-            job?.clientName ?: "Cliente"
+            job?.professionalName ?: "Carlos Mendoza"
         }
 
         val (initials, avatarColor) = getAvatarInitialsAndColor(targetUserName)
@@ -286,7 +312,7 @@ fun ChatAndPaymentsScreen(
                         )
                     }
                 }
-                
+
                 // Online Dot Badge (for active chat)
                 if (job?.status == "ACCEPTED") {
                     Box(
@@ -541,7 +567,11 @@ fun ChatAndPaymentsScreen(
                                         )
                                         .padding(horizontal = 14.dp, vertical = 10.dp)
                                 ) {
-                                    val partnerName = job?.professionalName ?: job?.clientName ?: "Compañero"
+                                    val partnerName = if (activeRole == "CLIENT") {
+                                        resolvedPeerName ?: "Profesional"
+                                    } else {
+                                        job?.professionalName ?: job?.clientName ?: "Compañero"
+                                    }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(12.dp),
@@ -813,9 +843,9 @@ fun ChatAndPaymentsScreen(
     // Calificación del servicio: hoja homologada en todas las pantallas.
     if (showReviewDialog) {
         val targetName = if (activeRole == "CLIENT") {
-            job?.professionalName ?: "el profesional"
+            resolvedPeerName ?: job?.professionalName ?: "el profesional"
         } else {
-            job?.clientName ?: "el cliente"
+            job?.professionalName ?: "el profesional"
         }
         GalibuRatingSheet(
             title = if (activeRole == "CLIENT") "Calificar al profesional" else "Calificar al cliente",
@@ -911,5 +941,3 @@ fun ChatAndPaymentsScreen(
         )
     }
 }
-
-

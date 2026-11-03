@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.client.ui.screens.*
+import com.galibu.core.ui.screens.ChatAndPaymentsScreen
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
 import com.galibu.client.ui.viewmodels.ClientViewModel
 import com.galibu.professional.ui.screens.*
