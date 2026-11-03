@@ -47,6 +47,7 @@ import androidx.compose.foundation.lazy.items
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.utils.PhotoUtils
 import com.galibu.core.ui.utils.capitalizeFirstLetter
+import com.galibu.core.data.model.canSwitchToProfessional
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.theme.*
 import com.galibu.client.ui.viewmodels.ClientViewModel
@@ -64,7 +65,7 @@ fun ProfileScreen(
     viewModel: ClientViewModel,
     modifier: Modifier = Modifier,
     onNavigateToNotifications: () -> Unit = {},
-    onSwitchRole: () -> Unit = {}
+    onSwitchRole: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -1495,7 +1496,7 @@ fun ProfileScreen(
                             onClick = { showSupportDialog = true }
                         )
 
-                        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true) {
+                        if (currentUser.canSwitchToProfessional()) {
                             ProfileOptionCard(
                                 icon = Icons.Default.SwapHoriz,
                                 iconBgColor = Color(0xFFEFF6FF),

@@ -23,19 +23,14 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
 
     protected val database = AppDatabase.getDatabase(application)
     val firebaseService = FirebaseService()
-    val tokenStore = TokenStore(SharedPrefsTokenStorage(application))
+    val tokenStore = com.galibu.core.data.AppGraph.tokenStore(application)
     val apiService: ApiService = ApiClient.authedService(tokenStore)
-    
-    val repository = GalibuRepository(
-        userProfileDao = database.userProfileDao(),
-        jobRequestDao = database.jobRequestDao(),
-        bidDao = database.bidDao(),
-        chatMessageDao = database.chatMessageDao(),
-        notificationDao = database.appNotificationDao(),
-        firebaseService = firebaseService,
-        apiService = apiService,
-        tokenStore = tokenStore
-    )
+
+    /**
+     * Repositorio único del proceso (ver [com.galibu.core.data.AppGraph]).
+     * Cliente y profesional comparten sesión, base local y flujos.
+     */
+    val repository = com.galibu.core.data.AppGraph.repository(application)
 
     val currentUser: StateFlow<UserProfile?> = repository.currentUser
 
@@ -61,8 +56,18 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
      *  rating tras restaurar la sesión. */
     private var appRole: String? = null
 
+    private val modePrefs by lazy {
+        getApplication<Application>()
+            .getSharedPreferences("galibu_mode", android.content.Context.MODE_PRIVATE)
+    }
+
+    /** Último modo usado (CLIENT/PROFESSIONAL) para restaurarlo al abrir la app. */
+    private fun persistedMode(): String? =
+        modePrefs.getString("last_mode", null)?.takeIf { it == "CLIENT" || it == "PROFESSIONAL" }
+
     fun setAppRole(role: String) {
         appRole = role
+        modePrefs.edit().putString("last_mode", role).apply()
         _activeRole.value = role
         // Si la sesión ya estaba restaurada con el rol de la otra app, expándela.
         viewModelScope.launch {
@@ -207,13 +212,19 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     val firestoreCategories: StateFlow<List<FirebaseCategory>> = _firestoreCategories.asStateFlow()
 
     init {
-        // Push del sistema ante eventos del ciclo de vida (cada app lo muestra).
-        repository.onEventNotification = { notif -> dispatchEventPush(notif) }
+        // Push del sistema ante eventos del ciclo de vida. Solo el primer
+        // ViewModel en inicializarse registra el callback porque el repositorio
+        // es compartido; así el modo activo no cambia el comportamiento del push.
+        if (repository.onEventNotification == null) {
+            repository.onEventNotification = { notif -> dispatchEventPush(notif) }
+        }
         // Persisted JWT survives app kills: restore the user and pull fresh data.
         // Only an explicit logout clears tokens, so only it ends the session.
         viewModelScope.launch {
             try {
-                if (repository.restoreSession()) {
+                // Con el repositorio compartido, el segundo ViewModel (el del otro
+                // modo) ya encuentra la sesión restaurada y no repite la llamada.
+                if (repository.currentUser.value == null && repository.restoreSession()) {
                     // Si la cuenta existe con el rol de la otra app, se expande a
                     // BOTH para que pueda usar esta app sin 403.
                     appRole?.let { repository.ensureRole(it) }
@@ -245,11 +256,9 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             currentUser.collect { user ->
                 if (user != null) {
-                    // El modo activo lo define la app en la que corre la sesión.
-                    // Un usuario BOTH trabaja como cliente en la app de clientes y
-                    // como profesional en la de profesionales (antes caía siempre
-                    // en CLIENT, incluso al restaurar sesión en la app profesional).
-                    _activeRole.value = appRole ?: when (user.role) {
+                    // El modo activo lo define el último modo elegido por el usuario
+                    // (persistido) o, si nunca cambió, la capacidad principal de la cuenta.
+                    _activeRole.value = appRole ?: persistedMode() ?: when (user.role) {
                         "PROFESSIONAL" -> "PROFESSIONAL"
                         else -> "CLIENT"
                     }
@@ -796,6 +805,8 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 repository.logout()
                 _selectedJobId.value = null
                 _activeRole.value = null
+                appRole = null
+                modePrefs.edit().remove("last_mode").apply()
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla al cerrar sesión: ${e.localizedMessage}")
                 showError("No se pudo cerrar la sesión. Verifica tu conexión e inténtalo nuevamente.")

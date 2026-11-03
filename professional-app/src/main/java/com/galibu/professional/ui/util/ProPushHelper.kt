@@ -10,7 +10,6 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.galibu.professional.MainActivity
 import com.galibu.professional.R
 
 /**
@@ -60,7 +59,9 @@ object ProPushHelper {
     ) {
         ensureChannel(context, channelId, channelName, channelDescription)
 
-        val openIntent = Intent(context, MainActivity::class.java)
+        val openIntent = context.packageManager
+            .getLaunchIntentForPackage(context.packageName)
+            ?: Intent()
         val pending = PendingIntent.getActivity(
             context,
             tag.hashCode(),

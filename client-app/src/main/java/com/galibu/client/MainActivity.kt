@@ -43,7 +43,15 @@ import androidx.compose.ui.res.painterResource
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: ClientViewModel
-    private lateinit var proViewModel: ProfessionalViewModel
+
+    /**
+     * El ViewModel del modo profesional se crea solo cuando se necesita. Antes se
+     * instanciaba siempre en onCreate, lo que duplicaba la restauración de sesión,
+     * los coletores de notificaciones y las cargas de configuración al arrancar.
+     */
+    private val proViewModel: ProfessionalViewModel by lazy {
+        ViewModelProvider(this)[ProfessionalViewModel::class.java]
+    }
     private val pendingOpenJobId = androidx.compose.runtime.mutableStateOf<String?>(null)
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -63,14 +71,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ApiConfig.baseUrl = BuildConfig.API_URL
-        AppTelemetry.init("client", BuildConfig.VERSION_NAME)
+        AppTelemetry.init("galibu", BuildConfig.VERSION_NAME)
         pendingOpenJobId.value = intent?.getStringExtra(
             com.galibu.client.ui.util.BidPushHelper.EXTRA_OPEN_JOB_ID
         )
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
-        proViewModel = ViewModelProvider(this)[ProfessionalViewModel::class.java]
-        proViewModel.setAppRole("PROFESSIONAL")
 
         setContent {
             GalibuTheme {
@@ -85,6 +91,14 @@ class MainActivity : ComponentActivity() {
                 var currentRoute by rememberSaveable { mutableStateOf("AUTH") }
                 var selectedTab by rememberSaveable { mutableStateOf("HOME") }
 
+                // Único punto de entrada del cambio de modo. Mantiene los dos
+                // ViewModels alineados con el modo activo y enruta al dashboard.
+                val switchMode: (String) -> Unit = { role ->
+                    viewModel.setAppRole(role)
+                    proViewModel.setAppRole(role)
+                    currentRoute = if (role == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
+                }
+
                 LaunchedEffect(currentRoute, selectedTab) {
                     val screen = if (currentRoute == "CLIENT_DASHBOARD") {
                         "$currentRoute/$selectedTab"
@@ -94,13 +108,19 @@ class MainActivity : ComponentActivity() {
                     AppTelemetry.screen(screen)
                 }
 
-                // Apertura desde una push del sistema: ir al detalle de la solicitud.
-                LaunchedEffect(pendingOpenJobId.value, currentUser) {
+                // Apertura desde una push del sistema: ir al detalle de la solicitud
+                // usando el ViewModel del modo activo (antes siempre usaba el de cliente).
+                LaunchedEffect(pendingOpenJobId.value, currentUser?.id, activeRole) {
                     val jobId = pendingOpenJobId.value
-                    if (jobId != null && currentUser != null) {
+                    if (jobId != null && currentUser != null && activeRole != null) {
                         pendingOpenJobId.value = null
-                        viewModel.selectJob(jobId)
-                        viewModel.markJobNotificationsAsRead(jobId)
+                        if (activeRole == "PROFESSIONAL") {
+                            proViewModel.selectJob(jobId)
+                            proViewModel.markJobNotificationsAsRead(jobId)
+                        } else {
+                            viewModel.selectJob(jobId)
+                            viewModel.markJobNotificationsAsRead(jobId)
+                        }
                         currentRoute = "NEGOTIATION"
                     }
                 }
@@ -116,10 +136,9 @@ class MainActivity : ComponentActivity() {
                     AppTelemetry.setUser(currentUser?.id, currentUser?.role)
                     if (currentUser == null) {
                         currentRoute = "AUTH"
-                    } else if (currentRoute == "AUTH" && activeRole == null) {
-                        val initialRole = if (currentUser?.role?.equals("PROFESSIONAL", ignoreCase = true) == true) "PROFESSIONAL" else "CLIENT"
-                        viewModel.setAppRole(initialRole)
-                    } else if (currentRoute == "AUTH") {
+                    } else if (activeRole != null && currentRoute == "AUTH") {
+                        // SharedViewModel resuelve el modo inicial (último usado o
+                        // capacidad de la cuenta); aquí solo se enruta.
                         currentRoute = if (activeRole == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
                     }
                 }
@@ -151,8 +170,6 @@ class MainActivity : ComponentActivity() {
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("Galibu", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = PolishBlue)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("Clientes", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B))
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "Servicios que conectan, soluciones que llegan.",
@@ -185,11 +202,7 @@ class MainActivity : ComponentActivity() {
                                                     proViewModel.selectJob(jobId)
                                                     currentRoute = "NEGOTIATION"
                                                 },
-                                                onSwitchRole = {
-                                                    viewModel.setAppRole("CLIENT")
-                                                    proViewModel.setAppRole("CLIENT")
-                                                    currentRoute = "CLIENT_DASHBOARD"
-                                                }
+                                                onSwitchRole = { switchMode("CLIENT") }
                                             )
                                             "NEGOTIATION" -> PriceNegotiationScreen(
                                                 viewModel = proViewModel,
@@ -210,18 +223,6 @@ class MainActivity : ComponentActivity() {
                                                     proViewModel.selectJob(jobId)
                                                     proViewModel.markJobNotificationsAsRead(jobId)
                                                     currentRoute = "NEGOTIATION"
-                                                }
-                                            )
-                                            "PROFILE" -> ProfileScreen(
-                                                viewModel = proViewModel,
-                                                onNavigateToNotifications = {
-                                                    selectedTab = "ALERTS"
-                                                    currentRoute = "NOTIFICATIONS_HISTORY"
-                                                },
-                                                onSwitchRole = {
-                                                    viewModel.setAppRole("CLIENT")
-                                                    proViewModel.setAppRole("CLIENT")
-                                                    currentRoute = "CLIENT_DASHBOARD"
                                                 }
                                             )
                                         }
@@ -245,10 +246,7 @@ class MainActivity : ComponentActivity() {
                                                     selectedTab = "ALERTS"
                                                     currentRoute = "NOTIFICATIONS_HISTORY"
                                                 },
-                                                onSwitchRole = {
-                                                    viewModel.setAppRole("PROFESSIONAL")
-                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
-                                                }
+                                                onSwitchRole = { switchMode("PROFESSIONAL") }
                                             )
                                             "NEGOTIATION" -> PriceNegotiationScreen(
                                                 viewModel = viewModel,
@@ -269,17 +267,6 @@ class MainActivity : ComponentActivity() {
                                                     viewModel.selectJob(jobId)
                                                     viewModel.markJobNotificationsAsRead(jobId)
                                                     currentRoute = "NEGOTIATION"
-                                                }
-                                            )
-                                            "PROFILE" -> ProfileScreen(
-                                                viewModel = viewModel,
-                                                onNavigateToNotifications = {
-                                                    selectedTab = "ALERTS"
-                                                    currentRoute = "NOTIFICATIONS_HISTORY"
-                                                },
-                                                onSwitchRole = {
-                                                    viewModel.setAppRole("PROFESSIONAL")
-                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
                                                 }
                                             )
                                         }

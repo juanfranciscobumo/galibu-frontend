@@ -208,6 +208,7 @@ import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
 import com.galibu.core.data.model.hasMissingRequiredFields
+import com.galibu.core.data.model.canSwitchToProfessional
 import com.galibu.core.data.model.isDirectChat
 import com.galibu.core.ui.components.CategoryBadge
 import com.galibu.core.ui.components.CategoryIconCircle
@@ -414,7 +415,7 @@ fun ClientDashboardScreen(
     onNavigateToJobBids: (String) -> Unit,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onSwitchRole: () -> Unit = {},
+    onSwitchRole: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2243,7 +2244,7 @@ fun PerfilTab(
     onDeleteAccount: () -> Unit,
     onLogout: () -> Unit,
     onSupport: () -> Unit,
-    onSwitchRole: () -> Unit = {},
+    onSwitchRole: () -> Unit,
     successMessage: String? = null,
     onDismissSuccess: () -> Unit = {}
 ) {
@@ -2407,8 +2408,7 @@ fun PerfilTab(
             iconColor = blueIconColor
         )
 
-        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true ||
-            currentUser?.role?.equals("PROFESSIONAL", ignoreCase = true) == true) {
+        if (currentUser.canSwitchToProfessional()) {
             ProfileMenuItem(
                 icon = Icons.Default.SwapHoriz,
                 title = "Cambiar a modo profesional",

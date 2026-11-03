@@ -23,6 +23,19 @@ fun UserProfile.hasMissingProfessionalFields(): Boolean {
     return workCategory.isNullOrBlank()
 }
 
+/**
+ * Capacidades de la cuenta. `role` (CLIENT/PROFESSIONAL/BOTH) es una capacidad,
+ * no un modo activo: el modo lo decide la app. Centralizar estas reglas evita
+ * que cada pantalla compare el rol a mano con criterios distintos.
+ */
+fun UserProfile?.canSwitchToProfessional(): Boolean =
+    this?.role?.equals("BOTH", ignoreCase = true) == true ||
+        this?.role?.equals("PROFESSIONAL", ignoreCase = true) == true
+
+fun UserProfile?.canSwitchToClient(): Boolean =
+    this?.role?.equals("BOTH", ignoreCase = true) == true ||
+        this?.role?.equals("CLIENT", ignoreCase = true) == true
+
 @JsonClass(generateAdapter = true)
 @Entity(tableName = "user_profiles")
 data class UserProfile(

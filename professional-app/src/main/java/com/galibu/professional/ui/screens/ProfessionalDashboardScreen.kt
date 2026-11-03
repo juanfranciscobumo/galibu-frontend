@@ -160,7 +160,7 @@ fun ProfessionalDashboardScreen(
     viewModel: ProfessionalViewModel,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNegotiation: (String) -> Unit,
-    onSwitchRole: () -> Unit = {},
+    onSwitchRole: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

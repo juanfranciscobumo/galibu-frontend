@@ -63,6 +63,7 @@ import com.galibu.core.ui.components.ServiceCategoryTag
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.data.model.hasMissingRequiredFields
 import com.galibu.core.data.model.hasMissingProfessionalFields
+import com.galibu.core.data.model.canSwitchToClient
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 
 enum class ProfileSubScreen {
@@ -82,7 +83,7 @@ fun ProfileScreen(
     onNavigateToNotifications: () -> Unit = {},
     forceEdit: Boolean = false,
     onSubScreenOpen: (Boolean) -> Unit = {},
-    onSwitchRole: () -> Unit = {}
+    onSwitchRole: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -1632,8 +1633,7 @@ fun ProfileScreen(
                             onClick = { showSupportDialog = true }
                         )
 
-                        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true ||
-                            currentUser?.role?.equals("CLIENT", ignoreCase = true) == true) {
+                        if (currentUser.canSwitchToClient()) {
                             ProfileOptionCard(
                                 icon = Icons.Default.SwapHoriz,
                                 iconBgColor = Color(0xFFEFF6FF),
