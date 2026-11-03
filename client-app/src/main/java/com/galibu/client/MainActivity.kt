@@ -184,6 +184,11 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToNegotiation = { jobId ->
                                                     proViewModel.selectJob(jobId)
                                                     currentRoute = "NEGOTIATION"
+                                                },
+                                                onSwitchRole = {
+                                                    viewModel.setAppRole("CLIENT")
+                                                    proViewModel.setAppRole("CLIENT")
+                                                    currentRoute = "CLIENT_DASHBOARD"
                                                 }
                                             )
                                             "NEGOTIATION" -> PriceNegotiationScreen(

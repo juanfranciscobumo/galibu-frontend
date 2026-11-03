@@ -160,6 +160,7 @@ fun ProfessionalDashboardScreen(
     viewModel: ProfessionalViewModel,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNegotiation: (String) -> Unit,
+    onSwitchRole: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1698,7 +1699,8 @@ fun ProfessionalDashboardScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToNotifications = { showNotificationsDialog = true },
                         forceEdit = requireCompletion,
-                        onSubScreenOpen = { hideBottomBar = it }
+                        onSubScreenOpen = { hideBottomBar = it },
+                        onSwitchRole = onSwitchRole
                     )
                 }
             }
