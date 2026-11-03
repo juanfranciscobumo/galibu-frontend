@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.client.ui.screens.*
+import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
 import com.galibu.client.ui.viewmodels.ClientViewModel
 import com.galibu.professional.ui.screens.*
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
@@ -223,7 +224,8 @@ class MainActivity : ComponentActivity() {
                                                     proViewModel.selectJob(jobId)
                                                     proViewModel.markJobNotificationsAsRead(jobId)
                                                     currentRoute = "NEGOTIATION"
-                                                }
+                                                },
+                                                emptyMessage = "Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y recargas de saldo en tiempo real."
                                             )
                                         }
                                     } else {
@@ -267,7 +269,8 @@ class MainActivity : ComponentActivity() {
                                                     viewModel.selectJob(jobId)
                                                     viewModel.markJobNotificationsAsRead(jobId)
                                                     currentRoute = "NEGOTIATION"
-                                                }
+                                                },
+                                                emptyMessage = "Aquí se grabarán tus alertas push de presupuestos, verificaciones y pagos en tiempo real."
                                             )
                                         }
                                     }

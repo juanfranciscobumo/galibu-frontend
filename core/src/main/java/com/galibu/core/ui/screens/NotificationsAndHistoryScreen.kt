@@ -1,4 +1,4 @@
-package com.galibu.professional.ui.screens
+package com.galibu.core.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,24 +23,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.data.model.AppNotification
-import com.galibu.core.data.model.JobRequest
 import com.galibu.core.ui.theme.*
-import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
-import java.text.NumberFormat
+import com.galibu.core.ui.viewmodels.SharedViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Pantalla de notificaciones e historial compartida entre el modo cliente y el modo
+ * profesional. Solo se diferencia por el texto del estado vacío, que se pasa como
+ * parámetro [emptyMessage].
+ */
 @Composable
 fun NotificationsAndHistoryScreen(
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
-    onOpenJob: (String) -> Unit = {}
+    onOpenJob: (String) -> Unit = {},
+    emptyMessage: String = "Aquí se grabarán tus alertas push en tiempo real."
 ) {
     val notifications by viewModel.notifications.collectAsState()
-    val allJobs by viewModel.allJobs.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
 
     val latestNotifications = remember(notifications) {
         notifications.sortedByDescending { it.timestamp }.take(10)
@@ -93,7 +95,6 @@ fun NotificationsAndHistoryScreen(
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        // Push Notification feed center
         Text(
             text = "Centro de Notificaciones Push 📣",
             color = OffWhite,
@@ -115,14 +116,13 @@ fun NotificationsAndHistoryScreen(
                     Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = LightGray, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("No hay notificaciones", color = OffWhite, fontWeight = FontWeight.Bold)
-                    Text("Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y recargas de saldo en tiempo real.", color = LightGray, fontSize = 11.sp, textAlign = TextAlign.Center)
+                    Text(emptyMessage, color = LightGray, fontSize = 11.sp, textAlign = TextAlign.Center)
                 }
             }
         } else {
             latestNotifications.forEach { item ->
                 Card(
                     colors = CardDefaults.cardColors(
-                        // No leída: fondo azul muy suave. Leída: blanca, sin sombreado.
                         containerColor = if (item.isRead) CardSurface else Color(0xFFEFF6FF)
                     ),
                     shape = RoundedCornerShape(12.dp),
@@ -175,7 +175,5 @@ fun NotificationsAndHistoryScreen(
                 }
             }
         }
-
     }
 }
-

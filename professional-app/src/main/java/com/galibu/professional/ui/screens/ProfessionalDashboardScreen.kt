@@ -66,6 +66,7 @@ import com.galibu.core.ui.components.PrimaryContactButton
 import com.galibu.core.ui.components.RequestSummaryCard
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishIce
+import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
@@ -3062,7 +3063,8 @@ fun ProfessionalDashboardScreen(
                         selectedJobForProfileDetails = displayJob
                         selectedClientIdForProfile = displayJob.clientId
                     }
-                }
+                },
+                emptyMessage = "Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y recargas de saldo en tiempo real."
             )
         }
     }
