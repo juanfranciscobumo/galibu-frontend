@@ -1632,7 +1632,8 @@ fun ProfileScreen(
                             onClick = { showSupportDialog = true }
                         )
 
-                        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true) {
+                        if (currentUser?.role?.equals("BOTH", ignoreCase = true) == true ||
+                            currentUser?.role?.equals("CLIENT", ignoreCase = true) == true) {
                             ProfileOptionCard(
                                 icon = Icons.Default.SwapHoriz,
                                 iconBgColor = Color(0xFFEFF6FF),
