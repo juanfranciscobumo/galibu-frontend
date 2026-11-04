@@ -80,6 +80,18 @@ class MainActivity : ComponentActivity() {
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
 
+        // El repositorio solo conoce un callback; la Activity decide cómo se
+        // muestra la push del sistema. Se registra una vez por proceso.
+        com.galibu.core.data.AppGraph.eventPushHandler = { notif ->
+            com.galibu.client.ui.util.BidPushHelper.showEventPush(
+                applicationContext,
+                notif.title,
+                notif.body,
+                notif.jobId,
+                MainActivity::class.java
+            )
+        }
+
         setContent {
             GalibuTheme {
                 val currentUser by viewModel.currentUser.collectAsState()

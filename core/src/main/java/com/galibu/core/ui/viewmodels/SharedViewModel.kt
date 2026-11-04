@@ -44,9 +44,8 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    private val _sessionReady = MutableStateFlow(false)
-    /** True once the session-restore attempt (Firebase Auth -> profile) has finished. */
-    val sessionReady: StateFlow<Boolean> = _sessionReady.asStateFlow()
+    /** Sesión restaurada a nivel de proceso (ver [com.galibu.core.data.AppGraph]). */
+    val sessionReady: StateFlow<Boolean> = com.galibu.core.data.AppGraph.sessionReady
 
     private val _activeRole = MutableStateFlow<String?>(null)
     val activeRole: StateFlow<String?> = _activeRole.asStateFlow()
@@ -77,7 +76,8 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    val activeBannerNotification = MutableStateFlow<AppNotification?>(null)
+    /** Banner in-app único del proceso (ver [com.galibu.core.data.AppGraph]). */
+    val activeBannerNotification = com.galibu.core.data.AppGraph.activeBannerNotification
 
     private val _isGlobalLoading = MutableStateFlow(false)
     val isGlobalLoading = _isGlobalLoading.asStateFlow()
@@ -205,53 +205,19 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         )
     }
 
-    private val _firestoreDepartments = MutableStateFlow<List<FirebaseDepartment>>(emptyList())
-    val firestoreDepartments: StateFlow<List<FirebaseDepartment>> = _firestoreDepartments.asStateFlow()
+    private val _firestoreDepartments: StateFlow<List<FirebaseDepartment>> =
+        com.galibu.core.data.AppGraph.departments
+    val firestoreDepartments: StateFlow<List<FirebaseDepartment>> = _firestoreDepartments
 
-    private val _firestoreCategories = MutableStateFlow<List<FirebaseCategory>>(emptyList())
-    val firestoreCategories: StateFlow<List<FirebaseCategory>> = _firestoreCategories.asStateFlow()
+    private val _firestoreCategories: StateFlow<List<FirebaseCategory>> =
+        com.galibu.core.data.AppGraph.categories
+    val firestoreCategories: StateFlow<List<FirebaseCategory>> = _firestoreCategories
 
     init {
-        // Push del sistema ante eventos del ciclo de vida. Solo el primer
-        // ViewModel en inicializarse registra el callback porque el repositorio
-        // es compartido; así el modo activo no cambia el comportamiento del push.
-        if (repository.onEventNotification == null) {
-            repository.onEventNotification = { notif -> dispatchEventPush(notif) }
-        }
-        // Persisted JWT survives app kills: restore the user and pull fresh data.
-        // Only an explicit logout clears tokens, so only it ends the session.
-        viewModelScope.launch {
-            try {
-                // Con el repositorio compartido, el segundo ViewModel (el del otro
-                // modo) ya encuentra la sesión restaurada y no repite la llamada.
-                if (repository.currentUser.value == null && repository.restoreSession()) {
-                    // Si la cuenta existe con el rol de la otra app, se expande a
-                    // BOTH para que pueda usar esta app sin 403.
-                    appRole?.let { repository.ensureRole(it) }
-                    repository.refreshAll()
-                }
-            } catch (e: Exception) {
-                Log.e("SharedViewModel", "Error restaurando sesión: ${e.localizedMessage}")
-            } finally {
-                _sessionReady.value = true
-            }
-        }
-
-        viewModelScope.launch {
-            var firstCollect = true
-            repository.getNotificationsFlow().collect { list ->
-                if (firstCollect) {
-                    firstCollect = false
-                    return@collect
-                }
-                if (list.isNotEmpty()) {
-                    val latest = list.maxByOrNull { it.timestamp }
-                    if (latest != null && System.currentTimeMillis() - latest.timestamp < 15000) {
-                        activeBannerNotification.value = latest
-                    }
-                }
-            }
-        }
+        // La restauración de sesión, el colector de notificaciones y la carga de
+        // configuración viven una sola vez en el proceso (AppGraph). Así el modo
+        // cliente y el profesional no duplican trabajo ni banners.
+        com.galibu.core.data.AppGraph.start(getApplication())
 
         viewModelScope.launch {
             currentUser.collect { user ->
@@ -267,27 +233,11 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 }
             }
         }
-
-        viewModelScope.launch {
-            try {
-                _firestoreDepartments.value = repository.getDepartments()
-                _firestoreCategories.value = repository.getCategories()
-            } catch (e: Exception) {
-                Log.e("SharedViewModel", "Error loading dynamic config: ${e.localizedMessage}")
-            }
-        }
     }
 
     /** Recarga departamentos y categorías del backend (para pantallas que los listan). */
     fun refreshGeoConfig() {
-        viewModelScope.launch {
-            try {
-                _firestoreDepartments.value = repository.getDepartments()
-                _firestoreCategories.value = repository.getCategories()
-            } catch (e: Exception) {
-                Log.e("SharedViewModel", "Error recargando geo config: ${e.localizedMessage}")
-            }
-        }
+        com.galibu.core.data.AppGraph.refreshGeoConfig(getApplication())
     }
 
     fun addCategory(name: String, onResult: (Boolean) -> Unit) {
@@ -295,7 +245,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
             val success = repository.addCategory(name)
             if (success) {
                 try {
-                    _firestoreCategories.value = repository.getCategories()
+                    com.galibu.core.data.AppGraph.updateCategories(repository.getCategories())
                 } catch (e: Exception) {
                     Log.e("SharedViewModel", "Error reloading categories: ${e.localizedMessage}")
                 }
@@ -806,6 +756,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 _selectedJobId.value = null
                 _activeRole.value = null
                 appRole = null
+                com.galibu.core.data.AppGraph.activeBannerNotification.value = null
                 modePrefs.edit().remove("last_mode").apply()
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla al cerrar sesión: ${e.localizedMessage}")
