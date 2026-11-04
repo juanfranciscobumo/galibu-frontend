@@ -58,6 +58,7 @@ import com.galibu.core.ui.theme.*
 import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
+import com.galibu.core.ui.components.ProfileOptionCard
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.ServiceCategoryTag
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
@@ -1926,70 +1927,4 @@ fun ProfileScreen(
     }
 }
 
-// Reusable Option Card for the main profile list
-@Composable
-fun ProfileOptionCard(
-    icon: ImageVector,
-    iconBgColor: Color,
-    iconColor: Color,
-    title: String,
-    titleColor: Color = Color(0xFF0F172A),
-    showChevron: Boolean = true,
-    chevronColor: Color = Color(0xFF94A3B8),
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFEFF2F5)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(iconBgColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                
-                Text(
-                    text = title,
-                    color = titleColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            
-            if (showChevron) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = chevronColor,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
 
