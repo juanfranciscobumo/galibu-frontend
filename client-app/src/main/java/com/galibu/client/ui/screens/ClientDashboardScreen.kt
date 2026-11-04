@@ -202,6 +202,10 @@ import coil.request.ImageRequest
 import com.galibu.client.R
 import com.galibu.core.data.model.AppNotification
 import com.galibu.core.ui.utils.capitalizeFirstLetter
+import com.galibu.core.ui.utils.GpsFix
+import com.galibu.core.ui.utils.getCurrentGpsLocation
+import com.galibu.core.ui.utils.isDeviceLocationEnabled
+import com.galibu.core.ui.utils.matchCatalogName
 import com.galibu.core.data.model.Bid
 import com.galibu.core.data.remote.RatingDto
 import com.galibu.core.data.model.ChatMessage
@@ -3028,18 +3032,8 @@ private fun formatThousandsInput(digits: String): String {
 /**
  * Busca [wanted] (p. ej. del geocoder) dentro del catálogo y devuelve el nombre
  * canónico. Tolera mayúsculas y diferencias menores ("Bogotá D.C." vs "Bogotá").
+ * Ahora vive en com.galibu.core.ui.utils.matchCatalogName.
  */
-private fun matchCatalogName(candidates: List<String>, wanted: String?): String? {
-    if (wanted.isNullOrBlank()) return null
-    val w = wanted.trim()
-    candidates.firstOrNull { it.equals(w, ignoreCase = true) }?.let { return it }
-    val normW = w.lowercase().replace(".", "").replace("d c", "").trim()
-    return candidates.firstOrNull {
-        val normC = it.lowercase().replace(".", "").replace("d c", "").trim()
-        normC == normW || normC.contains(normW) || normW.contains(normC)
-    }
-}
-
 private const val MIN_HOURLY_PRICE_COP = 5417.0
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

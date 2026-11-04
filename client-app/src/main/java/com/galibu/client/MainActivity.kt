@@ -27,11 +27,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.galibu.client.ui.screens.*
+import com.galibu.core.ui.screens.auth.AuthScreen
 import com.galibu.core.ui.screens.ChatAndPaymentsScreen
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
+import com.galibu.client.ui.screens.ClientDashboardScreen
+import com.galibu.client.ui.screens.PriceNegotiationScreen
+import com.galibu.professional.ui.screens.ProfessionalDashboardScreen
+import com.galibu.professional.ui.screens.PriceNegotiationScreen as ProfessionalPriceNegotiationScreen
 import com.galibu.client.ui.viewmodels.ClientViewModel
-import com.galibu.professional.ui.screens.*
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import com.galibu.core.ui.theme.*
 import com.galibu.core.ui.components.GalibuLoadingOverlay
@@ -202,8 +205,10 @@ class MainActivity : ComponentActivity() {
                                 Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                                     if (activeRole == "PROFESSIONAL") {
                                         when (currentRoute) {
-                                            "AUTH" -> com.galibu.professional.ui.screens.AuthScreen(
+                                            "AUTH" -> AuthScreen(
                                                 viewModel = proViewModel,
+                                                logoResId = com.galibu.professional.R.drawable.img_splash_logo,
+                                                googleIconResId = com.galibu.professional.R.drawable.ic_google,
                                                 onAuthSuccess = { currentRoute = "PROFESSIONAL_DASHBOARD" }
                                             )
                                             "PROFESSIONAL_DASHBOARD" -> ProfessionalDashboardScreen(
@@ -218,7 +223,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onSwitchRole = { switchMode("CLIENT") }
                                             )
-                                            "NEGOTIATION" -> PriceNegotiationScreen(
+                                            "NEGOTIATION" -> ProfessionalPriceNegotiationScreen(
                                                 viewModel = proViewModel,
                                                 onOpenChat = { jobId ->
                                                     proViewModel.selectJob(jobId)
@@ -245,6 +250,8 @@ class MainActivity : ComponentActivity() {
                                         when (currentRoute) {
                                             "AUTH" -> AuthScreen(
                                                 viewModel = viewModel,
+                                                logoResId = com.galibu.client.R.drawable.img_splash_logo,
+                                                googleIconResId = com.galibu.client.R.drawable.ic_google,
                                                 onAuthSuccess = { currentRoute = "CLIENT_DASHBOARD" }
                                             )
                                             "CLIENT_DASHBOARD" -> ClientDashboardScreen(

@@ -1,4 +1,4 @@
-package com.galibu.professional.ui.screens
+package com.galibu.core.ui.screens.auth
 
 import android.location.Location
 import android.location.LocationListener
@@ -57,16 +57,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Log
 import coil.compose.AsyncImage
 import com.galibu.core.ui.theme.*
-import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
-import com.galibu.professional.BuildConfig
-import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
+import com.galibu.core.ui.viewmodels.SharedViewModel
 import com.galibu.core.ui.utils.ImageUtils
+import com.galibu.core.ui.utils.GpsFix
+import com.galibu.core.ui.utils.getCurrentGpsLocation
+import com.galibu.core.ui.utils.isDeviceLocationEnabled
+import com.galibu.core.ui.utils.matchCatalogName
 import kotlinx.coroutines.launch
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -89,7 +91,9 @@ private val lightYellowBg = Color(0xFFFEF08A)
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
+    logoResId: Int,
+    googleIconResId: Int,
     onAuthSuccess: () -> Unit
 ) {
     val context = LocalContext.current
@@ -120,7 +124,7 @@ fun AuthScreen(
     var name by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var hourlyRateInput by rememberSaveable { mutableStateOf("") }
-    var selectedRole by rememberSaveable { mutableStateOf("PROFESSIONAL") }
+    var selectedRole by rememberSaveable { mutableStateOf("CLIENT") }
     var passwordVisible by remember { mutableStateOf(false) }
     
     // ==================== ESPECIALIDADES Y FOTOS ====================
@@ -155,14 +159,13 @@ fun AuthScreen(
     var showDeptDropdown by remember { mutableStateOf(false) }
     var showMuniDropdown by remember { mutableStateOf(false) }
     var addressManualOrGps by rememberSaveable { mutableStateOf("") }
+    var isSimulatingGpsReg by remember { mutableStateOf(false) }
     // División detectada por GPS en el registro (para ordenar los catálogos).
     var gpsRegDept by remember { mutableStateOf<String?>(null) }
     var gpsRegMuni by remember { mutableStateOf<String?>(null) }
-    var isSimulatingGpsReg by remember { mutableStateOf(false) }
 
     // ==================== ESTADOS DE FLUJO ====================
     var isGoogleAutocomplete by remember { mutableStateOf(false) }
-    var isRoleExpansionByExistingUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var acceptedTerms by remember { mutableStateOf(false) }
     var showTermsContract by remember { mutableStateOf(false) }
@@ -181,7 +184,7 @@ fun AuthScreen(
     LaunchedEffect(departmentsAndMunicipalities) {
         if (departmentsAndMunicipalities.isNotEmpty()) {
             val hasSelectedDept = departmentsAndMunicipalities.any { it.first == selectedDept }
-            if (!hasSelectedDept && selectedDept != "Departamento" && isRoleExpansionByExistingUser) {
+            if (!hasSelectedDept && selectedDept != "Departamento") {
                 selectedDept = departmentsAndMunicipalities.first().first
                 selectedMuni = departmentsAndMunicipalities.first().second.firstOrNull() ?: ""
             }
@@ -192,7 +195,6 @@ fun AuthScreen(
         errorMessage = null
         if (registrationStep <= 1) {
             isGoogleAutocomplete = false
-            isRoleExpansionByExistingUser = false
         }
     }
 
@@ -205,7 +207,8 @@ fun AuthScreen(
         }
     }
 
-    // Detecci�n GPS solo para ordenar departamento/municipio (no autoselecciona).
+    // ==================== PERMISOS Y LAUNCHERS ====================
+    // Detección GPS solo para ordenar departamento/municipio (no autoselecciona).
     val detectGpsForOrdering: () -> Unit = {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
         if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -239,7 +242,6 @@ fun AuthScreen(
         }
     }
 
-    // ==================== PERMISOS Y LAUNCHERS ====================
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = { permissions ->
@@ -266,12 +268,6 @@ fun AuthScreen(
                         onDetailedFix = { fix ->
                             gpsRegDept = fix.adminArea
                             gpsRegMuni = fix.locality
-                            // Auto-selecciona lo detectado (el usuario puede cambiarlo después).
-                            matchCatalogName(departmentsAndMunicipalities.map { it.first }, fix.adminArea)?.let { matchedDept ->
-                                selectedDept = matchedDept
-                                val munis = departmentsAndMunicipalities.first { it.first == matchedDept }.second
-                                matchCatalogName(munis, fix.locality)?.let { selectedMuni = it }
-                            }
                         }
                     )
                 } else {
@@ -287,8 +283,6 @@ fun AuthScreen(
             }
         }
     )
-
-    // Detección GPS solo para ordenar departamento/municipio (no autoselecciona).
 
     val fetchLocationByGps = {
         // Sin pre-requisitos: la dirección va primero y el GPS detecta y ordena.
@@ -311,6 +305,8 @@ fun AuthScreen(
             }
         }
     }
+
+    // La detección GPS es manual (botón): el campo llega vacío.
 
     val signupPhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -417,24 +413,10 @@ fun AuthScreen(
                         return@loginWithGoogle
                     }
 
-                    // Si la cuenta ya existía como cliente, el backend la expande a
-                    // BOTH durante el login: ya puede usar esta app sin bloqueos.
-
-                    // Verificar si perfil está completo (sin teléfono: ya no se pide)
-                    val profileComplete = user.department?.isNotBlank() == true &&
-                            user.municipality?.isNotBlank() == true &&
-                            user.address?.isNotBlank() == true
-
-                    // Un cliente que se expande a profesional todavía no tiene
-                    // categoría/tarifa: se fuerza a completar el perfil.
-                    val proDataComplete = !user.hasMissingProfessionalFields()
-
-                    if (profileComplete && proDataComplete) {
-                        onAuthSuccess()
-                    } else {
-                        viewModel.setRequireProfileCompletion(true)
-                        onAuthSuccess()
-                    }
+                    // El backend ya define el rol: default CLIENT para cuentas nuevas,
+                    // y respeta la capacidad existente para cuentas ya creadas. El modo
+                    // activo se resuelve en SharedViewModel (persistido o capacidad).
+                    onAuthSuccess()
                 }
             } catch (e: Exception) {
                 Log.e("AuthScreen", "Error in Google sign-in flow: ${e.localizedMessage}")
@@ -454,9 +436,6 @@ fun AuthScreen(
                 val account = task.getResult(ApiException::class.java)
                 val email = account?.email ?: ""
                 val idToken = account?.idToken
-                if (BuildConfig.DEBUG) {
-                    Log.d("GoogleIdToken", "idToken=$idToken")
-                }
                 val displayName = account?.displayName
                 val photoUrl = account?.photoUrl?.toString()
                 if (email.isNotEmpty()) {
@@ -536,6 +515,8 @@ fun AuthScreen(
             )
         } else {
             AuthContent(
+                logoResId = logoResId,
+                googleIconResId = googleIconResId,
                 registrationStep = registrationStep,
                 onRegistrationStepChange = { registrationStep = it },
                 selectedRole = selectedRole,
@@ -569,7 +550,6 @@ fun AuthScreen(
                 onSignupPhotoUriChange = { signupPhotoUri = it },
                 isGoogleAutocomplete = isGoogleAutocomplete,
                 googleIdToken = googleIdToken,
-                isRoleExpansionByExistingUser = isRoleExpansionByExistingUser,
                 errorMessage = errorMessage,
                 onErrorMessageChange = { errorMessage = it },
                 acceptedTerms = acceptedTerms,
@@ -676,7 +656,7 @@ fun AuthScreen(
 
 @Composable
 private fun ForgotPasswordDialog(
-    viewModel: com.galibu.professional.ui.viewmodels.ProfessionalViewModel,
+    viewModel: com.galibu.core.ui.viewmodels.SharedViewModel,
     recoveryEmail: String,
     onRecoveryEmailChange: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -814,6 +794,8 @@ private fun ForgotPasswordDialog(
 
 @Composable
 private fun AuthContent(
+    logoResId: Int,
+    googleIconResId: Int,
     registrationStep: Int,
     onRegistrationStepChange: (Int) -> Unit,
     selectedRole: String,
@@ -842,7 +824,6 @@ private fun AuthContent(
     onSignupPhotoUriChange: (String?) -> Unit,
     isGoogleAutocomplete: Boolean,
     googleIdToken: String?,
-    isRoleExpansionByExistingUser: Boolean,
     errorMessage: String?,
     onErrorMessageChange: (String?) -> Unit,
     acceptedTerms: Boolean,
@@ -872,7 +853,7 @@ private fun AuthContent(
     fetchLocationByGps: () -> Unit,
     gpsDetectedDept: String?,
     gpsDetectedMuni: String?,
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
     onAuthSuccess: () -> Unit,
     context: Context,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -890,6 +871,8 @@ private fun AuthContent(
     ) {
         if (registrationStep == 0) {
             LoginContent(
+                logoResId = logoResId,
+                googleIconResId = googleIconResId,
                 selectedRole = selectedRole,
                 onSelectedRoleChange = onSelectedRoleChange,
                 email = email,
@@ -928,6 +911,7 @@ private fun AuthContent(
             )
         } else {
             RegistrationContent(
+                logoResId = logoResId,
                 registrationStep = registrationStep,
                 onRegistrationStepChange = onRegistrationStepChange,
                 selectedRole = selectedRole,
@@ -956,7 +940,6 @@ private fun AuthContent(
                 onSignupPhotoUriChange = onSignupPhotoUriChange,
                 isGoogleAutocomplete = isGoogleAutocomplete,
                 googleIdToken = googleIdToken,
-                isRoleExpansionByExistingUser = isRoleExpansionByExistingUser,
                 errorMessage = errorMessage,
                 onErrorMessageChange = onErrorMessageChange,
                 acceptedTerms = acceptedTerms,
@@ -998,6 +981,8 @@ private fun AuthContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LoginContent(
+    logoResId: Int,
+    googleIconResId: Int,
     selectedRole: String,
     onSelectedRoleChange: (String) -> Unit,
     email: String,
@@ -1015,7 +1000,7 @@ private fun LoginContent(
     onGoogleSignIn: () -> Unit,
     onRegisterClick: () -> Unit,
     context: Context,
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
     scope: kotlinx.coroutines.CoroutineScope,
     onAuthSuccess: () -> Unit
 ) {
@@ -1029,7 +1014,7 @@ private fun LoginContent(
         
         // Brand logo
         Image(
-            painter = painterResource(com.galibu.professional.R.drawable.img_splash_logo),
+            painter = painterResource(logoResId),
             contentDescription = "Galibu Logo",
             modifier = Modifier.size(width = 61.dp, height = 72.dp),
             contentScale = ContentScale.Fit
@@ -1048,16 +1033,16 @@ private fun LoginContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Diferenciador de app: profesionales
+        // Diferenciador de app: clientes
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF16A34A).copy(alpha = 0.1f))
+                .background(brandBlue.copy(alpha = 0.1f))
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
             Text(
-                text = "Soy Profesional",
-                color = Color(0xFF16A34A),
+                text = "Clientes y profesionales",
+                color = brandBlue,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1083,7 +1068,7 @@ private fun LoginContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Image(
-                    painter = painterResource(com.galibu.professional.R.drawable.ic_google),
+                    painter = painterResource(googleIconResId),
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(22.dp)
                 )
@@ -1255,6 +1240,7 @@ private fun LoginContent(
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun RegistrationContent(
+    logoResId: Int,
     registrationStep: Int,
     onRegistrationStepChange: (Int) -> Unit,
     selectedRole: String,
@@ -1283,7 +1269,6 @@ private fun RegistrationContent(
     onSignupPhotoUriChange: (String?) -> Unit,
     isGoogleAutocomplete: Boolean,
     googleIdToken: String?,
-    isRoleExpansionByExistingUser: Boolean,
     errorMessage: String?,
     onErrorMessageChange: (String?) -> Unit,
     acceptedTerms: Boolean,
@@ -1312,7 +1297,7 @@ private fun RegistrationContent(
     fetchLocationByGps: () -> Unit,
     gpsDetectedDept: String?,
     gpsDetectedMuni: String?,
-    viewModel: ProfessionalViewModel,
+    viewModel: SharedViewModel,
     onAuthSuccess: () -> Unit,
     context: Context,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -1381,7 +1366,7 @@ private fun RegistrationContent(
             }
 
             Image(
-                painter = painterResource(com.galibu.professional.R.drawable.img_splash_logo),
+                painter = painterResource(logoResId),
                 contentDescription = "Logo Small",
                 modifier = Modifier.size(width = 27.dp, height = 32.dp),
                 contentScale = ContentScale.Fit
@@ -1412,8 +1397,6 @@ private fun RegistrationContent(
 
             1 -> {
                 // ================== STEP 1: PROFILE DETAILS ==================
-                // Sin rol: esta app solo crea PROFESIONALES.
-                LaunchedEffect(Unit) { onSelectedRoleChange("PROFESSIONAL") }
                 Text(
                     text = "Datos de tu perfil",
                     fontSize = 26.sp,
@@ -1427,6 +1410,46 @@ private fun RegistrationContent(
                     modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
                 )
 
+                // Intención explícita de uso. CLIENT es el default seguro;
+                // BOTH nunca se activa solo y se puede cambiar antes de enviar.
+                Text(
+                    text = "¿Cómo vas a usar Galibu?",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textMain,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    RoleIntentCard(
+                        icon = Icons.Default.Search,
+                        title = "Buscar un profesional",
+                        subtitle = "Quiero contratar servicios",
+                        selected = selectedRole == "CLIENT",
+                        onClick = { onSelectedRoleChange("CLIENT") }
+                    )
+                    RoleIntentCard(
+                        icon = Icons.Default.Build,
+                        title = "Ofrecer mis servicios",
+                        subtitle = "Quiero recibir solicitudes de trabajo",
+                        selected = selectedRole == "PROFESSIONAL",
+                        onClick = { onSelectedRoleChange("PROFESSIONAL") }
+                    )
+                    RoleIntentCard(
+                        icon = Icons.Default.SwapHoriz,
+                        title = "Ambas cosas",
+                        subtitle = "Contratar y ofrecer servicios",
+                        selected = selectedRole == "BOTH",
+                        onClick = { onSelectedRoleChange("BOTH") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 // Avatar Photo Selection Circle
                 Box(
                     modifier = Modifier
@@ -1434,7 +1457,7 @@ private fun RegistrationContent(
                         .clip(CircleShape)
                         .background(PolishIce)
                         .border(3.dp, PolishBlue, CircleShape)
-                        .clickable { if (!isRoleExpansionByExistingUser) onShowProfilePhotoSourceDialogChange(true) },
+                        .clickable { onShowProfilePhotoSourceDialogChange(true) },
                     contentAlignment = Alignment.Center
                 ) {
                     if (!signupPhotoUri.isNullOrBlank()) {
@@ -1534,10 +1557,10 @@ private fun RegistrationContent(
                         .testTag("register_email_input")
                 )
 
-                if (selectedRole == "PROFESSIONAL") {
+                if (selectedRole != "CLIENT") {
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Selector de categorías compartido con la app cliente.
+                    // Selector de categorías homologado con la app profesional.
                     val baseCategories = if (firestoreCatList.isNotEmpty()) {
                         firestoreCatList.map { it.name }
                     } else {
@@ -1564,6 +1587,79 @@ private fun RegistrationContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Hourly rate estimation label
+                    Text(
+                        text = "Tarifa aproximada por hora",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = textMain,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp)
+                    )
+
+                    // Hourly rate estimation input
+                    OutlinedTextField(
+                        value = hourlyRateInput,
+                        onValueChange = onHourlyRateInputChange,
+                        placeholder = { Text("Ej: 35000", color = textSec) },
+                        prefix = { Text("$ ", color = textMain) },
+                        suffix = { Text("/hora", color = textSec) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = bgLightField,
+                            unfocusedContainerColor = bgLightField,
+                            focusedBorderColor = brandBlue,
+                            unfocusedBorderColor = borderLight,
+                            focusedTextColor = textMain,
+                            unfocusedTextColor = textMain
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("register_hourly_rate_input")
+                    )
+
+                    // Presets Row for hourly rates (Image 7)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val presets = listOf("20000", "30000", "40000", "50000", "60000")
+                        presets.forEach { amt ->
+                            val displayAmt = when (amt) {
+                                "20000" -> "$20,000"
+                                "30000" -> "$30,000"
+                                "40000" -> "$40,000"
+                                "50000" -> "$50,000"
+                                "60000" -> "$60,000"
+                                else -> "$$amt"
+                            }
+                            val isSelected = com.galibu.core.ui.utils.PriceUtils.cleanPrice(hourlyRateInput) == amt
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onHourlyRateInputChange(amt) },
+                                label = { Text(displayAmt, fontSize = 13.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = lightBlueActive,
+                                    selectedLabelColor = brandBlue
+                                )
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Esta tarifa es referencial. Puedes negociar en cada servicio.",
+                        fontSize = 11.sp,
+                        color = textSec,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 16.dp)
+                    )
 
                     // Work photos option (Image 7)
                     Text(
@@ -1651,7 +1747,7 @@ private fun RegistrationContent(
                             onErrorMessageChange("Por favor completa tu nombre y correo electrónico")
                         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
                             onErrorMessageChange("Por favor ingresa un correo electrónico válido")
-                        } else if (selectedRole == "PROFESSIONAL" && selectedSpecialties.isEmpty()) {
+                        } else if (selectedRole != "CLIENT" && selectedSpecialties.isEmpty()) {
                             onErrorMessageChange("Por favor selecciona al menos una especialidad")
                         } else {
                             onErrorMessageChange(null)
@@ -1776,6 +1872,7 @@ private fun RegistrationContent(
                         value = selectedDept,
                         onValueChange = {},
                         readOnly = true,
+                        singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = bgLightField,
@@ -1848,6 +1945,7 @@ private fun RegistrationContent(
                         value = selectedMuni,
                         onValueChange = {},
                         readOnly = true,
+                        singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = bgLightField,
@@ -1897,7 +1995,6 @@ private fun RegistrationContent(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
 
                 // Continue Button
                 Button(
@@ -2119,36 +2216,42 @@ private fun RegistrationContent(
                         } else if (!acceptedTerms) {
                             onErrorMessageChange("Debes aceptar los Términos y Condiciones de Galibu para continuar.")
                         } else {
-                            onErrorMessageChange(null)
-                            val finalCat = if (selectedRole == "PROFESSIONAL") {
-                                if (selectedSpecialties.isNotEmpty()) selectedSpecialties.joinToString(", ") else "Plomería"
+                            val rateVal = com.galibu.core.ui.utils.PriceUtils.cleanPrice(hourlyRateInput).toDoubleOrNull() ?: 0.0
+                            val minHourlyWage = 5417.0
+                            if (selectedRole != "CLIENT" && rateVal < minHourlyWage) {
+                                onErrorMessageChange("La tarifa por hora es muy baja. El salario mínimo legal por hora en Colombia es de $5.417 COP.")
                             } else {
-                                null
-                            }
-
-                            viewModel.register(
-                                name = name.trim(),
-                                email = email.trim().lowercase(),
-                                phone = if (phone.isNotBlank()) phone.trim() else "+57 300 000 0000",
-                                password = if (isGoogleAutocomplete) "" else password,
-                                role = selectedRole,
-                                category = finalCat,
-                                department = selectedDept,
-                                municipality = selectedMuni,
-                                profilePhotoUrl = signupPhotoUri,
-                                address = addressManualOrGps.trim(),
-                                workPhotos = workPhotos,
-                                hourlyRate = null,
-                                acceptedTerms = acceptedTerms,
-                                googleIdToken = googleIdToken
-                            ) { errorMsg ->
-                                if (errorMsg == null) {
-                                    // Registro exitoso: la sesión ya quedó establecida
-                                    onAuthSuccess()
+                                onErrorMessageChange(null)
+                                val finalCat = if (selectedRole != "CLIENT") {
+                                    if (selectedSpecialties.isNotEmpty()) selectedSpecialties.joinToString(", ") else "Plomería"
                                 } else {
-                                    onErrorMessageChange(errorMsg)
+                                    null
                                 }
-                            }
+
+                                viewModel.register(
+                                    name = name.trim(),
+                                    email = email.trim().lowercase(),
+                                    phone = if (phone.isNotBlank()) phone.trim() else "+57 300 000 0000",
+                                    password = if (isGoogleAutocomplete) "" else password,
+                                    role = selectedRole,
+                                    category = finalCat,
+                                    department = selectedDept,
+                                    municipality = selectedMuni,
+                                    profilePhotoUrl = signupPhotoUri,
+                                    address = addressManualOrGps.trim(),
+                                    workPhotos = workPhotos,
+                                    hourlyRate = if (selectedRole != "CLIENT") rateVal else null,
+                                    acceptedTerms = acceptedTerms,
+                                    googleIdToken = googleIdToken
+                                ) { errorMsg ->
+                                    if (errorMsg == null) {
+                                        // Registro exitoso: la sesión ya quedó establecida
+                                        onAuthSuccess()
+                                    } else {
+                                        onErrorMessageChange(errorMsg)
+                                    }
+                                }
+                        }
                     }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = brandBlue),
@@ -2365,168 +2468,65 @@ fun GoogleSuccessDialog(
     )
 }
 
-// ==================== FUNCIONES AUXILIARES ====================
-
-fun isDeviceLocationEnabled(context: Context): Boolean {
-    val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-        ?: return false
-    return try {
-        lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-            lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-    } catch (e: Exception) {
-        false
-    }
-}
-
 /**
- * Resultado detallado de una resolución GPS: texto + división política detectada.
+ * Tarjeta de intención de registro. El usuario elige con qué capacidad quiere
+ * empezar: solo cliente, solo profesional o ambas. BOTH nunca se activa por
+ * defecto; se elige explícitamente aquí o se activa después desde Perfil.
  */
-data class GpsFix(
-    val address: String,
-    val adminArea: String? = null,
-    val locality: String? = null,
-    val latitude: Double? = null,
-    val longitude: Double? = null
-)
-
-/**
- * Busca [wanted] (p. ej. del geocoder) dentro del catálogo y devuelve el nombre
- * canónico. Tolera mayúsculas y diferencias menores ("Bogotá D.C." vs "Bogotá").
- */
-internal fun matchCatalogName(candidates: List<String>, wanted: String?): String? {
-    if (wanted.isNullOrBlank()) return null
-    val w = wanted.trim()
-    candidates.firstOrNull { it.equals(w, ignoreCase = true) }?.let { return it }
-    val normW = w.lowercase().replace(".", "").replace("d c", "").trim()
-    return candidates.firstOrNull {
-        val normC = it.lowercase().replace(".", "").replace("d c", "").trim()
-        normC == normW || normC.contains(normW) || normW.contains(normC)
-    }
-}
-
-@Suppress("DEPRECATION")
-fun getCurrentGpsLocation(
-    context: Context,
-    department: String,
-    municipality: String,
-    onLocationFetched: (String) -> Unit,
-    onGpsUnavailable: (() -> Unit)? = null,
-    onDetailedFix: ((GpsFix) -> Unit)? = null
+@Composable
+private fun RoleIntentCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-    val fallback = "Calle 100 # 15-22, $municipality, $department"
-    fun notifyUnavailable() {
-        if (onGpsUnavailable != null) onGpsUnavailable() else onLocationFetched(fallback)
-    }
-    fun resolveFix(latitude: Double, longitude: Double): GpsFix {
-        val addr = try {
-            Geocoder(context, Locale.getDefault()).getFromLocation(latitude, longitude, 1)?.firstOrNull()
-        } catch (e: Exception) {
-            null
-        }
-        val line = addr?.getAddressLine(0)
-        return GpsFix(
-            address = if (!line.isNullOrBlank()) line else fallback,
-            adminArea = addr?.adminArea?.takeIf { it.isNotBlank() },
-            locality = addr?.locality?.takeIf { it.isNotBlank() }
-                ?: addr?.subAdminArea?.takeIf { it.isNotBlank() },
-            latitude = latitude,
-            longitude = longitude
-        )
-    }
-    fun deliver(fix: GpsFix) {
-        onDetailedFix?.invoke(fix)
-        onLocationFetched(fix.address)
-    }
-    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-    if (locationManager == null) {
-        notifyUnavailable()
-        return
-    }
-
-    val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-    val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-    if (!hasFine && !hasCoarse) {
-        notifyUnavailable()
-        return
-    }
-
-    // Sin ningún proveedor activo (GPS y red apagados) nunca llegará un fix:
-    // avisar de una vez en lugar de quedarse esperando.
-    if (!isDeviceLocationEnabled(context)) {
-        notifyUnavailable()
-        return
-    }
-
-    var delivered = false
-    val handler = android.os.Handler(android.os.Looper.getMainLooper())
-
-    try {
-        val providers = locationManager.getProviders(true)
-        var bestLocation: Location? = null
-        for (provider in providers) {
-            val l = try {
-                locationManager.getLastKnownLocation(provider)
-            } catch (e: Exception) {
-                null
-            } ?: continue
-            if (bestLocation == null || l.accuracy < bestLocation.accuracy) {
-                bestLocation = l
+    val bg = if (selected) Color(0xFFEFF6FF) else Color.White
+    val borderColor = if (selected) Color(0xFF2563EB) else Color(0xFFEFF2F5)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = bg),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(if (selected) Color(0xFF2563EB) else Color(0xFFF1F5F9))
+                    .clip(RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (selected) Color.White else Color(0xFF64748B),
+                    modifier = Modifier.size(20.dp)
+                )
             }
-        }
-
-        if (bestLocation != null) {
-            val fix = resolveFix(bestLocation.latitude, bestLocation.longitude)
-            delivered = true
-            deliver(fix)
-            return
-        }
-
-        val listener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                if (delivered) return
-                delivered = true
-                val fix = resolveFix(location.latitude, location.longitude)
-                try {
-                    locationManager.removeUpdates(this)
-                } catch (e: Exception) {}
-                deliver(fix)
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) Color(0xFF1E293B) else Color(0xFF334155)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B)
+                )
             }
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-            override fun onProviderEnabled(provider: String) {}
-            override fun onProviderDisabled(provider: String) {}
-        }
-        val provider = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            LocationManager.GPS_PROVIDER
-        } else {
-            LocationManager.NETWORK_PROVIDER
-        }
-        try {
-            locationManager.requestSingleUpdate(provider, listener, null)
-        } catch (e: Exception) {
-            if (!delivered) {
-                delivered = true
-                notifyUnavailable()
-            }
-            return
-        }
-
-        // Timeout: si no llega ningún fix, liberar y avisar (antes se quedaba cargando).
-        handler.postDelayed({
-            if (!delivered) {
-                delivered = true
-                try {
-                    locationManager.removeUpdates(listener)
-                } catch (e: Exception) {}
-                notifyUnavailable()
-            }
-        }, 10000)
-    } catch (e: Exception) {
-        if (!delivered) {
-            delivered = true
-            notifyUnavailable()
         }
     }
 }
-
-

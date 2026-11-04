@@ -50,6 +50,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.galibu.core.ui.utils.ImageUtils
+import com.galibu.core.ui.utils.GpsFix
+import com.galibu.core.ui.utils.getCurrentGpsLocation
+import com.galibu.core.ui.utils.isDeviceLocationEnabled
+import com.galibu.core.ui.utils.matchCatalogName
 import com.galibu.core.ui.utils.PhotoUtils
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import androidx.compose.foundation.lazy.LazyColumn
