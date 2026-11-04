@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.screens.auth.AuthScreen
+import com.galibu.core.data.model.hasCapability
+import com.galibu.core.data.model.hasMissingForMode
+import com.galibu.core.data.model.preferredMode
 import com.galibu.core.ui.screens.ChatAndPaymentsScreen
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
 import com.galibu.client.ui.screens.ClientDashboardScreen
@@ -110,10 +113,14 @@ class MainActivity : ComponentActivity() {
 
                 // Único punto de entrada del cambio de modo. Mantiene los dos
                 // ViewModels alineados con el modo activo y enruta al dashboard.
+                // El destino se resuelve contra la capacidad real de la cuenta:
+                // si el modo pedido ya no existe (p. ej. last_mode inválido),
+                // se corrige a un modo válido en lugar de quedarse en AUTH.
                 val switchMode: (String) -> Unit = { role ->
-                    viewModel.setAppRole(role)
-                    proViewModel.setAppRole(role)
-                    currentRoute = if (role == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
+                    val resolved = currentUser.preferredMode(role)
+                    viewModel.setAppRole(resolved)
+                    proViewModel.setAppRole(resolved)
+                    currentRoute = if (resolved == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
                 }
 
                 LaunchedEffect(currentRoute, selectedTab) {
@@ -156,7 +163,16 @@ class MainActivity : ComponentActivity() {
                     } else if (activeRole != null && currentRoute == "AUTH") {
                         // SharedViewModel resuelve el modo inicial (último usado o
                         // capacidad de la cuenta); aquí solo se enruta.
-                        currentRoute = if (activeRole == "PROFESSIONAL") "PROFESSIONAL_DASHBOARD" else "CLIENT_DASHBOARD"
+                        // Gate de onboarding: con datos faltantes no se opera en
+                        // el dashboard; primero se fuerza completar el perfil.
+                        if (currentUser.hasMissingForMode(activeRole)) {
+                            viewModel.setRequireProfileCompletion(true)
+                        }
+                        if (activeRole == "PROFESSIONAL") {
+                            currentRoute = "PROFESSIONAL_DASHBOARD"
+                        } else {
+                            currentRoute = "CLIENT_DASHBOARD"
+                        }
                     }
                 }
 

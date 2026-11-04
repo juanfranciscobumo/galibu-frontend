@@ -27,14 +27,54 @@ fun UserProfile.hasMissingProfessionalFields(): Boolean {
  * Capacidades de la cuenta. `role` (CLIENT/PROFESSIONAL/BOTH) es una capacidad,
  * no un modo activo: el modo lo decide la app. Centralizar estas reglas evita
  * que cada pantalla compare el rol a mano con criterios distintos.
+ *
+ * - [canHire]: puede contratar (crear solicitudes).
+ * - [canOffer]: puede ofrecer servicios (ver ofertas, ofertar, cobrar).
+ * - [hasCapability]: ¿puede operar en el modo [mode]?
+ * - [preferredMode]: modo inicial válido para la cuenta (nunca un modo que no tiene).
+ * - [hasMissingForMode]: gate de onboarding para operar en [mode].
  */
-fun UserProfile?.canSwitchToProfessional(): Boolean =
-    this?.role?.equals("BOTH", ignoreCase = true) == true ||
-        this?.role?.equals("PROFESSIONAL", ignoreCase = true) == true
+fun UserProfile?.canHire(): Boolean =
+    this?.role?.equals("CLIENT", ignoreCase = true) == true ||
+        this?.role?.equals("BOTH", ignoreCase = true) == true
 
-fun UserProfile?.canSwitchToClient(): Boolean =
-    this?.role?.equals("BOTH", ignoreCase = true) == true ||
-        this?.role?.equals("CLIENT", ignoreCase = true) == true
+fun UserProfile?.canOffer(): Boolean =
+    this?.role?.equals("PROFESSIONAL", ignoreCase = true) == true ||
+        this?.role?.equals("BOTH", ignoreCase = true) == true
+
+/** ¿El usuario tiene la capacidad para operar en [mode] (CLIENT/PROFESSIONAL)? */
+fun UserProfile?.hasCapability(mode: String?): Boolean = when (mode?.uppercase()) {
+    "CLIENT" -> canHire()
+    "PROFESSIONAL" -> canOffer()
+    else -> false
+}
+
+/**
+ * Modo activo inicial para esta cuenta: respeta [persisted] solo si la cuenta
+ * tiene esa capacidad; si no, cae a la capacidad principal (default CLIENT).
+ * Nunca arranca en un modo que la cuenta no tiene.
+ */
+fun UserProfile?.preferredMode(persisted: String?): String = when {
+    hasCapability(persisted) -> persisted!!.uppercase()
+    canOffer() && !canHire() -> "PROFESSIONAL"
+    else -> "CLIENT"
+}
+
+/**
+ * Gate de onboarding para operar en [mode]: CLIENT exige los datos básicos;
+ * PROFESSIONAL exige además la categoría profesional. Devuelve true si falta algo.
+ */
+fun UserProfile?.hasMissingForMode(mode: String?): Boolean {
+    if (this == null) return true
+    if (hasMissingRequiredFields()) return true
+    return if (mode?.uppercase() == "PROFESSIONAL") hasMissingProfessionalFields() else false
+}
+
+/** ¿Este usuario puede operar como profesional? (lo usa el switch de modo del Perfil). */
+fun UserProfile?.canSwitchToProfessional(): Boolean = canOffer()
+
+/** ¿Este usuario puede operar como cliente? (lo usa el switch de modo del Perfil). */
+fun UserProfile?.canSwitchToClient(): Boolean = canHire()
 
 @JsonClass(generateAdapter = true)
 @Entity(tableName = "user_profiles")

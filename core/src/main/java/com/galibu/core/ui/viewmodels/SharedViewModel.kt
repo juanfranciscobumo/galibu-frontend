@@ -65,13 +65,15 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         modePrefs.getString("last_mode", null)?.takeIf { it == "CLIENT" || it == "PROFESSIONAL" }
 
     fun setAppRole(role: String) {
-        appRole = role
-        modePrefs.edit().putString("last_mode", role).apply()
-        _activeRole.value = role
+        // Clamp: el modo activo nunca puede ser uno que la cuenta no tiene.
+        val safeRole = if (currentUser.value.hasCapability(role)) role.uppercase() else currentUser.value.preferredMode(role)
+        appRole = safeRole
+        modePrefs.edit().putString("last_mode", safeRole).apply()
+        _activeRole.value = safeRole
         // Si la sesión ya estaba restaurada con el rol de la otra app, expándela.
         viewModelScope.launch {
-            if (repository.ensureRole(role)) {
-                _activeRole.value = role
+            if (repository.ensureRole(safeRole)) {
+                _activeRole.value = safeRole
             }
         }
     }
@@ -224,9 +226,10 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 if (user != null) {
                     // El modo activo lo define el último modo elegido por el usuario
                     // (persistido) o, si nunca cambió, la capacidad principal de la cuenta.
-                    _activeRole.value = appRole ?: persistedMode() ?: when (user.role) {
-                        "PROFESSIONAL" -> "PROFESSIONAL"
-                        else -> "CLIENT"
+                    // preferredMode() aplica clamp: nunca arranca en un modo sin capacidad.
+                    _activeRole.value = when {
+                        appRole != null && user.hasCapability(appRole) -> appRole
+                        else -> user.preferredMode(appRole ?: persistedMode())
                     }
                 } else {
                     _activeRole.value = null
