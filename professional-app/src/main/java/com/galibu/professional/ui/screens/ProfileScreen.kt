@@ -59,6 +59,7 @@ import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.ProfileOptionCard
+import com.galibu.core.ui.components.ProfileOverviewContent
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.ServiceCategoryTag
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
@@ -1465,235 +1466,38 @@ fun ProfileScreen(
                 }
             }
             null -> {
-                // SCREEN MAIN: MAIN PROFILE PREVIEW LIST
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    
-                    Text(
-                        text = "Perfil",
-                        color = Color(0xFF0F172A),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 6.dp)
-                            .testTag("profile_section_title")
-                    )
-                    HorizontalDivider(color = Color(0xFFEFF2F5), thickness = 1.dp)
-
-                    // Dynamic Feedback Messages
-                    if (showSuccessMessage != null) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7)),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth().clickable { showSuccessMessage = null }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = showSuccessMessage!!, color = Color(0xFF15803D), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                            }
+                ProfileOverviewContent(
+                    currentUser = currentUser,
+                    isProfessional = true,
+                    logoResId = com.galibu.professional.R.drawable.img_splash_logo,
+                    showTitle = true,
+                    successMessage = showSuccessMessage,
+                    onDismissSuccess = { showSuccessMessage = null },
+                    onEditProfile = {
+                        showSuccessMessage = null
+                        activeSubScreen = ProfileSubScreen.EDIT_INFO
+                    },
+                    onChangePassword = {
+                        showSuccessMessage = null
+                        if (currentUser?.authProvider == "GOOGLE") {
+                            viewModel.showInfo(
+                                "Tu cuenta está vinculada a Google. " +
+                                    "Cambia tu contraseña desde tu cuenta de Google."
+                            )
+                        } else {
+                            activeSubScreen = ProfileSubScreen.CHANGE_PASSWORD
                         }
-                    }
-
-                    // 1. User Info Header Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(1.dp, Color(0xFFEFF2F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Foto de perfil (solo lectura; se cambia desde Editar perfil)
-                            if (!photoUrlInput.isNullOrEmpty()) {
-                                val decodedModel = remember(photoUrlInput) { PhotoUtils.decodeBase64ToBitmap(photoUrlInput) }
-                                AsyncImage(
-                                    model = decodedModel,
-                                    contentDescription = "Foto de Perfil",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                        .border(3.dp, PolishBlue, CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                        .background(PolishIce)
-                                        .border(3.dp, PolishBlue, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = PolishBlue,
-                                        modifier = Modifier.size(50.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Nombre
-                            Text(
-                                text = currentUser?.name ?: "Usuario",
-                                color = Color(0xFF0F172A),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // Email
-                            Text(
-                                text = currentUser?.email ?: "",
-                                color = Color(0xFF64748B),
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center
-                            )
-
-                            // Categorías
-
-            }
-
-                    // Options List (Cleaned according to prompt - Mi ubicación, notificaciones, firebase removed)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        ProfileOptionCard(
-                            icon = Icons.Default.Edit,
-                            iconBgColor = Color(0xFFEFF6FF),
-                            iconColor = Color(0xFF2563EB),
-                            title = "Editar perfil",
-                            onClick = { 
-                                showSuccessMessage = null
-                                activeSubScreen = ProfileSubScreen.EDIT_INFO 
-                            }
-                        )
-
-                        ProfileOptionCard(
-                            icon = Icons.Default.Lock,
-                            iconBgColor = Color(0xFFEFF6FF),
-                            iconColor = Color(0xFF2563EB),
-                            title = "Cambiar contraseña",
-                            onClick = { 
-                                showSuccessMessage = null
-                                if (currentUser?.authProvider == "GOOGLE") {
-                                    viewModel.showInfo(
-                                        "Tu cuenta está vinculada a Google. " +
-                                            "Cambia tu contraseña desde tu cuenta de Google."
-                                    )
-                                } else {
-                                    activeSubScreen = ProfileSubScreen.CHANGE_PASSWORD 
-                                }
-                            }
-                        )
-                    }
-
-                    // CUENTA Section Divider Label
-                    Text(
-                        text = "CUENTA",
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp, bottom = 2.dp)
-                    )
-
-                    // Account section options
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        ProfileOptionCard(
-                            icon = Icons.AutoMirrored.Filled.Help,
-                            iconBgColor = Color(0xFFEFF6FF),
-                            iconColor = Color(0xFF2563EB),
-                            title = "Ayuda y soporte",
-                            onClick = { showSupportDialog = true }
-                        )
-
-                        if (currentUser.canSwitchToClient()) {
-                            ProfileOptionCard(
-                                icon = Icons.Default.SwapHoriz,
-                                iconBgColor = Color(0xFFEFF6FF),
-                                iconColor = Color(0xFF2563EB),
-                                title = "Cambiar a modo cliente",
-                                onClick = onSwitchRole
-                            )
-                        }
-
-                        ProfileOptionCard(
-                            icon = Icons.AutoMirrored.Filled.Logout,
-                            iconBgColor = Color(0xFFFEF2F2),
-                            iconColor = Color(0xFFEF4444),
-                            title = "Cerrar sesión",
-                            titleColor = Color(0xFFEF4444),
-                            showChevron = false,
-                            onClick = { showLogoutDialog = true }
-                        )
-
-                        ProfileOptionCard(
-                            icon = Icons.Default.Delete,
-                            iconBgColor = Color(0xFFFEF2F2),
-                            iconColor = Color(0xFFEF4444),
-                            title = "Eliminar cuenta",
-                            titleColor = Color(0xFFEF4444),
-                            chevronColor = Color(0xFFF87171),
-                            onClick = { showDeleteDialog = true }
-                        )
-                    }
-
-                    // Logo & app version footer
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = com.galibu.professional.R.drawable.img_splash_logo),
-                            contentDescription = "Galibu",
-                            modifier = Modifier.size(width = 27.dp, height = 32.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Galibu v1.0.0",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
+                    },
+                    onSupport = { showSupportDialog = true },
+                    onSwitchRole = onSwitchRole,
+                    onLogout = { showLogoutDialog = true },
+                    onDeleteAccount = { showDeleteDialog = true }
+                )
             }
         }
     }
 
     // Vista ampliada de una foto del portafolio.
-    }
     portfolioPreviewPhoto?.let { photo ->
         Dialog(
             onDismissRequest = { portfolioPreviewPhoto = null },

@@ -217,6 +217,7 @@ import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.GalibuRatingSheet
 import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.ProfileOverviewContent
 import com.galibu.core.ui.components.RequestSummaryCard
 import com.galibu.core.ui.components.ServiceCategoryTag
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
@@ -2250,218 +2251,21 @@ fun PerfilTab(
 ) {
     var showSupportDialog by remember { mutableStateOf(false) }
     var supportMessage by remember { mutableStateOf("") }
-    val profilePhotoModel = remember(currentUser?.profilePhotoUrl) {
-        decodePhotoModel(currentUser?.profilePhotoUrl)
-    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-    ) {
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Perfil",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = PolishDark
-        )
-
-        // Aviso de éxito (mismo estilo y ubicación que en el perfil profesional).
-        if (successMessage != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onDismissSuccess() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF16A34A)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = successMessage,
-                        color = Color(0xFF15803D),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = PolishCard),
-            border = BorderStroke(1.dp, Color(0xFFEFF2F5)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (profilePhotoModel != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(profilePhotoModel)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, PolishBlue, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(PolishIce)
-                            .border(3.dp, PolishBlue, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = PolishBlue,
-                            modifier = Modifier.size(50.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = currentUser?.name ?: "Usuario",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PolishDark,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = currentUser?.email ?: "",
-                    fontSize = 14.sp,
-                    color = PolishGrayText
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        val blueIconBg = Color(0xFFEFF6FF)
-        val blueIconColor = Color(0xFF2563EB)
-        val redIconBg = Color(0xFFFEF2F2)
-        val redIconColor = Color(0xFFEF4444)
-
-        ProfileMenuItem(
-            icon = Icons.Default.Edit,
-            title = "Editar perfil",
-            onClick = onEditProfile,
-            iconBgColor = blueIconBg,
-            iconColor = blueIconColor
-        )
-
-        ProfileMenuItem(
-            icon = Icons.Default.Lock,
-            title = "Cambiar contraseña",
-            onClick = onChangePassword,
-            iconBgColor = blueIconBg,
-            iconColor = blueIconColor
-        )
-
-        // CUENTA Section Divider Label
-        Text(
-            text = "CUENTA",
-            color = PolishGrayText,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            letterSpacing = 1.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp, bottom = 12.dp)
-        )
-
-        ProfileMenuItem(
-            icon = Icons.AutoMirrored.Filled.Help,
-            title = "Ayuda y soporte",
-            onClick = { showSupportDialog = true },
-            iconBgColor = blueIconBg,
-            iconColor = blueIconColor
-        )
-
-        if (currentUser.canSwitchToProfessional()) {
-            ProfileMenuItem(
-                icon = Icons.Default.SwapHoriz,
-                title = "Cambiar a modo profesional",
-                onClick = onSwitchRole,
-                iconBgColor = Color(0xFFEFF6FF),
-                iconColor = Color(0xFF2563EB)
-            )
-        }
-
-        ProfileMenuItem(
-            icon = Icons.AutoMirrored.Filled.Logout,
-            title = "Cerrar sesión",
-            onClick = onLogout,
-            iconBgColor = redIconBg,
-            iconColor = redIconColor,
-            titleColor = redIconColor,
-            showChevron = false
-        )
-
-        ProfileMenuItem(
-            icon = Icons.Default.Delete,
-            title = "Eliminar cuenta",
-            onClick = onDeleteAccount,
-            iconBgColor = redIconBg,
-            iconColor = redIconColor,
-            titleColor = redIconColor,
-            chevronColor = Color(0xFFF87171)
-        )
-
-        // Footer: logo + versión
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = com.galibu.client.R.drawable.img_splash_logo),
-                contentDescription = "Galibu",
-                modifier = Modifier.size(width = 27.dp, height = 32.dp),
-                contentScale = ContentScale.Fit
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Galibu v1.0.0",
-                color = PolishGrayText,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(80.dp))
-    }
+    ProfileOverviewContent(
+        currentUser = currentUser,
+        isProfessional = false,
+        logoResId = com.galibu.client.R.drawable.img_splash_logo,
+        showTitle = true,
+        successMessage = successMessage,
+        onDismissSuccess = onDismissSuccess,
+        onEditProfile = onEditProfile,
+        onChangePassword = onChangePassword,
+        onSupport = { showSupportDialog = true },
+        onSwitchRole = onSwitchRole,
+        onLogout = onLogout,
+        onDeleteAccount = onDeleteAccount
+    )
 
     // Ayuda y soporte
     if (showSupportDialog) {
@@ -2519,71 +2323,6 @@ fun PerfilTab(
                 }
             }
         )
-    }
-}
-
-@Composable
-fun ProfileMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    iconBgColor: Color = PolishIce,
-    iconColor: Color = PolishBlue,
-    titleColor: Color = PolishDark,
-    showChevron: Boolean = true,
-    chevronColor: Color = PolishGrayText
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 5.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = PolishCard),
-        border = BorderStroke(1.dp, PolishBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(iconBgColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Text(
-                    text = title,
-                    color = titleColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            if (showChevron) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = chevronColor,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
     }
 }
 
