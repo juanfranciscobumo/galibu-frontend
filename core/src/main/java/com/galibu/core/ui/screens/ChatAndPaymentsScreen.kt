@@ -244,7 +244,7 @@ fun ChatAndPaymentsScreen(
         val targetUserName = if (activeRole == "CLIENT") {
             resolvedPeerName ?: "Profesional"
         } else {
-            job?.professionalName ?: "Carlos Mendoza"
+            job?.clientName ?: "Cliente"
         }
 
         val (initials, avatarColor) = getAvatarInitialsAndColor(targetUserName)
@@ -570,7 +570,7 @@ fun ChatAndPaymentsScreen(
                                     val partnerName = if (activeRole == "CLIENT") {
                                         resolvedPeerName ?: "Profesional"
                                     } else {
-                                        job?.professionalName ?: job?.clientName ?: "Compañero"
+                                        job?.clientName ?: job?.professionalName ?: "Compañero"
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         CircularProgressIndicator(
@@ -845,7 +845,7 @@ fun ChatAndPaymentsScreen(
         val targetName = if (activeRole == "CLIENT") {
             resolvedPeerName ?: job?.professionalName ?: "el profesional"
         } else {
-            job?.professionalName ?: "el profesional"
+            job?.clientName ?: "el cliente"
         }
         GalibuRatingSheet(
             title = if (activeRole == "CLIENT") "Calificar al profesional" else "Calificar al cliente",
