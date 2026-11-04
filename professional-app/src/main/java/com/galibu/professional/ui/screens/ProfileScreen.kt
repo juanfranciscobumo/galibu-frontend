@@ -161,6 +161,7 @@ fun ProfileScreen(
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
+    var showActivateClient by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf<String?>(null) }
     
     var showProfilePhotoSourceDialog by remember { mutableStateOf(false) }
@@ -1494,11 +1495,35 @@ fun ProfileScreen(
                     },
                     onSupport = { showSupportDialog = true },
                     onSwitchRole = onSwitchRole,
+                    onActivateClient = { showActivateClient = true },
                     onLogout = { showLogoutDialog = true },
                     onDeleteAccount = { showDeleteDialog = true }
                 )
             }
         }
+    }
+
+    // Upgrade explícito (Profesional): activa la capacidad cliente.
+    if (showActivateClient) {
+        GalibuAlertDialog(
+            title = "Buscar un profesional",
+            message = "¿Quieres también buscar profesionales en Galibu? Tu cuenta pasará a tener ambas capacidades.",
+            type = GalibuAlertType.INFO,
+            confirmText = "Activar",
+            dismissText = "Cancelar",
+            onConfirm = {
+                showActivateClient = false
+                viewModel.upgradeCapability("CLIENT") { error ->
+                    if (error == null) {
+                        showSuccessMessage = "Capacidad cliente activada."
+                        onSwitchRole()
+                    } else {
+                        viewModel.showError(error)
+                    }
+                }
+            },
+            onDismissRequest = { showActivateClient = false }
+        )
     }
 
     // Vista ampliada de una foto del portafolio.

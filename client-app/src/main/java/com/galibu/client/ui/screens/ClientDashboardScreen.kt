@@ -456,6 +456,7 @@ fun ClientDashboardScreen(
     var showChangePassword by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showActivateProfessional by remember { mutableStateOf(false) }
     // Aviso verde del perfil tras cambiar la contraseña (igual que en la app profesional).
     var passwordSuccessMessage by remember { mutableStateOf<String?>(null) }
 
@@ -717,6 +718,7 @@ fun ClientDashboardScreen(
                     onLogout = { showLogoutDialog = true },
                     onSupport = { viewModel.showAlert("Aviso", "Reporte enviado con éxito") },
                     onSwitchRole = onSwitchRole,
+                    onActivateProfessional = { showActivateProfessional = true },
                     successMessage = passwordSuccessMessage,
                     onDismissSuccess = { passwordSuccessMessage = null }
                 )
@@ -909,6 +911,21 @@ fun ClientDashboardScreen(
                 viewModel.logout()
             },
             onDismissRequest = { showLogoutDialog = false }
+        )
+    }
+
+    // Upgrade explícito (Cliente): activa la capacidad profesional con los datos
+    // profesionales mínimos (categoría obligatoria, tarifa opcional).
+    if (showActivateProfessional) {
+        com.galibu.core.ui.components.ActivateProfessionalDialog(
+            viewModel = viewModel,
+            suggestions = categories,
+            onDismiss = { showActivateProfessional = false },
+            onActivated = {
+                showActivateProfessional = false
+                viewModel.showSuccess("¡Ya eres profesional! Completa tu perfil para recibir solicitudes.")
+                onSwitchRole()
+            }
         )
     }
 
@@ -2250,6 +2267,7 @@ fun PerfilTab(
     onLogout: () -> Unit,
     onSupport: () -> Unit,
     onSwitchRole: () -> Unit,
+    onActivateProfessional: () -> Unit = {},
     successMessage: String? = null,
     onDismissSuccess: () -> Unit = {}
 ) {

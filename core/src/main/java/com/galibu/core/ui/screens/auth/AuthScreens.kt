@@ -1589,7 +1589,7 @@ private fun RegistrationContent(
 
                     // Hourly rate estimation label
                     Text(
-                        text = "Tarifa aproximada por hora",
+                        text = "Tarifa aproximada por hora (opcional)",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = textMain,
@@ -1653,7 +1653,7 @@ private fun RegistrationContent(
                     }
 
                     Text(
-                        text = "Esta tarifa es referencial. Puedes negociar en cada servicio.",
+                        text = "Esta tarifa es referencial. Puedes negociar en cada servicio. Es opcional: si la dejas vacía, no bloquea tu registro.",
                         fontSize = 11.sp,
                         color = textSec,
                         modifier = Modifier
@@ -2216,12 +2216,16 @@ private fun RegistrationContent(
                         } else if (!acceptedTerms) {
                             onErrorMessageChange("Debes aceptar los Términos y Condiciones de Galibu para continuar.")
                         } else {
-                            val rateVal = com.galibu.core.ui.utils.PriceUtils.cleanPrice(hourlyRateInput).toDoubleOrNull() ?: 0.0
-                            val minHourlyWage = 5417.0
-                            if (selectedRole != "CLIENT" && rateVal < minHourlyWage) {
-                                onErrorMessageChange("La tarifa por hora es muy baja. El salario mínimo legal por hora en Colombia es de $5.417 COP.")
+                            val rateVal = com.galibu.core.ui.utils.PriceUtils.cleanPrice(hourlyRateInput).toDoubleOrNull()
+                            // Tarifa opcional: si el usuario escribe una, debe ser al menos el
+                            // salario mínimo por hora; si la deja vacía, no bloquea el registro.
+                            val isRateValid = rateVal == null || rateVal >= 5417.0
+                            if (!isRateValid) {
+                                onErrorMessageChange("Si vas a poner una tarifa por hora, debe ser de al menos $5.417 COP. Puedes dejarla vacía y definirla después en tu perfil.")
                             } else {
                                 onErrorMessageChange(null)
+                                // null cuando la deja vacía para que pueda definirla en su perfil.
+                                val hourlyRateValue = rateVal
                                 val finalCat = if (selectedRole != "CLIENT") {
                                     if (selectedSpecialties.isNotEmpty()) selectedSpecialties.joinToString(", ") else "Plomería"
                                 } else {
@@ -2240,7 +2244,7 @@ private fun RegistrationContent(
                                     profilePhotoUrl = signupPhotoUri,
                                     address = addressManualOrGps.trim(),
                                     workPhotos = workPhotos,
-                                    hourlyRate = if (selectedRole != "CLIENT") rateVal else null,
+                                    hourlyRate = if (selectedRole != "CLIENT") hourlyRateValue else null,
                                     acceptedTerms = acceptedTerms,
                                     googleIdToken = googleIdToken
                                 ) { errorMsg ->

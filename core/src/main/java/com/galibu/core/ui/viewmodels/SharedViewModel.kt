@@ -685,6 +685,55 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    /**
+     * Upgrade explícito desde Perfil: activa la capacidad que falta
+     * (CLIENT o PROFESSIONAL) y, si se pasa [workCategory], persiste los
+     * datos profesionales del upgrade. La capacidad profesional exige
+     * categoría; sin ella se rechaza antes de tocar el backend.
+     */
+    fun upgradeCapability(
+        role: String,
+        workCategory: String? = null,
+        onResult: (String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                showLoading("Activando tu nueva capacidad...")
+                val upperRole = role.trim().uppercase()
+                val needsProfessional = upperRole == "PROFESSIONAL" || upperRole == "BOTH"
+                if (needsProfessional && workCategory.isNullOrBlank() && currentUser.value?.workCategory.isNullOrBlank()) {
+                    onResult("Completa tu categoría profesional para poder ofrecer servicios.")
+                    return@launch
+                }
+                val upgraded = repository.addRole(upperRole)
+                if (upgraded == null) {
+                    onResult("No se pudo activar la capacidad. Revisa tu conexión e inténtalo de nuevo.")
+                    return@launch
+                }
+                if (needsProfessional && !workCategory.isNullOrBlank()) {
+                    repository.updateProfile(
+                        name = upgraded.name,
+                        phone = upgraded.phone,
+                        workCategory = workCategory,
+                        profilePhotoUrl = upgraded.profilePhotoUrl,
+                        department = upgraded.department ?: "Bogotá D.C.",
+                        municipality = upgraded.municipality ?: "Bogotá",
+                        address = upgraded.address,
+                        hourlyRate = upgraded.hourlyRate,
+                        workPhotos = upgraded.workPhotos,
+                        workDescription = upgraded.workDescription
+                    )
+                }
+                onResult(null)
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla al activar capacidad: ${e.localizedMessage}")
+                onResult(e.localizedMessage ?: "No se pudo activar la capacidad.")
+            } finally {
+                hideLoading()
+            }
+        }
+    }
+
     fun changePassword(currentPassword: String, newPassword: String, onResult: (String?) -> Unit) {
         viewModelScope.launch {
             try {

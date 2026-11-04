@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +37,7 @@ import coil.compose.AsyncImage
 import com.galibu.core.data.model.UserProfile
 import com.galibu.core.data.model.canSwitchToClient
 import com.galibu.core.data.model.canSwitchToProfessional
+import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishGrayText
 import com.galibu.core.ui.theme.PolishIce
@@ -64,6 +67,8 @@ fun ProfileOverviewContent(
     onChangePassword: () -> Unit,
     onSupport: () -> Unit,
     onSwitchRole: () -> Unit,
+    onActivateProfessional: () -> Unit = {},
+    onActivateClient: () -> Unit = {},
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
@@ -75,6 +80,8 @@ fun ProfileOverviewContent(
     } else {
         currentUser?.canSwitchToProfessional() == true
     }
+    val needsProfessionalActivation = !isProfessional && currentUser?.canSwitchToProfessional() != true
+    val needsClientActivation = isProfessional && currentUser?.canSwitchToClient() != true
     val switchRoleLabel = if (isProfessional) {
         "Cambiar a modo cliente"
     } else {
@@ -244,6 +251,26 @@ fun ProfileOverviewContent(
                 title = "Ayuda y soporte",
                 onClick = onSupport
             )
+
+            if (needsProfessionalActivation) {
+                ProfileOptionCard(
+                    icon = Icons.Default.Work,
+                    iconBgColor = Color(0xFFDCFCE7),
+                    iconColor = Color(0xFF16A34A),
+                    title = "Ofrecer mis servicios",
+                    onClick = onActivateProfessional
+                )
+            }
+
+            if (needsClientActivation) {
+                ProfileOptionCard(
+                    icon = Icons.Default.Search,
+                    iconBgColor = Color(0xFFDCFCE7),
+                    iconColor = Color(0xFF16A34A),
+                    title = "Buscar un profesional",
+                    onClick = onActivateClient
+                )
+            }
 
             if (canSwitchRole) {
                 ProfileOptionCard(

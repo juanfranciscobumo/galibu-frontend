@@ -53,6 +53,7 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
+import com.galibu.core.data.model.hasMissingForMode
 import com.galibu.core.data.model.hasMissingRequiredFields
 import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.data.model.isDirectChat
@@ -564,6 +565,66 @@ fun ProfessionalDashboardScreen(
                 "Inicio" -> {
                     val firstName = remember(currentUser?.name) {
                         currentUser?.name?.trim()?.substringBefore(" ")?.ifBlank { "Usuario" } ?: "Usuario"
+                    }
+                    // Gate de onboarding: con perfil incompleto no se operan
+                    // solicitudes hasta completarlo en Perfil.
+                    val needsProfile = remember(currentUser) {
+                        currentUser.hasMissingForMode("PROFESSIONAL")
+                    }
+                    if (needsProfile) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                                    .clickable { selectedTab = "Perfil" },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = Color(0xFF92400E),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Completa tu perfil para recibir solicitudes",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF92400E)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Sin categoría y datos básicos no puedes ofertar ni recibir solicitudes.",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFFB45309)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = Color(0xFF92400E),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
                     // --- HEADER BLOCK (homologado con el inicio del cliente) ---
                     Row(
