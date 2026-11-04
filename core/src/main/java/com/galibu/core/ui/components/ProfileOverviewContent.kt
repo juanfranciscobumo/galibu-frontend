@@ -85,11 +85,14 @@ fun ProfileOverviewContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(
+                horizontal = if (isProfessional) 20.dp else 16.dp,
+                vertical = if (isProfessional) 16.dp else 0.dp
+            ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (showTitle) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isProfessional) 10.dp else 8.dp))
             Text(
                 text = "Perfil",
                 color = Color(0xFF0F172A),
