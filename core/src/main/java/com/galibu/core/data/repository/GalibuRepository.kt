@@ -996,9 +996,47 @@ class GalibuRepository(
         AppTelemetry.event("auth.logout")
     }
 
-    suspend fun sendPasswordResetEmail(email: String) = withContext(Dispatchers.IO) {
-        if (firebaseService.isFirebaseInitialized()) {
-            firebaseService.firebaseSendPasswordResetEmail(email)
+    /**
+     * Solicita al backend enviar un código de 6 dígitos para restablecer la
+     * contraseña. El backend no revela si el correo existe; las cuentas de
+     * Google son ignoradas (se gestionan desde la cuenta de Google).
+     */
+    suspend fun forgotPassword(email: String): String? = withContext(Dispatchers.IO) {
+        try {
+            apiService.forgotPassword(com.galibu.core.data.remote.ForgotPasswordRequestDto(email.trim().lowercase()))
+            null
+        } catch (e: HttpException) {
+            if (e.code() == 503) {
+                "El envío de correos no está configurado en este servidor."
+            } else {
+                backendErrorMessage(e) ?: "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
+            }
+        } catch (e: IOException) {
+            "Sin conexión: no se pudo enviar el código. Verifica tu internet."
+        } catch (e: Exception) {
+            "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
+        }
+    }
+
+    /**
+     * Restablece la contraseña con el código de 6 dígitos enviado al correo.
+     */
+    suspend fun resetPassword(email: String, code: String, newPassword: String): String? = withContext(Dispatchers.IO) {
+        try {
+            apiService.resetPassword(
+                com.galibu.core.data.remote.ResetPasswordRequestDto(
+                    email.trim().lowercase(),
+                    code.trim(),
+                    newPassword
+                )
+            )
+            null
+        } catch (e: HttpException) {
+            backendErrorMessage(e) ?: "Código inválido o expirado. Solicita uno nuevo."
+        } catch (e: IOException) {
+            "Sin conexión: no se pudo restablecer la contraseña."
+        } catch (e: Exception) {
+            e.localizedMessage ?: "No se pudo restablecer la contraseña."
         }
     }
 

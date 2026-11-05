@@ -28,6 +28,18 @@ data class GoogleLoginRequestDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class ForgotPasswordRequestDto(
+    val email: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ResetPasswordRequestDto(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+
+@JsonClass(generateAdapter = true)
 data class RefreshRequestDto(
     val refreshToken: String
 )

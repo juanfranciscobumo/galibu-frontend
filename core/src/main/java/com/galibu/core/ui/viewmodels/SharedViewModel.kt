@@ -486,26 +486,39 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    /**
+     * Envía al correo un código de 6 dígitos para restablecer la contraseña.
+     * El backend no revela si el email existe; las cuentas de Google se salen.
+     */
     fun sendPasswordResetEmail(email: String, onResult: (String?) -> Unit) {
         viewModelScope.launch {
             try {
-                showLoading("Enviando correo de recuperación...")
-                kotlinx.coroutines.delay(1000)
-                if (repository.isFirebaseInitialized()) {
-                    repository.sendPasswordResetEmail(email)
-                    onResult(null)
-                } else {
-                    onResult(null)
-                    val notification = AppNotification(
-                        userId = "",
-                        title = "Correo de Recuperación (Simulado) ✉️",
-                        body = "Se ha enviado un enlace para restablecer la contraseña de $email satisfactoriamente."
-                    )
-                    database.appNotificationDao().insertNotification(notification)
-                }
+                showLoading("Enviando código de recuperación...")
+                onResult(repository.forgotPassword(email))
             } catch (e: Exception) {
-                Log.e("SharedViewModel", "Falla al enviar correo de recuperación: ${e.localizedMessage}")
-                onResult(e.localizedMessage ?: "No se pudo enviar el correo de recuperación")
+                Log.e("SharedViewModel", "Falla al enviar código de recuperación: ${e.localizedMessage}")
+                onResult(e.localizedMessage ?: "No se pudo enviar el código de recuperación.")
+            } finally {
+                hideLoading()
+            }
+        }
+    }
+
+    /**
+     * Restablece la contraseña con el código solicitado antes.
+     */
+    fun resetPassword(email: String, code: String, newPassword: String, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (newPassword.length < 8) {
+                    onResult("La nueva contraseña debe tener al menos 8 caracteres.")
+                    return@launch
+                }
+                showLoading("Actualizando contraseña...")
+                onResult(repository.resetPassword(email, code, newPassword))
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla al restablecer contraseña: ${e.localizedMessage}")
+                onResult(e.localizedMessage ?: "No se pudo restablecer la contraseña.")
             } finally {
                 hideLoading()
             }

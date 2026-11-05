@@ -110,6 +110,9 @@ fun AuthScreen(
     
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var recoveryEmail by remember { mutableStateOf("") }
+    var recoveryCode by remember { mutableStateOf("") }
+    var recoveryNewPassword by remember { mutableStateOf("") }
+    var recoveryConfirmNewPassword by remember { mutableStateOf("") }
     
     // ==================== ESTADOS DE CARGA ====================
     var isCheckingEmail by remember { mutableStateOf(false) }
@@ -515,21 +518,20 @@ fun AuthScreen(
             .background(Color.White)
     ) {
         if (showForgotPasswordDialog) {
-            ForgotPasswordDialog(
+            ForgotPasswordRecoveryScreen(
                 viewModel = viewModel,
-                recoveryEmail = recoveryEmail,
-                onRecoveryEmailChange = { recoveryEmail = it },
+                email = recoveryEmail,
+                onEmailChange = { recoveryEmail = it },
+                code = recoveryCode,
+                onCodeChange = { input ->
+                    recoveryCode = input.filter { it.isDigit() }.take(6)
+                },
+                newPassword = recoveryNewPassword,
+                onNewPasswordChange = { recoveryNewPassword = it },
+                confirmNewPassword = recoveryConfirmNewPassword,
+                onConfirmNewPasswordChange = { recoveryConfirmNewPassword = it },
                 onDismiss = { showForgotPasswordDialog = false },
-                onSendResetEmail = { targetEmail ->
-                    viewModel.sendPasswordResetEmail(targetEmail) { errorResult ->
-                        if (errorResult == null) {
-                            viewModel.showAlert("Aviso", "Hemos enviado el enlace de recuperación a: $targetEmail. Revisa tu bandeja de entrada o spam.")
-                            showForgotPasswordDialog = false
-                        } else {
-                            viewModel.showAlert("Aviso", "Error: $errorResult", true)
-                        }
-                    }
-                }
+                onPasswordUpdated = { showForgotPasswordDialog = false }
             )
         } else {
             AuthContent(
@@ -672,143 +674,7 @@ fun AuthScreen(
 
 // ==================== COMPOSABLES SEPARADOS ====================
 
-@Composable
-private fun ForgotPasswordDialog(
-    viewModel: com.galibu.core.ui.viewmodels.SharedViewModel,
-    recoveryEmail: String,
-    onRecoveryEmailChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onSendResetEmail: (String) -> Unit
-) {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 40.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = PolishDark,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Recuperar contraseña",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = textMain,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().testTag("recovery_title")
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
-                color = textSec,
-                textAlign = TextAlign.Center,
-                lineHeight = 22.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(36.dp))
-
-            OutlinedTextField(
-                value = recoveryEmail,
-                onValueChange = onRecoveryEmailChange,
-                placeholder = { Text("Correo electrónico", color = textSec) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = brandBlue,
-                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                    focusedTextColor = textMain,
-                    unfocusedTextColor = textMain
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .testTag("recovery_email_input")
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Button(
-                onClick = {
-                    val targetEmail = recoveryEmail.trim()
-                    if (targetEmail.isEmpty()) {
-                        viewModel.showAlert("Aviso", "Por favor, ingresa tu correo electrónico.")
-                        return@Button
-                    }
-                    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(targetEmail).matches()) {
-                        viewModel.showAlert("Aviso", "Por favor, ingresa un correo electrónico válido.")
-                        return@Button
-                    }
-                    onSendResetEmail(targetEmail)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = brandBlue),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("recovery_submit_btn")
-            ) {
-                Text(
-                    text = "Enviar enlace",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
-            }
-        }
-
-        Text(
-            text = "Volver a iniciar sesión",
-            color = brandBlue,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp, top = 24.dp)
-                .clickable { onDismiss() }
-                .testTag("back_to_login_button")
-        )
-    }
-}
+// ForgotPasswordRecoveryScreen vive en PasswordRecoveryScreen.kt (mismo paquete).
 
 @Composable
 private fun AuthContent(

@@ -28,6 +28,12 @@ interface ApiService {
     @POST("auth/refresh")
     suspend fun refresh(@Body req: RefreshRequestDto): AuthResponseDto
 
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body req: ForgotPasswordRequestDto)
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body req: ResetPasswordRequestDto)
+
     // Users
     @GET("users/me")
     suspend fun getMe(): UserProfile
