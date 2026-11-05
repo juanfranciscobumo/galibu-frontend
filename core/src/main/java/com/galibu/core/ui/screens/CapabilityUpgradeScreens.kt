@@ -3,7 +3,6 @@ package com.galibu.core.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import coil.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -26,8 +25,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.utils.ImageUtils
@@ -52,7 +56,7 @@ fun ActivateProfessionalScreen(
     onActivated: () -> Unit
 ) {
     val context = LocalContext.current
-    var categoryInput by remember { mutableStateOf("") }
+    val selectedCategories = remember { mutableStateListOf<String>() }
     var hourlyRateInput by remember { mutableStateOf("") }
     var workDescription by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -156,48 +160,22 @@ fun ActivateProfessionalScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Text(
-                    text = "Categoría(s) de servicio *",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = TextMain,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                // --- Categoría(s) ---
+                CategoryMultiSelectField(
+                    selected = selectedCategories,
+                    options = suggestions,
+                    label = "Categoría(s) de servicio *",
+                    placeholder = "Seleccionar categorías",
+                    accentColor = BrandBlue,
+                    borderColor = Color(0xFFE2E8F0),
+                    testTag = "category_multi_select"
                 )
-                OutlinedTextField(
-                    value = categoryInput,
-                    onValueChange = { categoryInput = it.capitalizeFirstLetter() },
-                    placeholder = { Text("Ej: Plomería, Electricidad") },
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (suggestions.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Sugerencias:", color = TextSec, fontSize = 12.sp)
-                    FlowRow(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        suggestions.take(8).forEach { s ->
-                            FilterChip(
-                                selected = categoryInput.contains(s, ignoreCase = true),
-                                onClick = {
-                                    categoryInput = if (categoryInput.isBlank()) {
-                                        s
-                                    } else {
-                                        "$categoryInput, $s"
-                                    }
-                                },
-                                label = { Text(s) }
-                            )
-                        }
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // --- Descripción de trabajo ---
                 Text(
-                    text = "Breve descripción de tu trabajo",
+                    text = "Descripción",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = TextMain,
@@ -205,15 +183,17 @@ fun ActivateProfessionalScreen(
                 )
                 OutlinedTextField(
                     value = workDescription,
-                    onValueChange = { workDescription = it.capitalizeFirstLetter() },
-                    placeholder = { Text("Ej: Plomero con 10 años de experiencia...") },
+                    onValueChange = { workDescription = it },
+                    placeholder = { Text("Cuéntanos qué servicios ofreces...") },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4
+                    maxLines = 3,
+                    minLines = 2
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // --- Tarifa ---
                 Text(
                     text = "Tarifa aproximada por hora (opcional)",
                     fontWeight = FontWeight.Bold,
@@ -240,6 +220,7 @@ fun ActivateProfessionalScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // --- Fotos ---
                 Text(
                     text = "Fotos de tus trabajos (opcional, hasta $MAX_PORTFOLIO_PHOTOS)",
                     fontWeight = FontWeight.Bold,
@@ -317,7 +298,8 @@ fun ActivateProfessionalScreen(
                         text = errorMessage!!,
                         color = Color(0xFFDC2626),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
@@ -325,12 +307,12 @@ fun ActivateProfessionalScreen(
 
                 Button(
                     onClick = {
-                        val category = categoryInput.trim()
+                        val category = selectedCategories.joinToString(", ").trim()
                         val rateVal = PriceUtils.cleanPrice(hourlyRateInput).toDoubleOrNull()
                         val rateError = rateVal != null && rateVal < 5417.0
                         when {
                             category.isBlank() -> {
-                                errorMessage = "Ingresa al menos una categoría de servicio."
+                                errorMessage = "Selecciona al menos una categoría de servicio."
                             }
                             rateError -> {
                                 errorMessage = "Si vas a poner una tarifa por hora, debe ser de al menos $5.417 COP. Puedes dejarla vacía."
