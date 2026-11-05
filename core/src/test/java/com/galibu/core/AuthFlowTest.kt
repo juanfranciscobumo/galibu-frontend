@@ -69,18 +69,15 @@ class AuthFlowTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `login with opposite role expands to BOTH`() = runTest {
+    fun `login with opposite role keeps existing role`() = runTest {
         val existing = createUser(id = "u1", email = "a@test.com", role = "PROFESSIONAL")
         coEvery { mockApi.login(any()) } returns tokens(existing)
-        val expanded = createUser(id = "u1", email = "a@test.com", role = "BOTH")
-        coEvery { mockApi.addRole(any()) } returns expanded
-        coEvery { mockApi.getMe() } returns expanded
         tokenStore.saveTokens("a", "r")
 
         val msg = repository.login("a@test.com", "secreto123", "CLIENT")
 
         assertNull(msg)
-        assertEquals("BOTH", repository.currentUser.value?.role)
+        assertEquals("PROFESSIONAL", repository.currentUser.value?.role)
         assertTrue(tokenStore.hasTokens())
     }
 
@@ -106,26 +103,29 @@ class AuthFlowTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `register conflict with opposite role expands to BOTH`() = runTest {
+    fun `register conflict with opposite role fails with EMAIL_EXISTS`() = runTest {
         val existing = createUser(id = "e1", email = "e@test.com", role = "CLIENT")
         coEvery { mockApi.register(any()) } throws http409()
         coEvery { mockApi.login(any()) } returns tokens(existing)
-        val expanded = createUser(id = "e1", email = "e@test.com", role = "BOTH")
-        coEvery { mockApi.addRole(any()) } returns expanded
-        coEvery { mockApi.getMe() } returns expanded
-        coEvery { mockApi.updateMe(any()) } returns expanded
 
-        repository.registerUser(
-            context = mockk(relaxed = true),
-            name = "E",
-            email = "e@test.com",
-            phone = "+57300222",
-            password = "secreto123",
-            role = "PROFESSIONAL",
-            profilePhotoUrl = "data:image/png;base64,AAA"
-        )
+        var message: String? = null
+        try {
+            repository.registerUser(
+                context = mockk(relaxed = true),
+                name = "E",
+                email = "e@test.com",
+                phone = "+57300222",
+                password = "secreto123",
+                role = "PROFESSIONAL",
+                profilePhotoUrl = "data:image/png;base64,AAA"
+            )
+        } catch (e: IllegalStateException) {
+            message = e.message
+        }
 
-        assertEquals("BOTH", repository.currentUser.value?.role)
+        assertTrue(message != null && message.contains("EMAIL_EXISTS"))
+        assertNull(repository.currentUser.value)
+        assertFalse(tokenStore.hasTokens())
     }
 
     @Test

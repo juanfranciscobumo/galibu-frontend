@@ -413,6 +413,24 @@ fun AuthScreen(
                         return@loginWithGoogle
                     }
 
+                    // Intención del wizard vs. capacidad real de la cuenta.
+                    // La capacidad no cambia por omisión ni sin validación; la otra
+                    // se activa desde Perfil.
+                    val accountRole = user.role.uppercase()
+                    val hasClient = accountRole == "CLIENT" || accountRole == "BOTH"
+                    val hasPro = accountRole == "PROFESSIONAL" || accountRole == "BOTH"
+                    val wantsClient = selectedRole != "PROFESSIONAL"
+                    val wantsPro = selectedRole != "CLIENT"
+                    if (wantsPro && !hasPro) {
+                        viewModel.showInfo(
+                            "Entraste como cliente. Tu cuenta no tiene capacidad profesional; actívala desde Perfil > Ofrecer mis servicios."
+                        )
+                    } else if (wantsClient && !hasClient) {
+                        viewModel.showInfo(
+                            "Entraste como profesional. Tu cuenta no tiene capacidad cliente; actívala desde Perfil > Buscar un profesional."
+                        )
+                    }
+
                     // El backend ya define el rol: default CLIENT para cuentas nuevas,
                     // y respeta la capacidad existente para cuentas ya creadas. El modo
                     // activo se resuelve en SharedViewModel (persistido o capacidad).

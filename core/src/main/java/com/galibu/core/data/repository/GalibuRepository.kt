@@ -535,25 +535,10 @@ class GalibuRepository(
             return@withTransaction false
         }
         tokenStore.saveTokens(auth.accessToken, auth.refreshToken)
-        var backendUser = auth.user ?: return@withTransaction false
-
-        // Google: si la cuenta ya existía con otro rol, se habilita el rol de
-        // esta app en el backend (pasa a BOTH). Antes solo se cambiaba en local
-        // y el siguiente getMe() lo revertía.
-        if (backendUser.role != role && backendUser.role != "BOTH") {
-            backendUser = try {
-                val expanded = apiService.addRole(AddRoleDto(role))
-                try { apiService.getMe() } catch (me: Exception) {
-                    Log.e("GalibuRepository", "No se pudo releer el perfil tras expandir el rol (Google): ${me.localizedMessage}")
-                    expanded
-                }
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "No se pudo expandir el rol (Google) a $role: ${e.localizedMessage}")
-                AppTelemetry.error("auth", "Google: fallo al expandir rol", e)
-                tokenStore.clear()
-                return@withTransaction false
-            }
-        }
+        val backendUser = auth.user ?: return@withTransaction false
+        // Existing account material: the backend owns the role. The frontend
+        // never expands an existing account silently — activation of the other
+        // capability is explicit from the Profile menu.
         var target: UserProfile? = backendUser
 
         // Upload work photos if we have a context
@@ -643,30 +628,15 @@ class GalibuRepository(
                 return@withTransaction "No se pudo iniciar sesión. Inténtalo nuevamente."
             }
             tokenStore.saveTokens(auth.accessToken, auth.refreshToken)
-            var profile = auth.user
+            val profile = auth.user
             if (profile == null) {
                 tokenStore.clear()
                 AppTelemetry.warn("auth", "Login sin perfil en la respuesta")
                 return@withTransaction "No se pudo iniciar sesión. Inténtalo nuevamente."
             }
-            // Expansión automática: la cuenta ya existe con otro rol, así que se
-            // habilita el rol que pide esta app (el usuario pasa a BOTH).
-            if (profile.role != role && profile.role != "BOTH") {
-                profile = try {
-                    val expanded = apiService.addRole(AddRoleDto(role))
-                    try { apiService.getMe() } catch (me: Exception) {
-                        Log.e("GalibuRepository", "No se pudo releer el perfil tras expandir el rol: ${me.localizedMessage}")
-                        expanded
-                    }
-                } catch (e: Exception) {
-                    Log.e("GalibuRepository", "No se pudo expandir el rol a $role: ${e.localizedMessage}")
-                    AppTelemetry.error("auth", "Fallo al expandir rol", e)
-                    tokenStore.clear()
-                    return@withTransaction "No pudimos habilitar tu perfil como " +
-                        "${if (role == "CLIENT") "Cliente" else "Profesional"}. " +
-                        "Verifica tu conexión e inténtalo de nuevo."
-                }
-            }
+            // El backend define la capacidad; la app nunca expande en silencio
+            // (el landing de login pasa CLIENT). La otra capacidad se activa
+            // explícitamente desde Perfil.
             userProfileDao.insertUser(profile)
             setCurrentUser(profile)
             refreshCurrentUserProfile()
@@ -703,18 +673,13 @@ class GalibuRepository(
                     } catch (le: Exception) {
                         throw IllegalStateException("EMAIL_EXISTS")
                     }
-                    tokenStore.saveTokens(loginResp.accessToken, loginResp.refreshToken)
-                    val existing = loginResp.user ?: throw IllegalStateException("EMAIL_EXISTS")
-                    if (existing.role == role || existing.role == "BOTH") {
+                    if (loginResp.user == null) {
                         throw IllegalStateException("EMAIL_EXISTS")
                     }
-                    apiService.addRole(AddRoleDto(role))
-                    try {
-                        apiService.getMe()
-                    } catch (meErr: Exception) {
-                        Log.e("GalibuRepository", "No se pudo releer perfil tras expansión de rol: ${meErr.localizedMessage}")
-                        existing.copy(role = "BOTH")
-                    }
+                    // Cuenta existente: el backend conserva su rol. No se guardan
+                    // tokens ni hay expansión silenciosa a BOTH; la otra capacidad
+                    // se activa desde Perfil. El usuario inicia sesión aparte.
+                    throw IllegalStateException("EMAIL_EXISTS")
                 }
             } else {
                 throw IllegalStateException("Se requiere contraseña o cuenta de Google para registrarse.")

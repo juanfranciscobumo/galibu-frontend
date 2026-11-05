@@ -1,7 +1,6 @@
 package com.galibu.core.data
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
 import com.galibu.core.data.firebase.FirebaseService
 import com.galibu.core.data.local.AppDatabase
@@ -85,14 +84,6 @@ object AppGraph {
             processScope.launch {
                 try {
                     if (repo.currentUser.value == null && repo.restoreSession()) {
-                        // El modo persistido permite expandir el rol a BOTH al
-                        // abrir la app directamente en el modo de la otra capacidad.
-                        val lastMode = application
-                            .getSharedPreferences("galibu_mode", Context.MODE_PRIVATE)
-                            .getString("last_mode", null)
-                        if (lastMode == "CLIENT" || lastMode == "PROFESSIONAL") {
-                            repo.ensureRole(lastMode)
-                        }
                         repo.refreshAll()
                     }
                 } catch (e: Exception) {
