@@ -130,6 +130,7 @@ fun AuthScreen(
     var hourlyRateInput by rememberSaveable { mutableStateOf("") }
     var selectedRole by rememberSaveable { mutableStateOf("CLIENT") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     
     // ==================== ESPECIALIDADES Y FOTOS ====================
     val specialtiesList = remember {
@@ -586,6 +587,8 @@ fun AuthScreen(
                 isGoogleAuthenticating = isGoogleAuthenticating,
                 passwordVisible = passwordVisible,
                 onPasswordVisibleChange = { passwordVisible = it },
+                confirmPasswordVisible = confirmPasswordVisible,
+                onConfirmPasswordVisibleChange = { confirmPasswordVisible = it },
                 departmentsAndMunicipalities = departmentsAndMunicipalities,
                 showDeptDropdown = showDeptDropdown,
                 onShowDeptDropdownChange = { showDeptDropdown = it },
@@ -724,6 +727,8 @@ private fun AuthContent(
     isGoogleAuthenticating: Boolean,
     passwordVisible: Boolean,
     onPasswordVisibleChange: (Boolean) -> Unit,
+    confirmPasswordVisible: Boolean,
+    onConfirmPasswordVisibleChange: (Boolean) -> Unit,
     departmentsAndMunicipalities: List<Pair<String, List<String>>>,
     showDeptDropdown: Boolean,
     onShowDeptDropdownChange: (Boolean) -> Unit,
@@ -839,6 +844,8 @@ private fun AuthContent(
                 isGoogleAuthenticating = isGoogleAuthenticating,
                 passwordVisible = passwordVisible,
                 onPasswordVisibleChange = onPasswordVisibleChange,
+                confirmPasswordVisible = confirmPasswordVisible,
+                onConfirmPasswordVisibleChange = onConfirmPasswordVisibleChange,
                 departmentsAndMunicipalities = departmentsAndMunicipalities,
                 showDeptDropdown = showDeptDropdown,
                 onShowDeptDropdownChange = onShowDeptDropdownChange,
@@ -1138,6 +1145,8 @@ private fun RegistrationContent(
     isGoogleAuthenticating: Boolean,
     passwordVisible: Boolean,
     onPasswordVisibleChange: (Boolean) -> Unit,
+    confirmPasswordVisible: Boolean,
+    onConfirmPasswordVisibleChange: (Boolean) -> Unit,
     departmentsAndMunicipalities: List<Pair<String, List<String>>>,
     showDeptDropdown: Boolean,
     onShowDeptDropdownChange: (Boolean) -> Unit,
@@ -1955,8 +1964,8 @@ private fun RegistrationContent(
                     value = confirmPassword,
                     onValueChange = onConfirmPasswordChange,
                     label = "Confirmar contraseña",
-                    visible = passwordVisible,
-                    onToggleVisibility = { onPasswordVisibleChange(!passwordVisible) },
+                    visible = confirmPasswordVisible,
+                    onToggleVisibility = { onConfirmPasswordVisibleChange(!confirmPasswordVisible) },
                     modifier = Modifier.fillMaxWidth().testTag("register_confirm_password_input")
                 )
                 }

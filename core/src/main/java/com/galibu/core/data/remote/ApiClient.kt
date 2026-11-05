@@ -7,8 +7,16 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.create
+import java.util.concurrent.TimeUnit
 
 object ApiClient {
+
+    private fun baseClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(90, TimeUnit.SECONDS)
+        .build()
 
     fun moshi(): Moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -23,7 +31,7 @@ object ApiClient {
         }
 
     private fun bareService(): AuthRefreshApi {
-        val client = OkHttpClient.Builder()
+        val client = baseClient().newBuilder()
             .addInterceptor(networkLogging())
             .build()
         return Retrofit.Builder()
@@ -36,7 +44,7 @@ object ApiClient {
 
     /** Cliente sin JWT para que las apps envíen logs incluso antes de autenticarse. */
     fun telemetryService(): TelemetryApi {
-        val client = OkHttpClient.Builder()
+        val client = baseClient().newBuilder()
             .addInterceptor(networkLogging())
             .build()
         return Retrofit.Builder()
@@ -49,7 +57,7 @@ object ApiClient {
 
     fun authedService(store: TokenStore): ApiService {
         val bare = bareService()
-        val client = OkHttpClient.Builder()
+        val client = baseClient().newBuilder()
             .addInterceptor(networkLogging())
             .addInterceptor { chain ->
                 val original = chain.request()

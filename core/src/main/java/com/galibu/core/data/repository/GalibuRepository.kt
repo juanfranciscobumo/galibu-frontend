@@ -1006,13 +1006,22 @@ class GalibuRepository(
             apiService.forgotPassword(com.galibu.core.data.remote.ForgotPasswordRequestDto(email.trim().lowercase()))
             null
         } catch (e: HttpException) {
-            if (e.code() == 503) {
-                "El envío de correos no está configurado en este servidor."
-            } else {
-                backendErrorMessage(e) ?: "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
-            }
+            backendErrorMessage(e)
+                ?: when (e.code()) {
+                    503 -> "El envío de correos falló en el servidor. Inténtalo de nuevo más tarde."
+                    400 -> "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
+                    else -> "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
+                }
+        } catch (e: java.net.SocketTimeoutException) {
+            "La solicitud tardó demasiado (servidor ocupado). Inténtalo de nuevo."
+        } catch (e: java.net.UnknownHostException) {
+            "Sin conexión: verifica tu internet."
         } catch (e: IOException) {
-            "Sin conexión: no se pudo enviar el código. Verifica tu internet."
+            if (e.message?.contains("timeout", ignoreCase = true) == true) {
+                "La solicitud tardó demasiado (servidor ocupado). Inténtalo de nuevo."
+            } else {
+                "Sin conexión: no se pudo enviar el código. Verifica tu internet."
+            }
         } catch (e: Exception) {
             "No se pudo enviar el código de recuperación. Inténtalo de nuevo."
         }
@@ -1033,8 +1042,16 @@ class GalibuRepository(
             null
         } catch (e: HttpException) {
             backendErrorMessage(e) ?: "Código inválido o expirado. Solicita uno nuevo."
+        } catch (e: java.net.SocketTimeoutException) {
+            "La solicitud tardó demasiado (servidor ocupado). Inténtalo de nuevo."
+        } catch (e: java.net.UnknownHostException) {
+            "Sin conexión: verifica tu internet."
         } catch (e: IOException) {
-            "Sin conexión: no se pudo restablecer la contraseña."
+            if (e.message?.contains("timeout", ignoreCase = true) == true) {
+                "La solicitud tardó demasiado (servidor ocupado). Inténtalo de nuevo."
+            } else {
+                "Sin conexión: no se pudo restablecer la contraseña."
+            }
         } catch (e: Exception) {
             e.localizedMessage ?: "No se pudo restablecer la contraseña."
         }
