@@ -44,6 +44,8 @@ private val TextSec = Color(0xFF64748B)
 private val BrandBlue = Color(0xFF2563EB)
 private val SuccessBg = Color(0xFFDCFCE7)
 private val SuccessFg = Color(0xFF16A34A)
+private val PolishDark = Color(0xFF0F172A)
+private val PolishBlue = Color(0xFF2563EB)
 
 private const val MAX_PORTFOLIO_PHOTOS = 6
 
@@ -63,6 +65,8 @@ fun ActivateProfessionalScreen(
     var isSubmitting by remember { mutableStateOf(false) }
     val photos = remember { mutableStateListOf<String>() }
     var showPhotoSource by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryInput by remember { mutableStateOf("") }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -97,18 +101,17 @@ fun ActivateProfessionalScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
+                IconButton(
+                    onClick = onBack,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFE2E8F0))
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
+                        .background(Color.White)
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TextMain,
+                        tint = PolishDark,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -168,6 +171,8 @@ fun ActivateProfessionalScreen(
                     placeholder = "Seleccionar categorías",
                     accentColor = BrandBlue,
                     borderColor = Color(0xFFE2E8F0),
+                    customOptionLabel = "Otra categoría",
+                    onAddCustom = { showAddCategoryDialog = true },
                     testTag = "category_multi_select"
                 )
 
@@ -358,6 +363,68 @@ fun ActivateProfessionalScreen(
         }
     }
 
+    // Diálogo para agregar categoría personalizada
+    if (showAddCategoryDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showAddCategoryDialog = false },
+            title = {
+                Text(
+                    text = "Nueva categoría",
+                    fontWeight = FontWeight.Bold,
+                    color = TextMain,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                var customInput by remember { mutableStateOf("") }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Escribe el nombre de tu categoría",
+                        fontSize = 14.sp,
+                        color = TextSec
+                    )
+                    OutlinedTextField(
+                        value = customInput,
+                        onValueChange = { newCategoryInput = it },
+                        placeholder = { Text("Ej: Domótica") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim())) {
+                            selectedCategories.add(newCategoryInput.trim())
+                        }
+                        showAddCategoryDialog = false
+                    },
+                    enabled = newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim()),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                ) {
+                    Text(
+                        text = "Agregar",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showAddCategoryDialog = false }
+                ) {
+                    Text("Cancelar", color = TextSec)
+                }
+            }
+        )
+    }
+
     if (showPhotoSource) {
         PhotoSourceDialog(
             onDismiss = { showPhotoSource = false },
@@ -399,18 +466,17 @@ fun ActivateClientScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
+                IconButton(
+                    onClick = onBack,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFE2E8F0))
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
+                        .background(Color.White)
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TextMain,
+                        tint = PolishDark,
                         modifier = Modifier.size(24.dp)
                     )
                 }
