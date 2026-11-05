@@ -694,6 +694,9 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     fun upgradeCapability(
         role: String,
         workCategory: String? = null,
+        hourlyRate: Double? = null,
+        workPhotos: List<String>? = null,
+        workDescription: String? = null,
         onResult: (String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -710,18 +713,27 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                     onResult("No se pudo activar la capacidad. Revisa tu conexión e inténtalo de nuevo.")
                     return@launch
                 }
-                if (needsProfessional && !workCategory.isNullOrBlank()) {
+                if (needsProfessional) {
+                    val finalPortfolio = workPhotos?.let { photos ->
+                        try {
+                            uploadPortfolioPhotos(currentUser.value?.id ?: "unknown", photos).joinToString("|")
+                        } catch (e: Exception) {
+                            Log.e("SharedViewModel", "Falla subiendo fotos de portafolio: ${e.localizedMessage}")
+                            null
+                        }
+                    }
+                    val mergedCategory = workCategory ?: upgraded.workCategory
                     repository.updateProfile(
                         name = upgraded.name,
                         phone = upgraded.phone,
-                        workCategory = workCategory,
+                        workCategory = mergedCategory,
                         profilePhotoUrl = upgraded.profilePhotoUrl,
                         department = upgraded.department ?: "Bogotá D.C.",
                         municipality = upgraded.municipality ?: "Bogotá",
                         address = upgraded.address,
-                        hourlyRate = upgraded.hourlyRate,
-                        workPhotos = upgraded.workPhotos,
-                        workDescription = upgraded.workDescription
+                        hourlyRate = hourlyRate ?: upgraded.hourlyRate,
+                        workPhotos = finalPortfolio ?: upgraded.workPhotos,
+                        workDescription = workDescription ?: upgraded.workDescription
                     )
                 }
                 onResult(null)

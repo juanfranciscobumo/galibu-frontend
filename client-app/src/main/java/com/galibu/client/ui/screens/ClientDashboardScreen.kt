@@ -914,13 +914,13 @@ fun ClientDashboardScreen(
         )
     }
 
-    // Upgrade explícito (Cliente): activa la capacidad profesional con los datos
-    // profesionales mínimos (categoría obligatoria, tarifa opcional).
+    // Upgrade explícito (Cliente): pantalla completa para activar la capacidad
+    // profesional (categoría obligatoria, tarifa opcional y fotos de trabajos).
     if (showActivateProfessional) {
-        com.galibu.core.ui.components.ActivateProfessionalDialog(
+        com.galibu.core.ui.screens.ActivateProfessionalScreen(
             viewModel = viewModel,
             suggestions = categories,
-            onDismiss = { showActivateProfessional = false },
+            onBack = { showActivateProfessional = false },
             onActivated = {
                 showActivateProfessional = false
                 viewModel.showSuccess("¡Ya eres profesional! Completa tu perfil para recibir solicitudes.")

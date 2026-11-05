@@ -1503,26 +1503,17 @@ fun ProfileScreen(
         }
     }
 
-    // Upgrade explícito (Profesional): activa la capacidad cliente.
+    // Upgrade explícito (Profesional): pantalla completa para activar la
+    // capacidad cliente (buscar profesionales) con botón de volver.
     if (showActivateClient) {
-        GalibuAlertDialog(
-            title = "Buscar un profesional",
-            message = "¿Quieres también buscar profesionales en Galibu? Tu cuenta pasará a tener ambas capacidades.",
-            type = GalibuAlertType.INFO,
-            confirmText = "Activar",
-            dismissText = "Cancelar",
-            onConfirm = {
+        com.galibu.core.ui.screens.ActivateClientScreen(
+            viewModel = viewModel,
+            onBack = { showActivateClient = false },
+            onActivated = {
                 showActivateClient = false
-                viewModel.upgradeCapability("CLIENT") { error ->
-                    if (error == null) {
-                        showSuccessMessage = "Capacidad cliente activada."
-                        onSwitchRole()
-                    } else {
-                        viewModel.showError(error)
-                    }
-                }
-            },
-            onDismissRequest = { showActivateClient = false }
+                showSuccessMessage = "Capacidad cliente activada."
+                onSwitchRole()
+            }
         )
     }
 
