@@ -2285,6 +2285,7 @@ fun PerfilTab(
         onChangePassword = onChangePassword,
         onSupport = { showSupportDialog = true },
         onSwitchRole = onSwitchRole,
+        onActivateProfessional = onActivateProfessional,
         onLogout = onLogout,
         onDeleteAccount = onDeleteAccount
     )
