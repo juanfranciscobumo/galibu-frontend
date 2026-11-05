@@ -221,6 +221,7 @@ import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.GalibuRatingSheet
 import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.ui.components.ProfileOverviewContent
 import com.galibu.core.ui.components.RequestSummaryCard
 import com.galibu.core.ui.components.ServiceCategoryTag
@@ -4394,25 +4395,25 @@ fun ChangePasswordScreen(
             HorizontalDivider(color = Color(0xFFEFF2F5), thickness = 1.dp)
 
             PasswordField(
-                label = "Contraseña actual",
                 value = currentPassword,
                 onValueChange = { currentPassword = it },
+                label = "Contraseña actual",
                 visible = showCurrentPassword,
                 onToggleVisibility = { showCurrentPassword = !showCurrentPassword }
             )
 
             PasswordField(
-                label = "Nueva contraseña",
                 value = newPassword,
                 onValueChange = { newPassword = it },
+                label = "Nueva contraseña",
                 visible = showNewPassword,
                 onToggleVisibility = { showNewPassword = !showNewPassword }
             )
 
             PasswordField(
-                label = "Confirmar contraseña",
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
+                label = "Confirmar contraseña",
                 visible = showConfirmPassword,
                 onToggleVisibility = { showConfirmPassword = !showConfirmPassword }
             )
@@ -4459,46 +4460,6 @@ fun ChangePasswordScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun PasswordField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    visible: Boolean,
-    onToggleVisibility: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = label,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = PolishDark
-        )
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(14.dp),
-            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = onToggleVisibility) {
-                    Icon(
-                        imageVector = if (visible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña"
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = PolishBlue,
-                unfocusedBorderColor = PolishBorder
-            )
-        )
     }
 }
 

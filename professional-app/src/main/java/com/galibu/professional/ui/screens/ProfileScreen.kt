@@ -67,6 +67,7 @@ import com.galibu.core.ui.components.ProfileOverviewContent
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.ServiceCategoryTag
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
+import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.data.model.hasMissingRequiredFields
 import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.data.model.canSwitchToClient
@@ -1333,95 +1334,39 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = Color(0xFFEFF2F5), thickness = 1.dp)
 
-                    // Contraseña Actual Field (con icono de ojo)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Contraseña actual",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
-                        )
-                        OutlinedTextField(
-                            value = currentPasswordInput,
-                            onValueChange = { currentPasswordInput = it },
-                            shape = RoundedCornerShape(14.dp),
-                            visualTransformation = if (showCurrentPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                val image = if (showCurrentPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                                IconButton(onClick = { showCurrentPassword = !showCurrentPassword }) {
-                                    Icon(imageVector = image, contentDescription = "Mostrar contraseña")
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("current_pwd_input"),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF1764FF),
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
-                            ),
-                            singleLine = true
-                        )
-                    }
+                    // Contraseña Actual Field
+                    PasswordField(
+                        value = currentPasswordInput,
+                        onValueChange = { currentPasswordInput = it },
+                        label = "Contraseña actual",
+                        visible = showCurrentPassword,
+                        onToggleVisibility = { showCurrentPassword = !showCurrentPassword },
+                        modifier = Modifier.fillMaxWidth().testTag("current_pwd_input")
+                    )
 
-                    // Nueva Contraseña Field (con icono de ojo)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Nueva contraseña",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
-                        )
-                        OutlinedTextField(
-                            value = newPasswordInput,
-                            onValueChange = { newPasswordInput = it },
-                            shape = RoundedCornerShape(14.dp),
-                            visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                val image = if (showNewPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                                IconButton(onClick = { showNewPassword = !showNewPassword }) {
-                                    Icon(imageVector = image, contentDescription = "Mostrar contraseña")
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("new_pwd_input"),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF1764FF),
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
-                            ),
-                            singleLine = true
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Confirmar Contraseña Field (sin icono de ojo, igual que Image 3)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Confirmar contraseña",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
-                        )
-                        OutlinedTextField(
-                            value = confirmPasswordInput,
-                            onValueChange = { confirmPasswordInput = it },
-                            shape = RoundedCornerShape(14.dp),
-                            visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                val image = if (showConfirmPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                                IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
-                                    Icon(imageVector = image, contentDescription = "Mostrar contraseña")
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("confirm_pwd_input"),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF1764FF),
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
-                            ),
-                            singleLine = true
-                        )
-                    }
+                    // Nueva Contraseña Field
+                    PasswordField(
+                        value = newPasswordInput,
+                        onValueChange = { newPasswordInput = it },
+                        label = "Nueva contraseña",
+                        visible = showNewPassword,
+                        onToggleVisibility = { showNewPassword = !showNewPassword },
+                        modifier = Modifier.fillMaxWidth().testTag("new_pwd_input")
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Confirmar Contraseña Field
+                    PasswordField(
+                        value = confirmPasswordInput,
+                        onValueChange = { confirmPasswordInput = it },
+                        label = "Confirmar contraseña",
+                        visible = showConfirmPassword,
+                        onToggleVisibility = { showConfirmPassword = !showConfirmPassword },
+                        modifier = Modifier.fillMaxWidth().testTag("confirm_pwd_input")
+                    )
 
                     // Cambiar contraseña Button
                     Button(

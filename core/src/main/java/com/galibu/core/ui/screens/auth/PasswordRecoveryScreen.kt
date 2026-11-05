@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.ui.viewmodels.SharedViewModel
 
 private val RecoveryBrandBlue = Color(0xFF2563EB)
@@ -231,60 +232,24 @@ fun ForgotPasswordRecoveryScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
+                    PasswordField(
                         value = newPassword,
                         onValueChange = { onNewPasswordChange(it); localError = null },
-                        placeholder = { Text("Nueva contraseña (mínimo 8 caracteres)", color = RecoveryTextSec) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showNewPassword = !showNewPassword }) {
-                                Icon(
-                                    imageVector = if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showNewPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                                    tint = RecoveryTextSec
-                                )
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = RecoveryBrandBlue,
-                            unfocusedBorderColor = Color(0xFFCBD5E1),
-                            focusedTextColor = RecoveryTextMain,
-                            unfocusedTextColor = RecoveryTextMain
-                        ),
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                        label = "Nueva contraseña (mínimo 8 caracteres)",
+                        visible = showNewPassword,
+                        onToggleVisibility = { showNewPassword = !showNewPassword },
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
+                    PasswordField(
                         value = confirmNewPassword,
                         onValueChange = { onConfirmNewPasswordChange(it); localError = null },
-                        placeholder = { Text("Confirmar nueva contraseña", color = RecoveryTextSec) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
-                                Icon(
-                                    imageVector = if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showConfirmPassword) "Ocultar contraseña" else "Mostrar contraseña",
-                                    tint = RecoveryTextSec
-                                )
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = RecoveryBrandBlue,
-                            unfocusedBorderColor = Color(0xFFCBD5E1),
-                            focusedTextColor = RecoveryTextMain,
-                            unfocusedTextColor = RecoveryTextMain
-                        ),
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                        label = "Confirmar nueva contraseña",
+                        visible = showConfirmPassword,
+                        onToggleVisibility = { showConfirmPassword = !showConfirmPassword },
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     if (localError != null) {

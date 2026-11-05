@@ -61,6 +61,7 @@ import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
+import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.ui.components.PhotoSourceDialog
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.viewmodels.SharedViewModel
@@ -1017,44 +1018,14 @@ private fun LoginContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Password field label & field
-        Text(
-            text = "Contraseña",
-            color = textMain,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .align(Alignment.Start)
-                .padding(bottom = 8.dp)
-        )
-        OutlinedTextField(
+        // Password field
+        PasswordField(
             value = password,
             onValueChange = onPasswordChange,
-            placeholder = { Text("........", color = textSec) },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                IconButton(onClick = { onPasswordVisibleChange(!passwordVisible) }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = "Ver contraseña",
-                        tint = textSec
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = bgLightField,
-                unfocusedContainerColor = bgLightField,
-                focusedBorderColor = brandBlue,
-                unfocusedBorderColor = borderLight,
-                focusedTextColor = textMain,
-                unfocusedTextColor = textMain
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("login_password_input")
+            label = "Contraseña",
+            visible = passwordVisible,
+            onToggleVisibility = { onPasswordVisibleChange(!passwordVisible) },
+            modifier = Modifier.fillMaxWidth().testTag("login_password_input")
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1967,80 +1938,26 @@ private fun RegistrationContent(
                 if (!isGoogleAutocomplete) {
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password label
-                    Text(
-                        text = "Contraseña de acceso",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textMain,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 8.dp)
-                )
-
                 // Password Input
-                OutlinedTextField(
+                PasswordField(
                     value = password,
                     onValueChange = onPasswordChange,
-                    placeholder = { Text("Mínimo 8 caracteres", color = textSec) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        IconButton(onClick = { onPasswordVisibleChange(!passwordVisible) }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = "Ver contraseña"
-                            )
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = bgLightField,
-                        unfocusedContainerColor = bgLightField,
-                        focusedBorderColor = brandBlue,
-                        unfocusedBorderColor = borderLight,
-                        focusedTextColor = textMain,
-                        unfocusedTextColor = textMain
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("register_password_input")
+                    label = "Contraseña (mínimo 8 caracteres)",
+                    visible = passwordVisible,
+                    onToggleVisibility = { onPasswordVisibleChange(!passwordVisible) },
+                    modifier = Modifier.fillMaxWidth().testTag("register_password_input")
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Confirm Password label
-                Text(
-                    text = "Confirmar contraseña",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textMain,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 8.dp)
-                )
-
                 // Confirm Password Input
-                OutlinedTextField(
+                PasswordField(
                     value = confirmPassword,
                     onValueChange = onConfirmPasswordChange,
-                    placeholder = { Text("Escribe tu contraseña de nuevo", color = textSec) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = bgLightField,
-                        unfocusedContainerColor = bgLightField,
-                        focusedBorderColor = brandBlue,
-                        unfocusedBorderColor = borderLight,
-                        focusedTextColor = textMain,
-                        unfocusedTextColor = textMain
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("register_confirm_password_input")
+                    label = "Confirmar contraseña",
+                    visible = passwordVisible,
+                    onToggleVisibility = { onPasswordVisibleChange(!passwordVisible) },
+                    modifier = Modifier.fillMaxWidth().testTag("register_confirm_password_input")
                 )
                 }
 
