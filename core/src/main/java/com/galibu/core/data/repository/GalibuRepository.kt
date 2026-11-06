@@ -509,33 +509,72 @@ class GalibuRepository(
         customWorkPhotos: List<String> = emptyList(),
         customHourlyRate: Double? = null,
         context: Context? = null
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): String? = withContext(Dispatchers.IO) {
         RequestTrace.withTransaction {
-        // Backend Google sign-in: finds or creates the user server-side and returns JWT.
-        // Without an ID token there is no session to establish, so refuse (no ghost logins).
+            loginWithGoogleInternal(
+                idToken = idToken,
+                email = email,
+                name = name,
+                avatarUrl = avatarUrl,
+                role = role,
+                customPhone = customPhone,
+                customDepartment = customDepartment,
+                customMunicipality = customMunicipality,
+                customAddress = customAddress,
+                customCategory = customCategory,
+                customWorkPhotos = customWorkPhotos,
+                customHourlyRate = customHourlyRate,
+                context = context
+            )
+        }
+    }
+
+    private suspend fun loginWithGoogleInternal(
+        idToken: String?,
+        email: String,
+        name: String,
+        avatarUrl: String?,
+        role: String,
+        customPhone: String?,
+        customDepartment: String?,
+        customMunicipality: String?,
+        customAddress: String?,
+        customCategory: String?,
+        customWorkPhotos: List<String>,
+        customHourlyRate: Double?,
+        context: Context?
+    ): String? {
+        // Login con Google: solo autentica cuentas existentes (mode=LOGIN).
+        // Sin un ID token no hay sesión que establecer.
         if (idToken.isNullOrEmpty()) {
             Log.w("GalibuRepository", "loginWithGoogle sin ID token; se rechaza el ingreso para evitar sesión fantasma.")
             AppTelemetry.warn("auth", "Google login sin ID token")
-            return@withTransaction false
+            return "No se pudo obtener credenciales de Google. Intenta nuevamente."
         }
         val normalizedEmail = email.trim().lowercase()
         val auth = try {
-            apiService.google(GoogleLoginRequestDto(idToken, role))
+            apiService.google(GoogleLoginRequestDto(idToken, role, "LOGIN"))
         } catch (e: HttpException) {
             Log.e("GalibuRepository", "Google login rechazado (${e.code()}): ${e.localizedMessage}")
             AppTelemetry.warn("auth", "Google login rechazado (${e.code()})")
-            return@withTransaction false
+            return when {
+                e.code() == 404 -> "No existe una cuenta con este correo. Regístrate primero."
+                e.code() == 409 -> "El correo ya está registrado. Inicia sesión con tu contraseña."
+                else -> backendErrorMessage(e)
+                    ?: "No se pudieron verificar las credenciales con Google."
+            }
         } catch (e: IOException) {
             Log.e("GalibuRepository", "Google login sin conexión: ${e.localizedMessage}")
             AppTelemetry.error("auth", "Google login sin conexión", e)
-            return@withTransaction false
+            return "Sin conexión: no se pudo iniciar sesión con Google."
         } catch (e: Exception) {
             Log.e("GalibuRepository", "Google login falló: ${e.localizedMessage}")
             AppTelemetry.error("auth", "Google login falló", e)
-            return@withTransaction false
+            return "No se pudo iniciar sesión con Google. Inténtalo nuevamente."
         }
         tokenStore.saveTokens(auth.accessToken, auth.refreshToken)
-        val backendUser = auth.user ?: return@withTransaction false
+        val backendUser = auth.user
+            ?: return "No se pudo iniciar sesión. Inténtalo nuevamente."
         // Existing account material: the backend owns the role. The frontend
         // never expands an existing account silently — activation of the other
         // capability is explicit from the Profile menu.
@@ -598,11 +637,10 @@ class GalibuRepository(
             setCurrentUser(synced)
             refreshCurrentUserProfile()
             AppTelemetry.event("auth.google.success", mapOf("role" to targetRole))
-            return@withTransaction true
+            return null
         }
         Log.w("GalibuRepository", "Inalcanzable: el backend no retornó usuario en loginWithGoogle.")
-        return@withTransaction false
-        }
+        return "No se pudo iniciar sesión. Inténtalo nuevamente."
     }
 
     suspend fun login(email: String, password: String, role: String): String? = withContext(Dispatchers.IO) {
@@ -655,7 +693,7 @@ class GalibuRepository(
         // 1. Account on the backend (source of ids + JWT tokens).
         val base: UserProfile = try {
             if (!googleIdToken.isNullOrBlank()) {
-                val resp = apiService.google(GoogleLoginRequestDto(googleIdToken, role))
+                val resp = apiService.google(GoogleLoginRequestDto(googleIdToken, role, "REGISTER"))
                 tokenStore.saveTokens(resp.accessToken, resp.refreshToken)
                 resp.user ?: throw IllegalStateException("El servidor no retornó el perfil.")
             } else if (password.isNotBlank()) {

@@ -24,7 +24,9 @@ data class LoginRequestDto(
 @JsonClass(generateAdapter = true)
 data class GoogleLoginRequestDto(
     val idToken: String,
-    val role: String? = null
+    val role: String? = null,
+    /** LOGIN solo autentica; REGISTER permite crear la cuenta. */
+    val mode: String = "LOGIN"
 )
 
 @JsonClass(generateAdapter = true)

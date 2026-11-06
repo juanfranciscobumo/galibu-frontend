@@ -423,10 +423,10 @@ fun AuthScreen(
                     name = displayName ?: "",
                     avatarUrl = photoUrl,
                     role = selectedRole
-                ) { success ->
+                ) { error ->
                     isGoogleAuthenticating = false
-                    if (!success) {
-                        errorMessage = "No se pudieron verificar las credenciales con Google."
+                    if (error != null) {
+                        errorMessage = error
                         return@loginWithGoogle
                     }
                     val user = viewModel.currentUser.value

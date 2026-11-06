@@ -386,12 +386,12 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         customCategory: String? = null,
         workPhotos: List<String> = emptyList(),
         customHourlyRate: Double? = null,
-        onResult: (Boolean) -> Unit
+        onResult: (String?) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 showLoading("Iniciando sesión segura con Google...")
-                val success = repository.loginWithGoogle(
+                val error = repository.loginWithGoogle(
                     idToken = idToken,
                     email = email,
                     name = name,
@@ -406,16 +406,16 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                     customHourlyRate = customHourlyRate,
                     context = getApplication<Application>()
                 )
-                if (success) {
+                if (error == null) {
                     // El modo activo nunca puede exceder las capacidades reales
                     // de la cuenta (p. ej. una cuenta Google nueva, que nace CLIENT).
                     _activeRole.value = appRole?.takeIf { currentUser.value.hasCapability(it) } ?: role
                     registerFcmToken()
                 }
-                onResult(success)
+                onResult(error)
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla inicio de sesión con Google: ${e.localizedMessage}")
-                onResult(false)
+                onResult("No se pudo iniciar sesión con Google. Inténtalo nuevamente.")
             } finally {
                 hideLoading()
             }

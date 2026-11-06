@@ -7,6 +7,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,7 +30,7 @@ class AuthFlowTest : BaseRepositoryTest() {
         coEvery { mockApi.google(any()) } returns tokens(user)
         coEvery { mockApi.updateMe(any()) } returns user
 
-        val ok = repository.loginWithGoogle(
+        val error = repository.loginWithGoogle(
             idToken = "google-token",
             email = "g@test.com",
             name = "G",
@@ -37,14 +38,14 @@ class AuthFlowTest : BaseRepositoryTest() {
             role = "PROFESSIONAL"
         )
 
-        assertTrue(ok)
+        assertNull(error)
         assertEquals("g1", repository.currentUser.value?.id)
         assertTrue(tokenStore.hasTokens())
     }
 
     @Test
     fun `loginWithGoogle refuses blank token`() = runTest {
-        val ok = repository.loginWithGoogle(
+        val error = repository.loginWithGoogle(
             idToken = null,
             email = "g@test.com",
             name = "G",
@@ -52,7 +53,7 @@ class AuthFlowTest : BaseRepositoryTest() {
             role = "PROFESSIONAL"
         )
 
-        assertFalse(ok)
+        assertNotNull(error)
         assertNull(repository.currentUser.value)
     }
 
