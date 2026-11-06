@@ -4017,7 +4017,11 @@ fun EditProfileScreen(
                     )
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it.capitalizeFirstLetter() },
+                        onValueChange = { newValue ->
+                            if (newValue.all { !it.isDigit() }) {
+                                name = newValue.capitalizeFirstLetter()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
@@ -4068,7 +4072,7 @@ fun EditProfileScreen(
                         department = department,
                         municipality = municipality,
                         placeholder = "Calle 45 # 23-10",
-                        showLocationIcon = false,
+                        showLocationIcon = true,
                         fieldShape = RoundedCornerShape(14.dp),
                         containerColor = Color.White,
                         onGpsFix = { dept, muni ->

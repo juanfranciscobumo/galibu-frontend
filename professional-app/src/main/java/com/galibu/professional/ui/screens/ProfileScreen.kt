@@ -75,7 +75,6 @@ import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 
 enum class ProfileSubScreen {
     EDIT_INFO,
-    CHANGE_PHOTO,
     CHANGE_PASSWORD
 }
 
@@ -99,7 +98,6 @@ fun ProfileScreen(
     var nameInput by remember(currentUser) { mutableStateOf(currentUser?.name ?: "") }
     var phoneInput by remember(currentUser) { mutableStateOf(currentUser?.phone ?: "") }
     var categoryInput by remember(currentUser) { mutableStateOf(currentUser?.workCategory ?: "") }
-    var hourlyRateInput by remember(currentUser) { mutableStateOf(currentUser?.hourlyRate?.toInt()?.toString() ?: "") }
     var photoUrlInput by remember(currentUser) { mutableStateOf(currentUser?.profilePhotoUrl ?: "") }
     var addressInput by remember(currentUser) { mutableStateOf(currentUser?.address ?: "") }
 
@@ -257,7 +255,7 @@ fun ProfileScreen(
                 department = currentDeptEdit,
                 municipality = currentMuniEdit,
                 address = addressInput,
-                hourlyRate = if (currentUser?.role != "CLIENT") hourlyRateInput.toDoubleOrNull() else null
+                hourlyRate = currentUser?.hourlyRate
             )
             showSuccessMessage = "Foto de perfil actualizada correctamente"
         }
@@ -282,7 +280,7 @@ fun ProfileScreen(
                     department = currentDeptEdit,
                     municipality = currentMuniEdit,
                     address = addressInput,
-                    hourlyRate = if (currentUser?.role != "CLIENT") hourlyRateInput.toDoubleOrNull() else null
+                    hourlyRate = currentUser?.hourlyRate
                 )
                 showSuccessMessage = "Foto de perfil actualizada correctamente"
             } catch (e: Exception) {
@@ -426,6 +424,23 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = Color(0xFFEFF2F5), thickness = 1.dp)
 
+                    if (forceEdit) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(PolishBlue.copy(alpha = 0.1f))
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = "Completa tu perfil para continuar usando la app.",
+                                color = PolishBlue,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
                     if (showSuccessMessage != null) {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFDCFCE7)),
@@ -487,7 +502,7 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .size(30.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF1764FF))
+                                    .background(PolishBlue)
                                     .border(2.dp, Color.White, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -521,7 +536,7 @@ fun ProfileScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF1764FF),
+                                focusedBorderColor = PolishBlue,
                                 unfocusedBorderColor = Color(0xFFE2E8F0)
                             ),
                             singleLine = true
@@ -583,7 +598,7 @@ fun ProfileScreen(
                                 }) {
                                     if (isFetchingGps) {
                                         CircularProgressIndicator(
-                                            color = Color(0xFF1764FF),
+                                            color = PolishBlue,
                                             modifier = Modifier.size(20.dp),
                                             strokeWidth = 2.dp
                                         )
@@ -591,7 +606,7 @@ fun ProfileScreen(
                                         Icon(
                                             imageVector = Icons.Default.MyLocation,
                                             contentDescription = "Usar mi ubicación (GPS)",
-                                            tint = Color(0xFF1764FF),
+                                            tint = PolishBlue,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -600,7 +615,7 @@ fun ProfileScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF1764FF),
+                                focusedBorderColor = PolishBlue,
                                 unfocusedBorderColor = Color(0xFFE2E8F0)
                             ),
                             singleLine = true
@@ -630,14 +645,14 @@ fun ProfileScreen(
                                         Icon(
                                             imageVector = Icons.Default.ArrowDropDown,
                                             contentDescription = "Mostrar departamentos",
-                                            tint = Color(0xFF1764FF)
+                                            tint = PolishBlue
                                         )
                                     }
                                 },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF1764FF),
+                                    focusedBorderColor = PolishBlue,
                                     unfocusedBorderColor = Color(0xFFE2E8F0)
                                 ),
                                 singleLine = true
@@ -714,14 +729,14 @@ fun ProfileScreen(
                                         Icon(
                                             imageVector = Icons.Default.ArrowDropDown,
                                             contentDescription = "Mostrar municipios",
-                                            tint = Color(0xFF1764FF)
+                                            tint = PolishBlue
                                         )
                                     }
                                 },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF1764FF),
+                                    focusedBorderColor = PolishBlue,
                                     unfocusedBorderColor = Color(0xFFE2E8F0)
                                 ),
                                 singleLine = true
@@ -772,7 +787,7 @@ fun ProfileScreen(
                                 options = editOptions,
                                 label = "Categoría",
                                 placeholder = "Seleccionar categorías",
-                                accentColor = Color(0xFF1764FF),
+                                accentColor = PolishBlue,
                                 borderColor = Color(0xFFE2E8F0),
                                 containerColor = Color.White,
                                 textColor = Color(0xFF0F172A),
@@ -804,7 +819,7 @@ fun ProfileScreen(
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF1764FF),
+                                        focusedBorderColor = PolishBlue,
                                         unfocusedBorderColor = Color(0xFFE2E8F0)
                                     )
                                 )
@@ -820,7 +835,7 @@ fun ProfileScreen(
                                         showEditCategoryDialog = false
                                     }
                                 ) {
-                                    Text("Agregar", color = Color(0xFF1764FF), fontWeight = FontWeight.SemiBold)
+                                    Text("Agregar", color = PolishBlue, fontWeight = FontWeight.SemiBold)
                                 }
                             },
                             dismissButton = {
@@ -852,7 +867,7 @@ fun ProfileScreen(
                                     Icon(
                                         imageVector = Icons.Default.PhotoLibrary,
                                         contentDescription = null,
-                                        tint = Color(0xFF1764FF),
+                                        tint = PolishBlue,
                                         modifier = Modifier.size(19.dp)
                                     )
                                 }
@@ -902,7 +917,7 @@ fun ProfileScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = Color(0xFF1764FF),
+                                    focusedBorderColor = PolishBlue,
                                     unfocusedBorderColor = Color(0xFFE2E8F0),
                                     focusedTextColor = Color(0xFF0F172A),
                                     unfocusedTextColor = Color(0xFF0F172A)
@@ -1034,7 +1049,7 @@ fun ProfileScreen(
                                 department = trimmedDept,
                                 municipality = trimmedMuni,
                                 address = trimmedAddress,
-                                hourlyRate = hourlyRateInput.toDoubleOrNull(),
+                                hourlyRate = currentUser?.hourlyRate,
                                 workPhotos = portfolioPhotos.toList(),
                                 workDescription = workDescriptionInput.trim()
                             )
@@ -1048,7 +1063,7 @@ fun ProfileScreen(
                             activeSubScreen = null
                         },
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1764FF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
@@ -1063,235 +1078,6 @@ fun ProfileScreen(
                     }
                 }
             }
-            ProfileSubScreen.CHANGE_PHOTO -> {
-                // SCREEN 2: FOTO DE PERFIL (IMAGE 2)
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    // Header Bar
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { activeSubScreen = null },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = PolishDark,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        
-                        Text(
-                            text = "Foto de perfil",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
-
-                    HorizontalDivider(color = Color(0xFFEFF2F5), thickness = 1.dp)
-
-                    // Dashed Picture Circle with overlay
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 36.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.BottomEnd,
-                            modifier = Modifier.size(170.dp)
-                        ) {
-                            // Dashed circle container
-                            Box(
-                                modifier = Modifier
-                                    .size(170.dp)
-                                    .drawBehind {
-                                        drawRoundRect(
-                                            color = Color(0xFFCBD5E1),
-                                            style = Stroke(
-                                                width = 1.6.dp.toPx(),
-                                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
-                                            ),
-                                            cornerRadius = CornerRadius(85.dp.toPx(), 85.dp.toPx())
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!photoUrlInput.isNullOrEmpty()) {
-                                    val decodedModel = remember(photoUrlInput) { PhotoUtils.decodeBase64ToBitmap(photoUrlInput) }
-                                    AsyncImage(
-                                        model = decodedModel,
-                                        contentDescription = "Foto de perfil",
-                                        modifier = Modifier
-                                            .size(150.dp)
-                                            .clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CameraAlt,
-                                            contentDescription = "Sin foto",
-                                            tint = Color(0xFF94A3B8),
-                                            modifier = Modifier.size(46.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Sin foto",
-                                            color = Color(0xFF94A3B8),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Overlapping Camera Badge clickable
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = (-4).dp, y = (-4).dp)
-                                    .size(46.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF007AFF))
-                                    .border(2.dp, Color.White, CircleShape)
-                                    .clickable { showProfilePhotoSourceDialog = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Seleccionar origen de foto",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-
-                }
-                    // Options List Below
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { launchCamera() },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFEFF2F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFEFF6FF)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CameraAlt,
-                                        contentDescription = null,
-                                        tint = Color(0xFF007AFF),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Text(
-                                    text = "Tomar foto",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0F172A)
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = Color(0xFF94A3B8),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { photoPickerLauncher.launch("image/*") },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFEFF2F5)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFEFF6FF)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Image,
-                                        contentDescription = null,
-                                        tint = Color(0xFF007AFF),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Text(
-                                    text = "Subir desde galería",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0F172A)
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = Color(0xFF94A3B8),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
             ProfileSubScreen.CHANGE_PASSWORD -> {
                 // SCREEN 3: CAMBIAR CONTRASEÑA (IMAGE 3)
                 Column(
@@ -1400,7 +1186,7 @@ fun ProfileScreen(
                             }
                         },
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1764FF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
@@ -1510,6 +1296,8 @@ fun ProfileScreen(
     if (showSupportDialog) {
         AlertDialog(
             onDismissRequest = { showSupportDialog = false },
+            containerColor = PolishCard,
+            shape = RoundedCornerShape(16.dp),
             confirmButton = {
                 Button(
                     onClick = {
@@ -1521,29 +1309,39 @@ fun ProfileScreen(
                             viewModel.showAlert("Aviso", "Escribe un mensaje o detalle de tu reporte")
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF005AC1))
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue)
                 ) {
-                    Text("Enviar Reporte", color = Color.White)
+                    Text("Enviar reporte", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSupportDialog = false }) {
-                    Text("Cancelar", color = Color(0xFF64748B))
+                    Text("Cancelar", color = PolishGrayText)
                 }
             },
-            containerColor = Color.White,
-            title = { Text("Ayuda y Soporte técnico 🛠️", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            title = {
+                Text(
+                    text = "Ayuda y soporte técnico",
+                    color = PolishDark,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text(
+                        text = "¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.",
+                        color = PolishGrayText,
+                        fontSize = 12.sp
+                    )
                     OutlinedTextField(
                         value = supportMessage,
                         onValueChange = { supportMessage = it.capitalizeFirstLetter() },
                         label = { Text("Detalle de tu reporte") },
-                        placeholder = { Text("Ej: El profesional no llegó en la hora de cita...") },
+                        placeholder = { Text("Ej: El profesional no llegó a la hora de la cita...") },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF005AC1),
-                            focusedLabelColor = Color(0xFF005AC1)
+                            focusedBorderColor = PolishBlue,
+                            focusedLabelColor = PolishBlue
                         ),
                         modifier = Modifier.fillMaxWidth().height(100.dp)
                     )

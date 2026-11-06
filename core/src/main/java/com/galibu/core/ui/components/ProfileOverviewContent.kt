@@ -40,6 +40,7 @@ import com.galibu.core.data.model.canSwitchToProfessional
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 import com.galibu.core.ui.theme.PolishIce
 import com.galibu.core.ui.utils.ImageUtils
 
@@ -92,14 +93,10 @@ fun ProfileOverviewContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(
-                horizontal = if (isProfessional) 20.dp else 16.dp,
-                vertical = if (isProfessional) 16.dp else 0.dp
-            ),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (showTitle) {
-            Spacer(modifier = Modifier.height(if (isProfessional) 10.dp else 8.dp))
             Text(
                 text = "Perfil",
                 color = Color(0xFF0F172A),
@@ -200,8 +197,47 @@ fun ProfileOverviewContent(
                     color = Color(0xFF64748B),
                     textAlign = TextAlign.Center
                 )
+
+                if (isProfessional) {
+                    val category = currentUser?.workCategory?.takeIf { it.isNotBlank() }
+                    val hourlyRate = currentUser?.hourlyRate?.takeIf { it > 0.0 }
+                    if (category != null || hourlyRate != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            category?.let { ProfileInfoPill(it) }
+                            hourlyRate?.let {
+                                ProfileInfoPill(
+                                    "$" + String.format(java.util.Locale.US, "%,.0f", it) + " / hora"
+                                )
+                            }
+                        }
+                    }
+                    if (currentUser?.verificationStatus == "VERIFIED" && currentUser?.isVerified == true) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PolishGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Perfil verificado",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PolishGreen
+                            )
+                        }
+                    }
+                }
             }
         }
+
+        ProfileSectionLabel("MI PERFIL")
 
         // Acciones principales
         Column(
@@ -211,7 +247,7 @@ fun ProfileOverviewContent(
             ProfileOptionCard(
                 icon = Icons.Default.Edit,
                 iconBgColor = Color(0xFFEFF6FF),
-                iconColor = Color(0xFF2563EB),
+                iconColor = PolishBlue,
                 title = "Editar perfil",
                 onClick = onEditProfile
             )
@@ -219,26 +255,14 @@ fun ProfileOverviewContent(
             ProfileOptionCard(
                 icon = Icons.Default.Lock,
                 iconBgColor = Color(0xFFEFF6FF),
-                iconColor = Color(0xFF2563EB),
+                iconColor = PolishBlue,
                 title = "Cambiar contraseña",
                 onClick = onChangePassword
             )
         }
 
         // Sección CUENTA
-        Text(
-            text = "CUENTA",
-            color = Color(0xFF64748B),
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            letterSpacing = 1.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = if (isProfessional) 10.dp else 20.dp,
-                    bottom = if (isProfessional) 2.dp else 12.dp
-                )
-        )
+        ProfileSectionLabel("CUENTA")
 
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -247,7 +271,7 @@ fun ProfileOverviewContent(
             ProfileOptionCard(
                 icon = Icons.AutoMirrored.Filled.Help,
                 iconBgColor = Color(0xFFEFF6FF),
-                iconColor = Color(0xFF2563EB),
+                iconColor = PolishBlue,
                 title = "Ayuda y soporte",
                 onClick = onSupport
             )
@@ -276,35 +300,44 @@ fun ProfileOverviewContent(
                 ProfileOptionCard(
                     icon = Icons.Default.SwapHoriz,
                     iconBgColor = Color(0xFFEFF6FF),
-                    iconColor = Color(0xFF2563EB),
+                    iconColor = PolishBlue,
                     title = switchRoleLabel,
                     onClick = onSwitchRole
                 )
             }
 
+        }
+
+        ProfileSectionLabel("SESIÓN")
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Cerrar sesión no es destructivo: se muestra neutro.
             ProfileOptionCard(
                 icon = Icons.AutoMirrored.Filled.Logout,
-                iconBgColor = Color(0xFFFEF2F2),
-                iconColor = Color(0xFFEF4444),
+                iconBgColor = Color(0xFFF1F5F9),
+                iconColor = Color(0xFF475569),
                 title = "Cerrar sesión",
-                titleColor = Color(0xFFEF4444),
                 showChevron = false,
                 onClick = onLogout
             )
 
+            // Ambas abren un diálogo de confirmación, por eso ninguna lleva chevron.
             ProfileOptionCard(
                 icon = Icons.Default.Delete,
                 iconBgColor = Color(0xFFFEF2F2),
                 iconColor = Color(0xFFEF4444),
                 title = "Eliminar cuenta",
                 titleColor = Color(0xFFEF4444),
-                chevronColor = Color(0xFFF87171),
+                showChevron = false,
                 onClick = onDeleteAccount
             )
         }
 
         // Pie: logo + versión
-        Spacer(modifier = Modifier.height(if (isProfessional) 20.dp else 24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
@@ -324,6 +357,37 @@ fun ProfileOverviewContent(
                 fontWeight = FontWeight.Medium
             )
         }
-        Spacer(modifier = Modifier.height(if (isProfessional) 40.dp else 80.dp))
+        Spacer(modifier = Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun ProfileSectionLabel(text: String) {
+    Text(
+        text = text,
+        color = PolishGrayText,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        letterSpacing = 1.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+    )
+}
+
+@Composable
+private fun ProfileInfoPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFFEFF6FF))
+            .padding(horizontal = 12.dp, vertical = 5.dp)
+    ) {
+        Text(
+            text = text,
+            color = PolishBlue,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
