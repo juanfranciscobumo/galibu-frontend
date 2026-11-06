@@ -923,23 +923,6 @@ private fun LoginContent(
             modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Diferenciador de app: clientes
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(brandBlue.copy(alpha = 0.1f))
-                .padding(horizontal = 14.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = "Clientes y profesionales",
-                color = brandBlue,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         Spacer(modifier = Modifier.height(24.dp))
 
         // Google sign-in button
