@@ -71,7 +71,8 @@ fun ProfileOverviewContent(
     onActivateProfessional: () -> Unit = {},
     onActivateClient: () -> Unit = {},
     onLogout: () -> Unit,
-    onDeleteAccount: () -> Unit
+    onDeleteAccount: () -> Unit,
+    versionText: String = "v1.0.0"
 ) {
     val profilePhotoModel = remember(currentUser?.profilePhotoUrl) {
         ImageUtils.getCoilModel(currentUser?.profilePhotoUrl)
@@ -361,12 +362,12 @@ fun ProfileOverviewContent(
                 modifier = Modifier.size(width = 27.dp, height = 32.dp),
                 contentScale = ContentScale.Fit
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Galibu v1.0.0",
+                text = "Galibu $versionText",
                 color = PolishGrayText,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Normal
             )
         }
         Spacer(modifier = Modifier.height(40.dp))
