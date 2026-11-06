@@ -88,7 +88,7 @@ fun ForgotPasswordRecoveryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = if (step == 3) 24.dp else 40.dp),
+                    .padding(top = 16.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -107,27 +107,16 @@ fun ForgotPasswordRecoveryScreen(
                     )
                 }
 
-                if (step == 3) {
-                    Text(
-                        text = "Contraseña actualizada",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = RecoveryTextMain,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
+                Text(
+                    text = if (step == 3) "Contraseña actualizada" else "Recuperar contraseña",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RecoveryTextMain,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
             }
 
             if (step != 3) {
-                Text(
-                    text = "Recuperar contraseña",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = RecoveryTextMain,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 Spacer(modifier = Modifier.height(14.dp))
             }
 
