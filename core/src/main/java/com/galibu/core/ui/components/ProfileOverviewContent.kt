@@ -81,6 +81,7 @@ fun ProfileOverviewContent(
     } else {
         currentUser?.canSwitchToProfessional() == true
     }
+    val isBoth = currentUser?.role?.equals("BOTH", ignoreCase = true) == true
     val needsProfessionalActivation = !isProfessional && currentUser?.canSwitchToProfessional() != true
     val needsClientActivation = isProfessional && currentUser?.canSwitchToClient() != true
     val switchRoleLabel = if (isProfessional) {
@@ -88,14 +89,18 @@ fun ProfileOverviewContent(
     } else {
         "Cambiar a modo profesional"
     }
+    var showSwitchConfirm by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         if (showTitle) {
             Text(
                 text = "Perfil",
@@ -302,7 +307,14 @@ fun ProfileOverviewContent(
                     iconBgColor = Color(0xFFEFF6FF),
                     iconColor = PolishBlue,
                     title = switchRoleLabel,
-                    onClick = onSwitchRole
+                    isProminent = true,
+                    onClick = {
+                        if (isBoth) {
+                            showSwitchConfirm = true
+                        } else {
+                            onSwitchRole()
+                        }
+                    }
                 )
             }
 
@@ -358,6 +370,51 @@ fun ProfileOverviewContent(
             )
         }
         Spacer(modifier = Modifier.height(40.dp))
+        }
+
+        // Diálogo de confirmación al cambiar de modo cuando la cuenta es BOTH
+        if (showSwitchConfirm) {
+            AlertDialog(
+                onDismissRequest = { showSwitchConfirm = false },
+                title = {
+                    Text(
+                        text = "Cambiar de modo",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                },
+                text = {
+                    Text(
+                        text = if (isProfessional) {
+                            "Al cambiar a modo cliente, dejarás de ver las solicitudes de profesionales y no podrás ofertar servicios. ¿Deseas continuar?"
+                        } else {
+                            "Al cambiar a modo profesional, dejarás de ver las solicitudes de clientes y no podrás contratar servicios. ¿Deseas continuar?"
+                        },
+                        color = Color(0xFF64748B),
+                        fontSize = 14.sp
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSwitchConfirm = false
+                            onSwitchRole()
+                        }
+                    ) {
+                        Text("Confirmar", color = PolishBlue, fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showSwitchConfirm = false }
+                    ) {
+                        Text("Cancelar", color = Color(0xFF64748B))
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
     }
 }
 
