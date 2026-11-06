@@ -775,6 +775,18 @@ class GalibuRepository(
             acceptedTerms = acceptedTerms
         )
         val synced = pushProfileToBackend(withExtras)
+        // Cuenta creada por Google: nace CLIENT en el backend. Si el usuario
+        // eligió ser profesional en el wizard, el upgrade se hace aquí de forma
+        // explícita (nunca por el rol que mande el cliente en /auth/google).
+        var finalUser = synced
+        if (base.authProvider == "GOOGLE" && base.role == "CLIENT" && role != "CLIENT") {
+            finalUser = try {
+                apiService.addRole(AddRoleDto("BOTH"))
+            } catch (e: Exception) {
+                Log.e("GalibuRepository", "No se pudo activar la capacidad profesional: ${e.localizedMessage}")
+                synced
+            }
+        }
         // Add welcome notification for the newly registered user
         try {
             val welcomeNotification = AppNotification(
@@ -788,7 +800,7 @@ class GalibuRepository(
         } catch (e: Exception) {
             Log.e("GalibuRepository", "Error al guardar notificación de bienvenida: ${e.localizedMessage}")
         }
-        setCurrentUser(synced)
+        setCurrentUser(finalUser)
         AppTelemetry.event("auth.register.success", mapOf("role" to role))
         refreshCurrentUserProfile()
         }

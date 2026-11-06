@@ -407,7 +407,9 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                     context = getApplication<Application>()
                 )
                 if (success) {
-                    _activeRole.value = appRole ?: role
+                    // El modo activo nunca puede exceder las capacidades reales
+                    // de la cuenta (p. ej. una cuenta Google nueva, que nace CLIENT).
+                    _activeRole.value = appRole?.takeIf { currentUser.value.hasCapability(it) } ?: role
                     registerFcmToken()
                 }
                 onResult(success)

@@ -120,6 +120,8 @@ fun AuthScreen(
     var isLoggingIn by remember { mutableStateOf(false) }
     var isRegistering by remember { mutableStateOf(false) }
     var isGoogleAuthenticating by remember { mutableStateOf(false) }
+    // true cuando el botón de Google se pulsa dentro del registro (no en el login).
+    var googleSignupIntent by remember { mutableStateOf(false) }
     
     // ==================== CAMPOS DE AUTENTICACIÓN ====================
     var email by rememberSaveable { mutableStateOf("") }
@@ -198,8 +200,9 @@ fun AuthScreen(
 
     LaunchedEffect(registrationStep) {
         errorMessage = null
-        if (registrationStep <= 1) {
+        if (registrationStep == 0) {
             isGoogleAutocomplete = false
+            googleIdToken = null
         }
     }
 
@@ -399,6 +402,20 @@ fun AuthScreen(
                     return@launch
                 }
 
+                if (googleSignupIntent) {
+                    // Registro con Google: aún no se crea la cuenta. Se guarda el
+                    // token y se prellenan los datos; la cuenta se crea al final
+                    // del wizard con el rol que el usuario elija aquí.
+                    googleSignupIntent = false
+                    isGoogleAuthenticating = false
+                    googleIdToken = idToken
+                    isGoogleAutocomplete = true
+                    email = normalizedEmail
+                    if (!displayName.isNullOrBlank()) name = displayName
+                    if (!photoUrl.isNullOrBlank()) signupPhotoUri = photoUrl
+                    return@launch
+                }
+
                 // Backend finds-or-creates the user and establishes the JWT session.
                 viewModel.loginWithGoogle(
                     idToken = idToken,
@@ -508,7 +525,8 @@ fun AuthScreen(
         }
     }
 
-    fun signInWithGoogle() {
+    fun signInWithGoogle(fromRegistration: Boolean = false) {
+        googleSignupIntent = fromRegistration
         errorMessage = null
         launchNativeGoogleSignIn()
     }
@@ -608,7 +626,8 @@ fun AuthScreen(
                 context = context,
                 scope = scope,
                 onForgotPasswordClick = { showForgotPasswordDialog = true },
-                onGoogleSignIn = { signInWithGoogle() }
+                onGoogleSignIn = { signInWithGoogle() },
+                onGoogleSignUp = { signInWithGoogle(fromRegistration = true) }
             )
         }
     }
@@ -748,7 +767,8 @@ private fun AuthContent(
     context: Context,
     scope: kotlinx.coroutines.CoroutineScope,
     onForgotPasswordClick: () -> Unit,
-    onGoogleSignIn: () -> Unit
+    onGoogleSignIn: () -> Unit,
+    onGoogleSignUp: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -802,6 +822,7 @@ private fun AuthContent(
         } else {
             RegistrationContent(
                 logoResId = logoResId,
+                googleIconResId = googleIconResId,
                 registrationStep = registrationStep,
                 onRegistrationStepChange = onRegistrationStepChange,
                 selectedRole = selectedRole,
@@ -864,7 +885,7 @@ private fun AuthContent(
                 onAuthSuccess = onAuthSuccess,
                 context = context,
                 scope = scope,
-                onGoogleSignIn = onGoogleSignIn
+                onGoogleSignIn = onGoogleSignUp
             )
         }
     }
@@ -1086,6 +1107,7 @@ private fun LoginContent(
 @Composable
 private fun RegistrationContent(
     logoResId: Int,
+    googleIconResId: Int,
     registrationStep: Int,
     onRegistrationStepChange: (Int) -> Unit,
     selectedRole: String,
@@ -1255,6 +1277,50 @@ private fun RegistrationContent(
                     fontSize = 15.sp,
                     color = textSec,
                     modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+                )
+
+                // Registro con Google: autentica y prellena los datos, pero la
+                // cuenta se crea al final del wizard con el rol elegido aquí.
+                OutlinedButton(
+                    onClick = onGoogleSignIn,
+                    enabled = !isGoogleAuthenticating,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, borderLight),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = textMain
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("register_google_btn")
+                ) {
+                    Image(
+                        painter = painterResource(googleIconResId),
+                        contentDescription = "Google Icon",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = if (isGoogleAutocomplete) {
+                            "Cambiar cuenta de Google"
+                        } else {
+                            "Continuar con Google"
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Text(
+                    text = if (isGoogleAutocomplete) {
+                        "Datos tomados de Google. Elige cómo usarás Galibu y continúa."
+                    } else {
+                        "o completa tus datos manualmente"
+                    },
+                    fontSize = 13.sp,
+                    color = textSec,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
                 )
 
                 // Intención explícita de uso. CLIENT es el default seguro;
