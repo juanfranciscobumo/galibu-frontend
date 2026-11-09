@@ -62,7 +62,8 @@ import com.galibu.core.ui.components.CategoryMultiSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.PasswordField
-import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.PhotoSourceBottomSheet
+import com.galibu.core.ui.components.ProfilePhotoSourceBottomSheet
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.viewmodels.SharedViewModel
 import com.galibu.core.ui.utils.ImageUtils
@@ -634,7 +635,7 @@ fun AuthScreen(
 
     // ==================== DIÁLOGOS ====================
     if (showProfilePhotoSourceDialog) {
-        ProfilePhotoSourceDialog(
+        ProfilePhotoSourceBottomSheet(
             onDismiss = { showProfilePhotoSourceDialog = false },
             onGallerySelected = {
                 showProfilePhotoSourceDialog = false
@@ -648,7 +649,7 @@ fun AuthScreen(
     }
 
     if (showWorkPhotoSourceDialog) {
-        PhotoSourceDialog(
+        PhotoSourceBottomSheet(
             title = "Agregar foto del trabajo",
             message = "Elige de dónde deseas obtener la foto:",
             onDismiss = { showWorkPhotoSourceDialog = false },
@@ -2230,32 +2231,6 @@ private fun RegistrationContent(
             }
         }
     }
-}
-
-@Composable
-fun ProfilePhotoSourceDialog(
-    onDismiss: () -> Unit,
-    onGallerySelected: () -> Unit,
-    onCameraSelected: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Elegir foto de perfil", fontWeight = FontWeight.Bold) },
-        text = { Text("Selecciona la fuente desde la cual deseas cargar o tomar tu foto de perfil de usuario.") },
-        confirmButton = {
-            Button(
-                onClick = onGallerySelected,
-                colors = ButtonDefaults.buttonColors(containerColor = brandBlue)
-            ) {
-                Text("Galería", color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onCameraSelected) {
-                Text("Cámara", color = brandBlue)
-            }
-        }
-    )
 }
 
 @Composable

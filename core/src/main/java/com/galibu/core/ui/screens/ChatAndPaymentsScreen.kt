@@ -32,7 +32,7 @@ import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.UserProfile
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 import com.galibu.core.ui.components.GalibuRatingSheet
-import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.PhotoSourceBottomSheet
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.theme.*
 import com.galibu.core.ui.viewmodels.SharedViewModel
@@ -90,7 +90,7 @@ fun ChatAndPaymentsScreen(
     )
 
     if (showImageSourceDialog) {
-        PhotoSourceDialog(
+        PhotoSourceBottomSheet(
             title = "Adjuntar foto",
             message = "Elige de dónde deseas obtener la foto:",
             onDismiss = { showImageSourceDialog = false },

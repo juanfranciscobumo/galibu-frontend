@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.galibu.core.ui.components.CategoryMultiSelectField
-import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.PhotoSourceBottomSheet
 import com.galibu.core.ui.components.rememberCameraCaptureLauncher
 import com.galibu.core.ui.utils.ImageUtils
 import com.galibu.core.ui.utils.PriceUtils
@@ -425,7 +425,7 @@ fun ActivateProfessionalScreen(
     }
 
     if (showPhotoSource) {
-        PhotoSourceDialog(
+        PhotoSourceBottomSheet(
             onDismiss = { showPhotoSource = false },
             onGallerySelected = {
                 showPhotoSource = false

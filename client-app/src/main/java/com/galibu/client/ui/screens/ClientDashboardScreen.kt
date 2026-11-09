@@ -220,7 +220,8 @@ import com.galibu.core.ui.components.CategorySingleSelectField
 import com.galibu.core.ui.components.GalibuAlertDialog
 import com.galibu.core.ui.components.GalibuAlertType
 import com.galibu.core.ui.components.GalibuRatingSheet
-import com.galibu.core.ui.components.PhotoSourceDialog
+import com.galibu.core.ui.components.PhotoSourceBottomSheet
+import com.galibu.core.ui.components.ProfilePhotoSourceBottomSheet
 import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.ui.components.ProfileOverviewContent
 import com.galibu.core.ui.components.RequestSummaryCard
@@ -3114,7 +3115,7 @@ fun JobPostForm(
     )
 
     if (showJobPhotoSourceDialog) {
-        PhotoSourceDialog(
+        PhotoSourceBottomSheet(
             title = "Agregar foto de la solicitud",
             message = "Elige de dónde deseas obtener la foto:",
             onDismiss = { showJobPhotoSourceDialog = false },
@@ -4231,109 +4232,10 @@ fun EditProfileScreen(
 
     // Selector de origen de la foto de perfil (galería / cámara)
     if (showPhotoSourceDialog) {
-        AlertDialog(
-            onDismissRequest = { showPhotoSourceDialog = false },
-            containerColor = PolishCard,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    text = "Foto de perfil",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PolishDark
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Elige de dónde deseas obtener tu foto de perfil:",
-                        fontSize = 14.sp,
-                        color = PolishGrayText
-                    )
-
-                    // Galería
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PolishIce)
-                            .clickable {
-                                showPhotoSourceDialog = false
-                                photoPickerLauncher.launch("image/*")
-                            }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoLibrary,
-                            contentDescription = "Galería",
-                            tint = PolishBlue,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Elegir de la galería",
-                                fontWeight = FontWeight.Bold,
-                                color = PolishDark,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Selecciona una foto de tus archivos",
-                                color = PolishGrayText,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    // Cámara
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PolishIce)
-                            .clickable {
-                                showPhotoSourceDialog = false
-                                launchCamera()
-                            }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Cámara",
-                            tint = PolishBlue,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Tomar una foto",
-                                fontWeight = FontWeight.Bold,
-                                color = PolishDark,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Captura una nueva foto con tu cámara",
-                                color = PolishGrayText,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPhotoSourceDialog = false }) {
-                    Text(
-                        text = "Cancelar",
-                        fontWeight = FontWeight.Bold,
-                        color = PolishBlue
-                    )
-                }
-            }
+        ProfilePhotoSourceBottomSheet(
+            onDismiss = { showPhotoSourceDialog = false },
+            onGallerySelected = { photoPickerLauncher.launch("image/*") },
+            onCameraSelected = { launchCamera() }
         )
     }
 }
