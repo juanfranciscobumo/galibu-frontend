@@ -937,8 +937,16 @@ private fun LoginContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Servicios que conectan, soluciones que llegan.",
-            color = Color(0xFF64748B),
+            text = "Servicios que conectan,",
+            color = Color(0xFF334155),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+        Text(
+            text = "soluciones que llegan.",
+            color = Color(0xFF0066FF),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,

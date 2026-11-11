@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:width="90dp"
-        android:height="90dp"
-        android:drawable="@drawable/img_app_logo_1781899012982"
-        android:gravity="center" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Marca compacta: pin de ubicacion con casa recortada (zona segura). -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,85.32 L34.4,43.98 C34.4,32.22 42.24,22.68 54,22.68 C65.76,22.68 73.6,32.22 73.6,43.98 Z M54,39.59 L65.26,49.61 L63.71,49.61 L63.71,55.88 L44.29,55.88 L44.29,49.61 L42.74,49.61 Z M52.25,55.88 L52.25,50.55 L55.75,50.55 L55.75,55.88 Z" />
+</vector>

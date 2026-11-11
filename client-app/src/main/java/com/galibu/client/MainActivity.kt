@@ -205,9 +205,18 @@ class MainActivity : ComponentActivity() {
                                 Text("Galibu", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = PolishBlue)
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
-                                    text = "Servicios que conectan, soluciones que llegan.",
+                                    text = "Servicios que conectan,",
                                     fontSize = 14.sp,
-                                    color = Color(0xFF64748B),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF334155),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
+                                Text(
+                                    text = "soluciones que llegan.",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = PolishBlue,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(horizontal = 24.dp)
                                 )
