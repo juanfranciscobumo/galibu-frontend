@@ -475,7 +475,11 @@ fun PriceNegotiationScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "4.8 (142 reseñas)",
+                                        text = String.format(
+                                            Locale.US,
+                                            "%.1f",
+                                            professionalUser?.rating ?: 5.0f
+                                        ),
                                         color = Color(0xFF64748B),
                                         fontSize = 12.sp
                                     )
@@ -491,7 +495,7 @@ fun PriceNegotiationScreen(
                                     text = "$${
                                         NumberFormat.getNumberInstance(Locale.US)
                                             .format(baseRateVal)
-                                    }/h",
+                                    }",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF64748B)
@@ -510,7 +514,7 @@ fun PriceNegotiationScreen(
                                     text = "$${
                                         NumberFormat.getNumberInstance(Locale.US)
                                             .format(proposedRateValue)
-                                    }/h",
+                                    }",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFEA580C)

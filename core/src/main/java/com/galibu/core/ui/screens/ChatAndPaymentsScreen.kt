@@ -140,7 +140,6 @@ fun ChatAndPaymentsScreen(
     val scope = rememberCoroutineScope()
 
     var showPaymentSheet by remember { mutableStateOf(false) }
-    var selectedPaymentMethod by remember { mutableStateOf("Nequi") }
     var isPayingState by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
     var showProFinalizeConfirm by remember { mutableStateOf(false) }
@@ -711,7 +710,8 @@ fun ChatAndPaymentsScreen(
         }
     }
 
-    // Integrated Payment Gateway Simulation dialog
+    // Confirmación de finalización. El pago se acuerda por fuera de la app:
+    // aquí solo se cierra el trabajo y se habilita la calificación.
     if (showPaymentSheet) {
         val finalPaymentValue = job?.finalPrice ?: job?.budgetMin ?: 20000.0
         AlertDialog(
@@ -721,11 +721,18 @@ fun ChatAndPaymentsScreen(
                     Button(
                         onClick = {
                             isPayingState = true
+                            job?.id?.let { id ->
+                                viewModel.payAndCompleteJob(id, "Fuera de la app") {
+                                    isPayingState = false
+                                    showPaymentSheet = false
+                                    showReviewDialog = true
+                                }
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
                         modifier = Modifier.testTag("submit_gateway_payment")
                     ) {
-                        Text("Iniciar Pago Seguro", fontWeight = FontWeight.Bold)
+                        Text("Confirmar y finalizar", fontWeight = FontWeight.Bold)
                     }
                 }
             },
@@ -739,7 +746,7 @@ fun ChatAndPaymentsScreen(
             containerColor = CardSurface,
             title = {
                 Text(
-                    text = "Pasarela de Pago Integrada 💳",
+                    text = "Finalizar servicio",
                     fontWeight = FontWeight.Bold,
                     color = OffWhite,
                     fontSize = 18.sp
@@ -752,37 +759,12 @@ fun ChatAndPaymentsScreen(
                 ) {
                     if (!isPayingState) {
                         Text(
-                            text = "Seleccione el método de pago para depositar de manera segura sus honorarios a cargo de Firebase Cloud Vault:",
+                            text = "El pago se acuerda directamente con el profesional (efectivo, Nequi o transferencia). " +
+                                "Galibu no procesa ni retiene ese dinero.",
                             color = LightGray,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-
-                        // Payment Methods Choice
-                        listOf("Nequi 📱", "Daviplata 💵", "Tarjeta de Crédito (Visa) 💳", "PSE / Red CoBancos 🏦").forEach { pm ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (selectedPaymentMethod == pm.substringBefore(" ")) PrimaryGreen.copy(alpha = 0.15f) else Color.Transparent)
-                                    .border(
-                                        1.dp,
-                                        if (selectedPaymentMethod == pm.substringBefore(" ")) PrimaryGreen else Color.Gray.copy(alpha = 0.2f),
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { selectedPaymentMethod = pm.substringBefore(" ") }
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(pm, color = OffWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                RadioButton(
-                                    selected = selectedPaymentMethod == pm.substringBefore(" "),
-                                    onClick = { selectedPaymentMethod = pm.substringBefore(" ") },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryGreen)
-                                )
-                            }
-                        }
 
                         HorizontalDivider(color = Color.Gray.copy(alpha = 0.1f))
 
@@ -790,7 +772,7 @@ fun ChatAndPaymentsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Monto Convenido:", fontSize = 13.sp, color = LightGray)
+                            Text("Monto convenido:", fontSize = 13.sp, color = LightGray)
                             Text(
                                 "$${NumberFormat.getNumberInstance(Locale.US).format(finalPaymentValue)} COP",
                                 color = PolishGreen,
@@ -799,7 +781,6 @@ fun ChatAndPaymentsScreen(
                             )
                         }
                     } else {
-                        // PAYING ANIMATED TRANSITION
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -810,29 +791,11 @@ fun ChatAndPaymentsScreen(
                             CircularProgressIndicator(color = PolishGreen, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "Enlazando con Gateway de $selectedPaymentMethod...",
+                                "Finalizando servicio...",
                                 color = OffWhite,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
-                            Text(
-                                "Debitando fondos and certificando transferencia SSL en Firebase Cloud Vault.",
-                                color = LightGray,
-                                fontSize = 11.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-
-                        LaunchedEffect(Unit) {
-                            delay(4000) // 4 seconds SSL loading sim
-                            job?.id?.let { id ->
-                                viewModel.payAndCompleteJob(id, selectedPaymentMethod) {
-                                    isPayingState = false
-                                    showPaymentSheet = false
-                                    showReviewDialog = true
-                                }
-                            }
                         }
                     }
                 }
@@ -914,7 +877,9 @@ fun ChatAndPaymentsScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Al finalizar, se registrará el trabajo como completado con éxito, lo que notificará al cliente para liberar de forma segura tus honorarios de $${NumberFormat.getNumberInstance(Locale.US).format(finalPaymentValue)} COP de la bóveda Galibu.",
+                            text = "Al finalizar, el trabajo quedará como completado y podrás calificar al cliente. " +
+                                "Recuerda que el pago de $${NumberFormat.getNumberInstance(Locale.US).format(finalPaymentValue)} COP " +
+                                "se acuerda directamente con el cliente (efectivo, Nequi o transferencia).",
                             color = LightGray,
                             fontSize = 12.sp
                         )

@@ -216,7 +216,7 @@ fun ProfileOverviewContent(
                             category?.let { ProfileInfoPill(it) }
                             hourlyRate?.let {
                                 ProfileInfoPill(
-                                    "$" + String.format(java.util.Locale.US, "%,.0f", it) + " / hora"
+                                    "Desde $" + String.format(java.util.Locale.US, "%,.0f", it) + " COP"
                                 )
                             }
                         }
@@ -238,6 +238,16 @@ fun ProfileOverviewContent(
                                 color = PolishGreen
                             )
                         }
+                    }
+                    // Estado del plan: el profesional ve si aún tiene servicios gratis
+                    // o si ya está suscrito a Galibu Pro.
+                    val planLabel = when (currentUser?.subscriptionPlan) {
+                        "PRO" -> "Galibu Pro activo"
+                        else -> "Plan gratuito · servicios gratis"
+                    }
+                    if (currentUser?.subscriptionPlan != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ProfileInfoPill(planLabel)
                     }
                 }
             }

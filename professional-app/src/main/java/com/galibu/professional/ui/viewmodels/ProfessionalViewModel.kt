@@ -5,69 +5,43 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.galibu.core.data.model.*
 import com.galibu.core.data.remote.BoldCheckoutResponse
-import com.galibu.core.data.remote.WalletTransactionDto
 import com.galibu.core.ui.viewmodels.SharedViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.util.Locale
 
 class ProfessionalViewModel(application: Application) : SharedViewModel(application) {
 
-    private val _walletHistory = kotlinx.coroutines.flow.MutableStateFlow<List<com.galibu.core.data.remote.WalletTransactionDto>>(emptyList())
-    val walletHistory: kotlinx.coroutines.flow.StateFlow<List<com.galibu.core.data.remote.WalletTransactionDto>> = _walletHistory
-
-    private val _boldOrders = kotlinx.coroutines.flow.MutableStateFlow<List<com.galibu.core.data.remote.BoldOrderDto>>(emptyList())
-    val boldOrders: kotlinx.coroutines.flow.StateFlow<List<com.galibu.core.data.remote.BoldOrderDto>> = _boldOrders
-
     private val _boldCheckout = MutableStateFlow<BoldCheckoutResponse?>(null)
     val boldCheckout: StateFlow<BoldCheckoutResponse?> = _boldCheckout.asStateFlow()
 
-    /** Órdenes ya notificadas en esta sesión para no duplicar la push de éxito. */
-    private val notifiedWalletOrders = mutableSetOf<String>()
+    /** Se dispara cuando el backend exige Galibu Pro (HTTP 402) para abrir el paywall. */
+    private val _paywallRequested = MutableStateFlow(false)
+    val paywallRequested: StateFlow<Boolean> = _paywallRequested.asStateFlow()
 
-    /** Evita avisar dos veces por la misma recarga detectada al refrescar la billetera. */
-    private var lastSeenRechargeId: String? = null
-    private var walletBaselineReady = false
-
-    fun refreshWallet() {
-        viewModelScope.launch {
-            val history = repository.walletHistory()
-            _walletHistory.value = history
-            try {
-                _boldOrders.value = repository.boldOrders()
-            } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "boldOrders falló: ${e.localizedMessage}")
-            }
-            repository.refreshMe()
-            detectNewRecharge(history)
-        }
+    fun openPaywall() {
+        _paywallRequested.value = true
     }
 
-    /**
-     * Crea la orden de recarga en Bold y deja lista la URL del checkout.
-     * La app abre esa URL en el WebView seguro de Bold.
-     */
-    fun startBoldRecharge(amount: Double) {
+    fun dismissPaywall() {
+        _paywallRequested.value = false
+    }
+
+    /** Crea el link de pago de Bold para activar o renovar Galibu Pro. */
+    fun startPlanCheckout(plan: String) {
         viewModelScope.launch {
-            if (amount < 1000.0 || amount > 5_000_000.0) {
-                showWarning("El monto debe estar entre $1.000 y $5.000.000 COP.")
-                return@launch
-            }
             try {
                 showLoading("Conectando con Bold...")
-                val checkout = repository.createBoldCheckout(amount)
+                val checkout = repository.createSubscriptionCheckout(plan)
                 if (checkout.checkoutUrl.isBlank()) {
-                    val message = "Bold no devolvió un link de pago. Inténtalo de nuevo."
-                    notifyWalletError("No pudimos iniciar la recarga", message)
-                    showError(message)
+                    showError("Bold no devolvió un link de pago. Inténtalo de nuevo.")
                     return@launch
                 }
                 _boldCheckout.value = checkout
             } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "Falla creando checkout Bold: ${e.localizedMessage}")
+                Log.e("ProfessionalViewModel", "Falla creando checkout de suscripción: ${e.localizedMessage}")
                 val detail = e.localizedMessage ?: ""
                 val message = when {
                     detail.contains("503") -> "La pasarela de pagos Bold no está configurada en el servidor."
@@ -75,7 +49,6 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                         "Las llaves de Bold no son válidas o están inactivas."
                     else -> "No se pudo conectar con Bold. Verifica tu conexión e inténtalo de nuevo."
                 }
-                notifyWalletError("No pudimos iniciar la recarga", message)
                 showError(message)
             } finally {
                 hideLoading()
@@ -89,7 +62,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
 
     /**
      * Cierra el checkout y consulta la orden al backend hasta que Bold confirme.
-     * El backend acredita el saldo una sola vez (polling y webhook son idempotentes).
+     * El backend activa la suscripción una sola vez (polling y webhook son idempotentes).
      */
     fun confirmBoldPayment() {
         val checkout = _boldCheckout.value ?: return
@@ -102,95 +75,31 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                     val result = repository.boldOrderStatus(checkout.orderId)
                     when (result.status.uppercase(Locale.US)) {
                         "PAID" -> {
-                            val credited = result.amount.takeIf { it > 0.0 } ?: checkout.amount
-                            notifyWalletSuccess(checkout.orderId, credited, result.balance)
-                            refreshWallet()
-                            val paid = formatCop(credited)
-                            val balance = formatCop(result.balance)
-                            showSuccess(
-                                "¡Recarga exitosa! Se acreditaron $$paid COP. " +
-                                    "Tu nuevo saldo es $$balance COP."
-                            )
+                            loadSubscription()
+                            repository.refreshMe()
+                            showSuccess("¡Galibu Pro activado! Ya puedes seguir tomando trabajos.")
                             return@launch
                         }
                         "REJECTED", "CANCELLED", "EXPIRED" -> {
                             val status = result.status.lowercase(Locale.US)
-                            val message = "El pago no se completó ($status). " +
-                                "No se realizó ningún cobro. Puedes intentarlo de nuevo."
-                            notifyWalletError("Recarga no completada", message)
-                            showError(message)
+                            showError("El pago no se completó ($status). No se realizó ningún cobro.")
                             return@launch
                         }
                     }
                     kotlinx.coroutines.delay(3000)
                 }
-                publishUserNotification(
-                    title = "Recarga en proceso",
-                    body = "Bold todavía no confirma tu recarga. Si ya pagaste, el saldo se " +
-                        "acreditará automáticamente y te avisaremos.",
-                    wallet = true
-                )
                 showWarning(
-                    "No recibimos la confirmación del pago. Si no se realizó, intenta de nuevo; " +
-                        "si ya pagaste, el saldo se acreditará automáticamente en unos minutos."
+                    "No recibimos la confirmación del pago. Si ya pagaste, el plan se activará " +
+                        "automáticamente en unos minutos."
                 )
             } catch (e: Exception) {
                 Log.e("ProfessionalViewModel", "Falla confirmando pago Bold: ${e.localizedMessage}")
-                val message = "No se pudo confirmar el pago con Bold. Si ya pagaste, revisa tu " +
-                    "saldo en unos minutos."
-                notifyWalletError("No pudimos confirmar tu recarga", message)
-                showError(message)
+                showError("No se pudo confirmar el pago con Bold. Inténtalo de nuevo.")
             } finally {
                 hideLoading()
             }
         }
     }
-
-    private fun notifyWalletSuccess(orderId: String, amount: Double, balance: Double) {
-        if (!notifiedWalletOrders.add(orderId)) return
-        val paid = formatCop(amount)
-        val newBalance = formatCop(balance)
-        publishUserNotification(
-            title = "Saldo recargado 💰",
-            body = "Se acreditaron $$paid COP a tu billetera. " +
-                "Nuevo saldo: $$newBalance COP.",
-            wallet = true
-        )
-    }
-
-    private fun notifyWalletError(title: String, body: String) {
-        publishUserNotification(title = title, body = body, wallet = true)
-    }
-
-    /**
-     * Detecta una recarga nueva al refrescar el historial. Cubre el caso en que el
-     * backend acredita por webhook después de que la app dejó de hacer polling.
-     */
-    private fun detectNewRecharge(history: List<WalletTransactionDto>) {
-        val latest = history
-            .filter { it.type.equals("RECHARGE", ignoreCase = true) }
-            .maxByOrNull { it.createdAt } ?: return
-
-        if (!walletBaselineReady) {
-            walletBaselineReady = true
-            lastSeenRechargeId = latest.id
-            // Si la app se abrió justo después de pagar, sí vale la pena avisar.
-            if (System.currentTimeMillis() - latest.createdAt > 2 * 60 * 1000) return
-        } else {
-            if (latest.id == lastSeenRechargeId) return
-            lastSeenRechargeId = latest.id
-        }
-
-        if (System.currentTimeMillis() - latest.createdAt > 10 * 60 * 1000) return
-        val description = latest.description.orEmpty()
-        if (notifiedWalletOrders.any { order -> order.isNotBlank() && description.contains(order) }) {
-            return
-        }
-        notifyWalletSuccess(latest.id, latest.amount, latest.balanceAfter)
-    }
-
-    private fun formatCop(value: Double): String =
-        NumberFormat.getNumberInstance(Locale.US).format(value)
 
     /** Push del sistema ante oferta aceptada / cliente que finaliza / servicio completado. */
     override fun dispatchEventPush(notif: com.galibu.core.data.model.AppNotification) {
@@ -206,7 +115,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    /** Push del sistema para recargas y errores de la billetera. */
+    /** Push del sistema para eventos de la suscripción. */
     override fun dispatchWalletPush(notif: com.galibu.core.data.model.AppNotification) {
         try {
             com.galibu.professional.ui.util.ProPushHelper.showWalletPush(
@@ -217,6 +126,20 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
             )
         } catch (e: Exception) {
             Log.e("ProfessionalViewModel", "Falla mostrar push de billetera: ${e.localizedMessage}")
+        }
+    }
+
+    private fun handleProError(msg: String, fallback: String) {
+        when {
+            msg.contains("402") || msg.contains("Galibu Pro", ignoreCase = true) ||
+                msg.contains("servicios gratis", ignoreCase = true) -> {
+                _paywallRequested.value = true
+                showWarning(
+                    "Usaste tus 3 servicios gratis. Activa Galibu Pro para seguir tomando trabajos.",
+                    "Galibu Pro"
+                )
+            }
+            else -> showError(fallback)
         }
     }
 
@@ -231,20 +154,22 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
             } catch (e: Exception) {
                 Log.e("ProfessionalViewModel", "Falla enviar propuesta: ${e.localizedMessage}")
                 val msg = e.localizedMessage ?: ""
-                val userFacing = when {
+                when {
                     msg.contains("403") || msg.contains("Solo un profesional", ignoreCase = true) ->
-                        "Solo un perfil profesional puede enviar ofertas."
+                        showError("Solo un perfil profesional puede enviar ofertas.")
+                    msg.contains("402") || msg.contains("Galibu Pro", ignoreCase = true) ||
+                        msg.contains("servicios gratis", ignoreCase = true) ->
+                        handleProError(msg, "No se pudo enviar la oferta.")
                     msg.contains("409") || msg.contains("propia solicitud", ignoreCase = true) ->
-                        "No puedes ofertar en tu propia solicitud."
+                        showError("No puedes ofertar en tu propia solicitud.")
                     msg.contains("409") || msg.contains("no admite ofertas", ignoreCase = true) ->
-                        "La solicitud ya no admite ofertas en su estado actual."
+                        showError("La solicitud ya no admite ofertas en su estado actual.")
                     msg.contains("Unable to resolve host", ignoreCase = true) ||
                         msg.contains("timeout", ignoreCase = true) ||
                         msg.contains("IOException", ignoreCase = true) ->
-                        "Sin conexión: no se pudo enviar la oferta. Inténtalo de nuevo."
-                    else -> "No se pudo enviar la oferta: ${msg.ifBlank { "error desconocido" }}"
+                        showError("Sin conexión: no se pudo enviar la oferta. Inténtalo de nuevo.")
+                    else -> showError("No se pudo enviar la oferta: ${msg.ifBlank { "error desconocido" }}")
                 }
-                showError(userFacing)
             } finally {
                 hideLoading()
             }
@@ -263,11 +188,10 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
             } catch (e: Exception) {
                 hideLoading()
                 val msg = e.localizedMessage ?: ""
-                if (msg.contains("409") || msg.contains("Saldo insuficiente", ignoreCase = true)) {
-                    showWarning("No tienes saldo para aceptar este trabajo ($3.000 COP). Recarga tu wallet.", "Saldo insuficiente")
-                } else {
-                    showError("No se pudo aceptar la contratación. Verifica tu conexión e inténtalo nuevamente.")
-                }
+                handleProError(
+                    msg,
+                    "No se pudo aceptar la contratación. Verifica tu conexión e inténtalo nuevamente."
+                )
                 Log.e("ProfessionalViewModel", "Error al aceptar contratación: ${e.localizedMessage}")
             }
         }
@@ -305,7 +229,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun finishService(jobId: String, stars: Int, comment: String, onResult: () -> Unit = {}) {
+    fun finishService(jobId: String, stars: Int?, comment: String?, onResult: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 showLoading("Finalizando servicio...")
@@ -363,11 +287,10 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 showSuccess("Oferta aceptada correctamente.")
             } catch (e: Exception) {
                 val msg = e.localizedMessage ?: ""
-                if (msg.contains("409") || msg.contains("Saldo insuficiente", ignoreCase = true)) {
-                    showWarning("No tienes saldo para aceptar este trabajo ($3.000 COP). Recarga tu wallet.", "Saldo insuficiente")
-                } else {
-                    showError("No se pudo aceptar la oferta. Verifica tu conexión e inténtalo nuevamente.")
-                }
+                handleProError(
+                    msg,
+                    "No se pudo aceptar la oferta. Verifica tu conexión e inténtalo nuevamente."
+                )
                 Log.e("ProfessionalViewModel", "Falla aceptar propuesta: ${e.localizedMessage}")
             } finally {
                 hideLoading()
@@ -407,4 +330,3 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 }
-

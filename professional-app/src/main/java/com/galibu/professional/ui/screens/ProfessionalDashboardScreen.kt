@@ -72,7 +72,6 @@ import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.util.Locale
 
 // Clean premium Light Palette matching the high-fidelity screenshots 
@@ -234,6 +233,9 @@ fun ProfessionalDashboardScreen(
         }
     }
 
+    // Estado del plan Pro: alimenta el pill del encabezado y la pestaña "Mi Plan".
+    LaunchedEffect(Unit) { viewModel.loadSubscription() }
+
     // Screen State Centralized
     val screenState = remember(currentUser, openJobs, allJobs) {
         val user = currentUser
@@ -294,11 +296,20 @@ fun ProfessionalDashboardScreen(
     var showBidDialog by remember { mutableStateOf(false) }
     var selectedJobForBid by remember { mutableStateOf<ProDisplayJob?>(null) }
 
-    var showRechargeDialog by remember { mutableStateOf(false) }
+    var showPlanSheet by remember { mutableStateOf(false) }
+    var selectedPlan by rememberSaveable { mutableStateOf("MONTHLY") }
 
     var selectedJobForRating by remember { mutableStateOf<JobRequest?>(null) }
-    var rechargeAmountInput by remember { mutableStateOf("10000") }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // El backend responde 402 cuando se agotaron los 3 servicios gratis: abre el paywall.
+    val paywallRequested by viewModel.paywallRequested.collectAsState()
+    LaunchedEffect(paywallRequested) {
+        if (paywallRequested) {
+            showPlanSheet = true
+            viewModel.dismissPaywall()
+        }
+    }
 
     // Real jobs from Firestore matching professional specifications
     val proCategory = currentUser?.workCategory ?: ""
@@ -744,7 +755,7 @@ fun ProfessionalDashboardScreen(
                                     }
                                 }
                             }
-                            // Dynamic Balance Pill showing $150,000 COP or active balance, Clicking hops to Wallet Tab
+                            // Plan pill: muestra Galibu Pro o los servicios gratis restantes.
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(30.dp))
@@ -753,7 +764,7 @@ fun ProfessionalDashboardScreen(
                                             colors = listOf(Color(0xFF10B981), Color(0xFF059669))
                                         )
                                     )
-                                    .clickable { selectedTab = "Mi Wallet" }
+                                    .clickable { selectedTab = "Mi Plan" }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                                     .shadow(1.dp, RoundedCornerShape(30.dp)),
                                 contentAlignment = Alignment.Center
@@ -763,13 +774,14 @@ fun ProfessionalDashboardScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.AccountBalanceWallet,
-                                        contentDescription = "Wallet",
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Plan",
                                         tint = Color.White,
                                         modifier = Modifier.size(16.dp)
                                     )
+                                    val sub by viewModel.subscription.collectAsState()
                                     Text(
-                                        text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 0.0)}",
+                                        text = if (sub?.active == true) "Pro" else "${sub?.freeServicesRemaining ?: 3} gratis",
                                         color = Color.White,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Black,
@@ -906,11 +918,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if ((currentUser?.balance ?: 0.0) <= 0.0) {
-                                            showRechargeDialog = true
-                                        } else {
-                                            viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
-                                        }
+                                        viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
                                     },
                                     onContraofertar = { proposedRate ->
                                         selectedJobForBid = job
@@ -965,11 +973,7 @@ fun ProfessionalDashboardScreen(
                                         myBid?.let { bid -> viewModel.rejectBid(bid.id) }
                                     },
                                     onAccept = {
-                                        if ((currentUser?.balance ?: 0.0) <= 0.0) {
-                                            showRechargeDialog = true
-                                        } else {
-                                            viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
-                                        }
+                                        viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
                                     },
                                     onContraofertar = { proposedRate ->
                                         selectedJobForBid = job
@@ -1062,11 +1066,10 @@ fun ProfessionalDashboardScreen(
                     }
                 }
 
-                "Mi Wallet" -> {
-                    // --- MI WALLET VIEW (Matching Image 2) ---
-                    LaunchedEffect(Unit) { viewModel.refreshWallet() }
-                    val walletTx by viewModel.walletHistory.collectAsState()
-                    val boldOrders by viewModel.boldOrders.collectAsState()
+                "Mi Plan" -> {
+                    // --- MI PLAN (Galibu Pro) ---
+                    LaunchedEffect(Unit) { viewModel.loadSubscription() }
+                    val sub by viewModel.subscription.collectAsState()
                     val myCompleted = remember(allJobs, currentUser) {
                         allJobs.filter { it.professionalId == currentUser?.id && it.status == "COMPLETED" }
                     }
@@ -1084,6 +1087,9 @@ fun ProfessionalDashboardScreen(
                     val acceptCount = remember(allJobs, currentUser) {
                         allJobs.count { it.professionalId == currentUser?.id && it.status in listOf("ACCEPTED", "IN_PROGRESS", "COMPLETED") }
                     }
+                    val planActive = sub?.active == true
+                    val remaining = sub?.freeServicesRemaining ?: 3
+                    val totalFree = sub?.freeServicesTotal ?: 3
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1091,19 +1097,19 @@ fun ProfessionalDashboardScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Mi Wallet",
+                            text = "Mi Plan",
                             color = proTextMain,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Gestiona tu saldo para aceptar trabajos",
+                            text = "3 servicios gratis, luego Galibu Pro",
                             color = proTextSec,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(top = 1.dp)
                         )
 
-                        // Big blue gradient active card
+                        // Tarjeta del plan
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                             shape = RoundedCornerShape(20.dp),
@@ -1115,49 +1121,60 @@ fun ProfessionalDashboardScreen(
                                 modifier = Modifier
                                     .background(
                                         Brush.verticalGradient(
-                                            colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                            colors = if (planActive) {
+                                                listOf(Color(0xFF16A34A), Color(0xFF15803D))
+                                            } else {
+                                                listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                            }
                                         )
                                     )
                                     .padding(24.dp)
                             ) {
                                 Text(
-                                    text = "Saldo disponible",
+                                    text = if (planActive) "Galibu Pro activo" else "Plan gratuito",
                                     color = Color.White.copy(alpha = 0.85f),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "$${NumberFormat.getNumberInstance(Locale.US).format(currentUser?.balance ?: 0.0)}",
+                                    text = if (planActive) {
+                                        "Acceso ilimitado a trabajos"
+                                    } else {
+                                        "$remaining de $totalFree servicios gratis"
+                                    },
                                     color = Color.White,
-                                    fontSize = 38.sp,
+                                    fontSize = 26.sp,
                                     fontWeight = FontWeight.Black
                                 )
-                                Spacer(modifier = Modifier.height(18.dp))
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text(
-                                        text = "Costo por aceptación: $3.000",
-                                        color = Color.White.copy(alpha = 0.9f),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    val leftAttempts = (currentUser?.freeAcceptancesRemaining ?: 0) + ((currentUser?.balance ?: 0.0) / 3000).toInt()
-                                    Text(
-                                        text = "Capacidad restante: $leftAttempts aceptaciones",
-                                        color = Color.White.copy(alpha = 0.9f),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Normal
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = if (planActive) {
+                                        "Tu suscripción vence el ${formatDate(sub?.expiresAt ?: 0L)}."
+                                    } else {
+                                        "El cliente nunca paga. Tú solo pagas cuando superas los $totalFree servicios."
+                                    },
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    fontSize = 12.sp
+                                )
+                                if (!planActive) {
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                    LinearProgressIndicator(
+                                        progress = { (totalFree - remaining).toFloat() / totalFree.coerceAtLeast(1) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(8.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                        color = Color.White,
+                                        trackColor = Color.White.copy(alpha = 0.25f)
                                     )
                                 }
                             }
                         }
 
-                        // Recharge Button (Solid brand blue)
+                        // Botón de plan
                         Button(
-                            onClick = { showRechargeDialog = true },
+                            onClick = { showPlanSheet = true },
                             colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1170,13 +1187,13 @@ fun ProfessionalDashboardScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Recharge",
+                                    imageVector = if (planActive) Icons.Default.Autorenew else Icons.Default.Star,
+                                    contentDescription = "Plan",
                                     tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Recargar saldo",
+                                    text = if (planActive) "Renovar o cambiar plan" else "Activar Galibu Pro",
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
@@ -1291,136 +1308,56 @@ fun ProfessionalDashboardScreen(
                             }
                         }
 
-                        // Movements block
+                        // Detalle del plan
                         Text(
-                            text = "Movimientos",
+                            text = "Detalle del plan",
                             color = proTextMain,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
                         )
 
-                        // Movimientos reales del backend (recargas y tarifas de aceptación).
                         Column(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            val pendingOrders = boldOrders.filter { it.status != "PAID" }
-                            // Combinar pendientes y completados en una sola lista ordenada
-                            // por fecha descendente (más reciente primero).
-                            data class MovementItem(val timestamp: Long, val isPending: Boolean, val order: com.galibu.core.data.remote.BoldOrderDto? = null, val tx: com.galibu.core.data.remote.WalletTransactionDto? = null)
-                            val allMovements = (pendingOrders.map { MovementItem(it.createdAt, true, it, null) } +
-                                walletTx.map { MovementItem(it.createdAt, false, null, it) })
-                                .sortedByDescending { it.timestamp }
-                            if (walletTx.isEmpty() && pendingOrders.isEmpty()) {
-                                Text(
-                                    text = "Sin movimientos aún. Recarga saldo para empezar a aceptar trabajos.",
-                                    color = proTextSec,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(vertical = 12.dp)
-                                )
+                            PlanInfoRow("Servicios gratis", "$remaining de $totalFree disponibles")
+                            PlanInfoRow(
+                                "Plan mensual",
+                                "$${com.galibu.core.ui.utils.PriceUtils.formatThousands((sub?.monthlyPrice ?: 29900.0).toLong().toString())} COP"
+                            )
+                            PlanInfoRow(
+                                "Plan anual",
+                                "$${com.galibu.core.ui.utils.PriceUtils.formatThousands((sub?.yearlyPrice ?: 299000.0).toLong().toString())} COP"
+                            )
+                            PlanInfoRow(
+                                "Estado",
+                                when {
+                                    planActive && sub?.status == "CANCELLED" -> "Cancelada · acceso hasta el vencimiento"
+                                    planActive -> "Activa"
+                                    else -> "Gratuito"
+                                }
+                            )
+                        }
+
+                        if (planActive) {
+                            if (sub?.status == "CANCELLED") {
+                                TextButton(onClick = { showPlanSheet = true }) {
+                                    Text("Reactivar Galibu Pro", color = proPrimary, fontWeight = FontWeight.Bold)
+                                }
                             } else {
-                                allMovements.forEach { movement ->
-                                    if (movement.isPending) {
-                                        val order = movement.order!!
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(proCardBg)
-                                                .border(1.dp, proBorder, RoundedCornerShape(12.dp))
-                                                .padding(14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(0xFFFFF7ED)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Schedule,
-                                                    contentDescription = null,
-                                                    tint = Color(0xFFF59E0B),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = "Recarga pendiente",
-                                                    color = proTextMain,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = "$${com.galibu.core.ui.utils.PriceUtils.formatThousands(order.amount.toLong().toString())} COP · ${order.status} · ${formatDate(order.createdAt)}",
-                                                    color = proTextSec,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                            Text(
-                                                text = "Pendiente",
-                                                color = Color(0xFFF59E0B),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-                                    } else {
-                                        val tx = movement.tx!!
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(proCardBg)
-                                                .border(1.dp, proBorder, RoundedCornerShape(12.dp))
-                                                .padding(14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            val isRecharge = tx.type == "RECHARGE"
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(CircleShape)
-                                                    .background(if (isRecharge) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (isRecharge) Icons.Default.Check else Icons.Default.ArrowOutward,
-                                                    contentDescription = null,
-                                                    tint = if (isRecharge) proGreenStyle else proRedStyle,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = if (isRecharge) "Recarga de saldo" else (tx.description?.takeIf { it.isNotBlank() } ?: "Aceptación de servicio"),
-                                                    color = proTextMain,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = "${formatDate(tx.createdAt)} · ${formatTimeAgo(tx.createdAt)}",
-                                                    color = proTextSec,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                            Text(
-                                                text = (if (tx.amount < 0) "-$" else "+$") + com.galibu.core.ui.utils.PriceUtils.formatThousands(kotlin.math.abs(tx.amount).toLong().toString()),
-                                                color = if (isRecharge) proGreenStyle else proRedStyle,
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 15.sp
-                                            )
-                                        }
-                                    }
+                                TextButton(onClick = { viewModel.cancelSubscription { } }) {
+                                    Text("Cancelar renovación", color = proRedStyle, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
+
+                        Text(
+                            text = "Los pagos entre cliente y profesional se acuerdan por fuera de la app " +
+                                "(efectivo, Nequi o transferencia). Galibu solo cobra la suscripción del profesional.",
+                            color = proTextSec,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
 
@@ -1792,7 +1729,7 @@ fun ProfessionalDashboardScreen(
                 // (convención actual de Material 3). Pair = (seleccionado, no seleccionado).
                 listOf(
                     Triple("Inicio", Icons.Default.Home to Icons.Outlined.Home, "Inicio"),
-                    Triple("Mi Wallet", Icons.Default.AccountBalanceWallet to Icons.Outlined.AccountBalanceWallet, "Mi Wallet"),
+                    Triple("Mi Plan", Icons.Default.Star to Icons.Outlined.Star, "Mi Plan"),
                     Triple("Mensajes", Icons.Default.ChatBubble to Icons.Outlined.ChatBubble, "Mensajes"),
                     Triple("Historial", Icons.Default.History to Icons.Outlined.History, "Historial"),
                     Triple("Perfil", Icons.Default.Person to Icons.Outlined.Person, "Perfil")
@@ -1894,14 +1831,18 @@ fun ProfessionalDashboardScreen(
         )
     }
 
-    // Hoja inferior para recargar la billetera.
-    if (showRechargeDialog) {
+    // Hoja inferior para activar o renovar Galibu Pro.
+    if (showPlanSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showRechargeDialog = false },
+            onDismissRequest = { showPlanSheet = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = proCardBg,
             dragHandle = { BottomSheetDefaults.DragHandle(color = proBorder) }
         ) {
+            val sub by viewModel.subscription.collectAsState()
+            val planActive = sub?.active == true
+            val monthly = sub?.monthlyPrice ?: 29900.0
+            val yearly = sub?.yearlyPrice ?: 299000.0
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1910,7 +1851,7 @@ fun ProfessionalDashboardScreen(
                     .padding(bottom = 24.dp)
                     .navigationBarsPadding()
                     .imePadding()
-                    .testTag("recharge_bottom_sheet")
+                    .testTag("plan_bottom_sheet")
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1924,7 +1865,7 @@ fun ProfessionalDashboardScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
+                            imageVector = Icons.Default.Star,
                             contentDescription = null,
                             tint = proPrimary,
                             modifier = Modifier.size(22.dp)
@@ -1933,18 +1874,18 @@ fun ProfessionalDashboardScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Recargar saldo",
+                            text = "Galibu Pro",
                             fontWeight = FontWeight.Bold,
                             color = proTextMain,
                             fontSize = 20.sp
                         )
                         Text(
-                            text = "Pago seguro con Bold",
+                            text = if (planActive) "Tu plan está activo" else "Suscripción del profesional",
                             color = proTextSec,
                             fontSize = 12.sp
                         )
                     }
-                    IconButton(onClick = { showRechargeDialog = false }) {
+                    IconButton(onClick = { showPlanSheet = false }) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Cerrar",
@@ -1955,109 +1896,49 @@ fun ProfessionalDashboardScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Para poder ofertar tarifas y atender servicios de clientes, debes contar con saldo recargado. Los servicios consumen una pequeña tarifa de conexión (3.000 COP).",
+                    text = "Tus primeros 3 servicios son gratis. Después, activa Galibu Pro para seguir " +
+                        "tomando trabajos. El cliente nunca paga por usar la app.",
                     color = proTextSec,
                     fontSize = 12.sp
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "El pago se procesa en la pasarela segura de Bold. Puedes pagar con tarjeta, PSE, Nequi o Botón Bancolombia.",
-                    color = proPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                if ((currentUser?.balance ?: 0.0) <= 0.0) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "⚠️ Tienes saldo insuficiente para ofertar. ¡Recarga ahora!",
-                            color = proRedStyle,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(18.dp))
                 Text(
-                    text = "Selecciona un monto",
+                    text = "Elige tu plan",
                     color = proTextMain,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("10000", "20000", "50000", "100000").forEach { preset ->
-                        val isChosen = rechargeAmountInput == preset
-                        Button(
-                            onClick = { rechargeAmountInput = preset },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isChosen) proPrimary else Color(0xFFF1F5F9),
-                                contentColor = if (isChosen) Color.White else proTextMain
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Text("$$preset", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
-                OutlinedTextField(
-                    value = com.galibu.core.ui.utils.PriceUtils.formatThousands(rechargeAmountInput),
-                    onValueChange = { input ->
-                        val clean = input.filter { it.isDigit() }
-                        if (clean.length <= 9) {
-                            rechargeAmountInput = clean
-                        }
-                    },
-                    label = { Text("Monto Personalizado (COP)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = proTextMain,
-                        unfocusedTextColor = proTextMain,
-                        focusedBorderColor = proPrimary,
-                        unfocusedBorderColor = proBorder,
-                        focusedLabelColor = proPrimary,
-                        unfocusedLabelColor = proTextSec
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("recharge_input_field")
+                PlanOptionCard(
+                    title = "Mensual",
+                    price = "$${com.galibu.core.ui.utils.PriceUtils.formatThousands(monthly.toLong().toString())} COP",
+                    detail = "Renueva cada mes",
+                    selected = selectedPlan == "MONTHLY",
+                    onClick = { selectedPlan = "MONTHLY" }
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Mínimo \$1.000 · Máximo \$5.000.000 COP",
-                    color = proTextSec,
-                    fontSize = 11.sp
+                Spacer(modifier = Modifier.height(10.dp))
+                PlanOptionCard(
+                    title = "Anual",
+                    price = "$${com.galibu.core.ui.utils.PriceUtils.formatThousands(yearly.toLong().toString())} COP",
+                    detail = "Ahorra 2 meses",
+                    selected = selectedPlan == "YEARLY",
+                    onClick = { selectedPlan = "YEARLY" }
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
                 Button(
                     onClick = {
-                        val amount = rechargeAmountInput.toDoubleOrNull()
-                        if (amount == null || amount <= 0.0) {
-                            viewModel.showWarning("Ingresa un monto válido para recargar.")
-                        } else {
-                            showRechargeDialog = false
-                            viewModel.startBoldRecharge(amount)
-                        }
+                        showPlanSheet = false
+                        viewModel.startPlanCheckout(selectedPlan)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
-                        .testTag("dialog_recharge_confirm")
+                        .testTag("dialog_plan_confirm")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
@@ -2066,14 +1947,20 @@ fun ProfessionalDashboardScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Pagar con Bold",
+                        text = if (planActive) "Renovar con Bold" else "Activar con Bold",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         fontSize = 15.sp
                     )
                 }
+                Text(
+                    text = "El pago se procesa en la pasarela segura de Bold (tarjeta, PSE, Nequi o Botón Bancolombia).",
+                    color = proTextSec,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
                 TextButton(
-                    onClick = { showRechargeDialog = false },
+                    onClick = { showPlanSheet = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Volver", color = proTextSec)
@@ -2082,7 +1969,7 @@ fun ProfessionalDashboardScreen(
         }
     }
 
-    // Checkout de Bold (recarga de la billetera del profesional).
+    // Checkout de Bold (suscripción Galibu Pro).
     boldCheckout?.let { checkout ->
         BoldCheckoutDialog(
             url = checkout.checkoutUrl,
@@ -2121,7 +2008,7 @@ fun ProfessionalDashboardScreen(
     if (showDeleteDialog) {
         GalibuAlertDialog(
             title = "¿Eliminar tu Cuenta de Galibu?",
-            message = "Esta acción es irreversible y eliminará todo tu historial de servicios, tus datos de contacto y tu billetera de saldo. ¿Realmente deseas continuar?",
+            message = "Esta acción es irreversible y eliminará todo tu historial de servicios y tus datos de contacto. ¿Realmente deseas continuar?",
             type = GalibuAlertType.ERROR,
             confirmText = "Eliminar",
             dismissText = "Cancelar",
@@ -2424,7 +2311,7 @@ fun ProfessionalDashboardScreen(
                                     ?: (livePriceJob?.budgetMin ?: detailPrice.budgetMin).takeIf { it > 0 }
                                 detailOffered?.let { offered ->
                                     Text(
-                                        text = "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(offered.toLong().toString())} COP / hora",
+                                        text = "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(offered.toLong().toString())} COP",
                                         color = proTextMain,
                                         fontSize = 20.sp,
                                         fontWeight = FontWeight.ExtraBold
@@ -3125,7 +3012,7 @@ fun ProfessionalDashboardScreen(
                         selectedClientIdForProfile = displayJob.clientId
                     }
                 },
-                emptyMessage = "Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y recargas de saldo en tiempo real."
+                emptyMessage = "Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y pagos en tiempo real."
             )
         }
     }
@@ -3205,7 +3092,7 @@ fun JobRequestItem(
         isDirect = (job.source ?: "PUBLISH") == "DIRECTORY",
         title = job.title.ifEmpty { "Servicio de ${job.category}" },
         description = job.description,
-        priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP / hora" },
+        priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP" },
         address = job.address.ifEmpty { "Sin dirección" },
         onClick = { onClientClick(job.clientId) },
         infoContent = {
@@ -3678,3 +3565,82 @@ fun RespondidasSection(
         }
     }
 }
+
+/** Fila de información del plan (etiqueta + valor). */
+@Composable
+private fun PlanInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(proCardBg)
+            .border(1.dp, proBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = proTextSec,
+            fontSize = 13.sp
+        )
+        Text(
+            text = value,
+            color = proTextMain,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/** Tarjeta seleccionable de plan (mensual/anual). */
+@Composable
+private fun PlanOptionCard(
+    title: String,
+    price: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) proPrimary.copy(alpha = 0.08f) else proCardBg)
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) proPrimary else proBorder,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = proPrimary)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = proTextMain,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = detail,
+                color = proTextSec,
+                fontSize = 11.sp
+            )
+        }
+        Text(
+            text = price,
+            color = proPrimary,
+            fontWeight = FontWeight.Black,
+            fontSize = 15.sp
+        )
+    }
+}
+

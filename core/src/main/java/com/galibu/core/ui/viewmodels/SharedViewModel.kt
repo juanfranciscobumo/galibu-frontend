@@ -810,16 +810,57 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun rechargeBalance(amount: Double) {
+    // --- Subscription (Galibu Pro) ---
+
+    private val _subscription = MutableStateFlow<com.galibu.core.data.remote.SubscriptionDto?>(null)
+    val subscription: StateFlow<com.galibu.core.data.remote.SubscriptionDto?> = _subscription.asStateFlow()
+
+    /** Baja el estado del plan del profesional desde el backend. */
+    fun loadSubscription() {
         viewModelScope.launch {
             try {
-                showLoading("Procesando recarga segura PSE/Tarjeta...")
-                kotlinx.coroutines.delay(1200)
-                repository.rechargeBalance(amount)
+                _subscription.value = repository.getSubscription()
             } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla cargando suscripción: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    /** Crea el link de pago de Bold para activar o renovar Galibu Pro. */
+    fun startSubscriptionCheckout(
+        plan: String,
+        onCheckout: (com.galibu.core.data.remote.BoldCheckoutResponse) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                showLoading("Conectando con Bold...")
+                val checkout = repository.createSubscriptionCheckout(plan)
+                if (checkout.checkoutUrl.isBlank()) {
+                    showError("Bold no devolvió un link de pago. Inténtalo de nuevo.")
+                    return@launch
+                }
+                onCheckout(checkout)
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla creando checkout de suscripción: ${e.localizedMessage}")
+                showError("No se pudo iniciar el pago de Galibu Pro. Verifica tu conexión.")
+            } finally {
                 hideLoading()
-                Log.e("SharedViewModel", "Falla recarga: ${e.localizedMessage}")
-                showAlert("Aviso", "No se pudo procesar la recarga. Verifica tu conexión e inténtalo de nuevo.", true)
+            }
+        }
+    }
+
+    /** Cancela la renovación; el acceso ya pagado sigue hasta el vencimiento. */
+    fun cancelSubscription(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                showLoading("Cancelando renovación...")
+                _subscription.value = repository.cancelSubscription()
+                showSuccess("Renovación cancelada. Conservas Galibu Pro hasta el vencimiento.")
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla cancelando suscripción: ${e.localizedMessage}")
+                showError("No se pudo cancelar la renovación. Inténtalo de nuevo.")
+                onResult(false)
             } finally {
                 hideLoading()
             }
@@ -1017,16 +1058,20 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
 
     // --- Payments ---
 
+    /**
+     * Finaliza el servicio contra el backend. El pago entre cliente y profesional
+     * ocurre fuera de la app (efectivo/Nequi/transferencia), por eso no se cobra
+     * nada aquí: solo se cierra el trabajo y se habilita la calificación.
+     */
     fun payAndCompleteJob(jobId: String, paymentMethod: String, onResult: () -> Unit) {
         viewModelScope.launch {
             try {
-                showLoading("Iniciando cierre y calificaciones...")
-                kotlinx.coroutines.delay(1000)
-                repository.startJobCompletion(jobId)
+                showLoading("Finalizando servicio...")
+                repository.finishService(jobId)
                 onResult()
             } catch (e: Exception) {
-                Log.e("SharedViewModel", "Falla iniciar cierre servicio: ${e.localizedMessage}")
-                onResult()
+                Log.e("SharedViewModel", "Falla finalizando servicio: ${e.localizedMessage}")
+                showError("No se pudo finalizar el servicio. Verifica tu conexión e inténtalo de nuevo.")
             } finally {
                 hideLoading()
             }
@@ -1122,20 +1167,6 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 isRead = false
             )
             database.appNotificationDao().insertNotification(notification)
-        }
-    }
-
-    fun rechargeBalanceManually(amount: Double) {
-        viewModelScope.launch {
-            try {
-                showLoading("Procesando recarga...")
-                kotlinx.coroutines.delay(1000)
-                repository.rechargeBalance(amount)
-                hideLoading()
-            } catch (e: Exception) {
-                hideLoading()
-                Log.e("SharedViewModel", "Error en recarga: ${e.localizedMessage}")
-            }
         }
     }
 }

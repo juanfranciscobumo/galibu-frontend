@@ -882,7 +882,7 @@ fun ClientDashboardScreen(
     if (showDeleteAccountDialog) {
         GalibuAlertDialog(
             title = "¿Eliminar tu Cuenta de Galibu?",
-            message = "Esta acción es irreversible y eliminará todo tu historial de servicios contratados, tus datos de contacto y tu billetera de saldo. ¿Realmente deseas continuar?",
+            message = "Esta acción es irreversible y eliminará todo tu historial de servicios contratados y tus datos de contacto. ¿Realmente deseas continuar?",
             type = GalibuAlertType.ERROR,
             confirmText = "Eliminar",
             dismissText = "Cancelar",
@@ -2676,7 +2676,7 @@ fun ProfessionalDetailScreen(
                     )
                 }
                 Text(
-                    text = "Tarifa por hora",
+                    text = "Tarifa base del profesional",
                     color = Color(0xFF64748B),
                     fontSize = 12.sp
                 )
@@ -2866,7 +2866,7 @@ fun ProfessionalDetailScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Precio de oferta por hora (COP)",
+                    text = "Precio total de tu oferta (COP)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PolishDark
@@ -2876,7 +2876,7 @@ fun ProfessionalDetailScreen(
                     value = formatThousandsInput(offerPriceInput),
                     onValueChange = { offerPriceInput = it.filter { c -> c.isDigit() }.take(9) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Ej: 30000 por hora") },
+                    placeholder = { Text("Ej: 80000 por el servicio") },
                     prefix = { Text("$ ") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -3661,7 +3661,7 @@ fun JobPostForm(
                                     selectedCategory,
                                     selectedCategory,
                                     trimmedDescription,
-                                    0.0,
+                                    suggestedPriceInput.toDoubleOrNull() ?: 0.0,
                                     trimmedAddress,
                                     department,
                                     municipality,
@@ -6200,172 +6200,6 @@ fun JobHistoryItem(
                         color = PolishDark
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun PaymentDialog(
-    jobId: String,
-    amount: Double?,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var paymentMethod by remember { mutableStateOf("card") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = PolishCard,
-        shape = RoundedCornerShape(16.dp),
-        title = {
-            Text(
-                text = "Confirmar pago",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = PolishDark
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (amount != null) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = PolishIce
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Total a pagar",
-                                fontSize = 14.sp,
-                                color = PolishGrayText
-                            )
-                            Text(
-                                text = formatCurrency(amount),
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PolishBlue
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Método de pago",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = PolishDark
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                PaymentMethodOption(
-                    title = "Tarjeta de crédito/débito",
-                    icon = Icons.Default.Payment,
-                    selected = paymentMethod == "card",
-                    onClick = { paymentMethod = "card" }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                PaymentMethodOption(
-                    title = "PSE",
-                    icon = Icons.Default.Store,
-                    selected = paymentMethod == "pse",
-                    onClick = { paymentMethod = "pse" }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                PaymentMethodOption(
-                    title = "Efectivo",
-                    icon = Icons.Default.Money,
-                    selected = paymentMethod == "cash",
-                    onClick = { paymentMethod = "cash" }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                PaymentMethodOption(
-                    title = "Saldo en billetera",
-                    icon = Icons.Default.Payment,
-                    selected = paymentMethod == "wallet",
-                    onClick = { paymentMethod = "wallet" }
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(paymentMethod) },
-                colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Pagar ahora",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Cancelar",
-                    color = PolishGrayText
-                )
-            }
-        }
-    )
-}
-
-@Composable
-fun PaymentMethodOption(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) PolishBlue.copy(alpha = 0.08f) else Color.Transparent,
-        border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, PolishBlue) else null
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) PolishBlue else PolishGrayText,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                color = if (selected) PolishBlue else PolishDark,
-                modifier = Modifier.weight(1f)
-            )
-            if (selected) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    tint = PolishBlue,
-                    modifier = Modifier.size(20.dp)
-                )
             }
         }
     }

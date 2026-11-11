@@ -140,6 +140,16 @@ interface ApiService {
     @GET("users/{userId}/ratings")
     suspend fun userRatings(@Path("userId") userId: String): List<RatingDto>
 
+    // Subscription
+    @GET("subscription/me")
+    suspend fun getSubscription(): SubscriptionDto
+
+    @POST("subscription/checkout")
+    suspend fun createSubscriptionCheckout(@Body req: SubscriptionCheckoutRequest): BoldCheckoutResponse
+
+    @POST("subscription/cancel")
+    suspend fun cancelSubscription(): SubscriptionDto
+
     // Chat
     @GET("jobs/{jobId}/chats")
     suspend fun jobChats(@Path("jobId") jobId: String): List<ChatMessage>

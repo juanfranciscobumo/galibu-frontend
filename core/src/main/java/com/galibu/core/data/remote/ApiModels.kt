@@ -180,7 +180,8 @@ data class BoldOrderStatusResponse(
     val amount: Double = 0.0,
     val balance: Double = 0.0,
     val transactionId: String? = null,
-    val paymentMethod: String? = null
+    val paymentMethod: String? = null,
+    val concept: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -190,4 +191,23 @@ data class BoldOrderDto(
     val status: String = "PENDING",
     val createdAt: Long = 0L,
     val paidAt: Long? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class SubscriptionDto(
+    val plan: String = "FREE",
+    val status: String = "NONE",
+    val expiresAt: Long? = null,
+    val active: Boolean = false,
+    val canWork: Boolean = false,
+    val freeServicesTotal: Int = 3,
+    val freeServicesUsed: Int = 0,
+    val freeServicesRemaining: Int = 3,
+    val monthlyPrice: Double = 29900.0,
+    val yearlyPrice: Double = 299000.0
+)
+
+@JsonClass(generateAdapter = true)
+data class SubscriptionCheckoutRequest(
+    val plan: String
 )

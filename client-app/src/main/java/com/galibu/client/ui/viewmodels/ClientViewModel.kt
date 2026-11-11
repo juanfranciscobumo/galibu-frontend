@@ -197,6 +197,18 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
                 showSuccess("Oferta aceptada correctamente.")
             } catch (e: Exception) {
                 Log.e("ClientViewModel", "Falla aceptar propuesta: ${e.localizedMessage}")
+                val msg = e.localizedMessage ?: ""
+                if (msg.contains("Galibu Pro", ignoreCase = true) ||
+                    msg.contains("servicios gratis", ignoreCase = true) ||
+                    msg.contains("402") || msg.contains("409")
+                ) {
+                    showError(
+                        "El profesional ya superó sus 3 servicios gratis y necesita activar " +
+                            "Galibu Pro. Pídele que active su plan para poder trabajar contigo.",
+                        "No se puede aceptar"
+                    )
+                    return@launch
+                }
                 val user = currentUser.value
                 val warning = AppNotification(
                     userId = user?.id ?: "",

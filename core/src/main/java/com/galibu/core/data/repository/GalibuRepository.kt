@@ -20,6 +20,8 @@ import com.galibu.core.data.remote.PasswordChangeDto
 import com.galibu.core.data.remote.RefreshRequestDto
 import com.galibu.core.data.remote.RegisterRequestDto
 import com.galibu.core.data.remote.SubmitBidDto
+import com.galibu.core.data.remote.SubscriptionCheckoutRequest
+import com.galibu.core.data.remote.SubscriptionDto
 import com.galibu.core.data.remote.TokenStore
 import com.galibu.core.data.remote.UpdateProfileDto
 import com.galibu.core.data.remote.WalletTransactionDto
@@ -961,29 +963,6 @@ class GalibuRepository(
         null
     }
 
-    suspend fun rechargeBalance(amount: Double) = withContext(Dispatchers.IO) {
-        val user = _currentUser.value ?: return@withContext
-        val tx = try {
-            apiService.rechargeWallet(AmountDto(amount))
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "rechargeBalance falló en backend: ${e.localizedMessage}")
-            throw e
-        }
-        val updated = user.copy(balance = tx.balanceAfter)
-        userProfileDao.insertUser(updated)
-        // Firebase ya no es fuente de verdad para el perfil: el backend (MySQL) lo es.
-        setCurrentUser(updated)
-        
-        // Add push notification
-        val alert = AppNotification(
-            userId = user.id,
-            title = "Recarga de Saldo Exitosa 💰",
-            body = "Has ingresado $$amount COP a tu billetera virtual de Galibu de forma inmediata."
-        )
-        notificationDao.insertNotification(alert)
-        AppTelemetry.event("wallet.recharge", mapOf("amount" to amount.toString()))
-    }
-
     suspend fun walletHistory(): List<WalletTransactionDto> = withContext(Dispatchers.IO) {
         try {
             apiService.walletTransactions()
@@ -993,27 +972,54 @@ class GalibuRepository(
         }
     }
 
-    /** Crea una orden de recarga en Bold y devuelve el checkout para abrirlo. */
-    suspend fun createBoldCheckout(amount: Double): BoldCheckoutResponse =
+    // --- Subscription ---
+
+    suspend fun getSubscription(): SubscriptionDto = withContext(Dispatchers.IO) {
+        try {
+            apiService.getSubscription()
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "getSubscription falló: ${e.localizedMessage}")
+            // Fallback a datos por defecto si falla
+            SubscriptionDto(
+                plan = "FREE",
+                status = "NONE",
+                active = false,
+                canWork = true, // Permitir trabajar si no hay respuesta
+                freeServicesTotal = 3,
+                freeServicesUsed = 0,
+                freeServicesRemaining = 3,
+                monthlyPrice = 29900.0,
+                yearlyPrice = 299000.0
+            )
+        }
+    }
+
+    /** Crea una orden de suscripción en Bold y devuelve el checkout para abrirlo. */
+    suspend fun createSubscriptionCheckout(plan: String): BoldCheckoutResponse =
         withContext(Dispatchers.IO) {
-            apiService.createBoldCheckout(AmountDto(amount))
+            apiService.createSubscriptionCheckout(SubscriptionCheckoutRequest(plan))
         }
 
-    /** Consulta el estado de una orden Bold (el backend acredita el saldo). */
+    /**
+     * Consulta el estado de una orden Bold. El backend activa el plan Pro
+     * (o acredita saldo en el flujo legado) al confirmarse el pago.
+     */
     suspend fun boldOrderStatus(orderId: String): BoldOrderStatusResponse =
         withContext(Dispatchers.IO) {
             apiService.boldOrderStatus(orderId)
         }
 
-    suspend fun boldOrders(): List<com.galibu.core.data.remote.BoldOrderDto> =
-        withContext(Dispatchers.IO) {
-            try {
-                apiService.boldOrders()
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "boldOrders falló: ${e.localizedMessage}")
-                emptyList()
-            }
+    /** Cancela la renovación de la suscripción (el acceso sigue hasta el vencimiento). */
+    suspend fun cancelSubscription(): SubscriptionDto = withContext(Dispatchers.IO) {
+        try {
+            val dto = apiService.cancelSubscription()
+            refreshMe() // Actualiza perfil local con nuevo estado
+            dto
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "cancelSubscription falló: ${e.localizedMessage}")
+            throw e
         }
+    }
 
     /** Re-baja el perfil (saldo) desde el backend sin disparar otros syncs. */
     suspend fun refreshMe() = withContext(Dispatchers.IO) {
@@ -1643,117 +1649,69 @@ class GalibuRepository(
     // --- Payments and Completion ---
 
     /**
-     * Set job request status to PENDING_RATING so both users must rate each other before closing.
+     * Llama al backend para finalizar el servicio. El backend cierra el job,
+     * registra la calificación (opcional) y devuelve el job actualizado.
+     * El pago del servicio es fuera de la app (efectivo/Nequi/transferencia).
      */
-    suspend fun startJobCompletion(jobId: String) = withContext(Dispatchers.IO) {
-        val job = jobRequestDao.getJobByIdSync(jobId) ?: return@withContext
-        if (job.status == "PENDING_RATING" || job.status == "COMPLETED") return@withContext
-
-        val finalJob = job
-        val finalAddress = if (finalJob.address.isNotBlank()) finalJob.address else if (job.address.isNotBlank()) job.address else "Cl. 51 #62-25, Rionegro, Antioquia, Colombia"
-        val updatedJob = finalJob.copy(
-            status = "PENDING_RATING",
-            address = finalAddress
-        )
+    suspend fun finishService(
+        jobId: String,
+        stars: Int? = null,
+        comment: String? = null
+    ): JobRequest = withContext(Dispatchers.IO) {
+        val ratingReq = if (stars != null && stars in 1..5) {
+            com.galibu.core.data.remote.RatingRequestDto(
+                stars = stars,
+                comment = comment?.takeIf { it.isNotBlank() }
+            )
+        } else {
+            com.galibu.core.data.remote.RatingRequestDto(
+                stars = 0,
+                comment = null
+            )
+        }
+        val updatedJob = try {
+            apiService.finishService(jobId, ratingReq)
+        } catch (e: HttpException) {
+            // Si el otro participante ya finalizó (COMPLETED), este segundo
+            // cierre solo registra la calificación sin volver a cerrar.
+            if (e.code() == 409) {
+                val remote = runCatching { apiService.getJob(jobId) }.getOrNull()
+                if (remote?.status == "COMPLETED") {
+                    // Solo registra la calificación si corresponde
+                    if (stars != null && stars in 1..5) {
+                        try {
+                            apiService.rateJob(jobId, ratingReq)
+                        } catch (rateError: HttpException) {
+                            if (rateError.code() != 409) throw rateError
+                        }
+                    }
+                    val refreshed = runCatching { apiService.getJob(jobId) }.getOrNull()
+                    if (refreshed != null) {
+                        jobRequestDao.insertJob(refreshed)
+                        return@withContext refreshed
+                    }
+                }
+            }
+            Log.e("GalibuRepository", "finishService falló en backend: ${e.localizedMessage}")
+            throw e
+        }
         jobRequestDao.insertJob(updatedJob)
-
-        // System message in chat (flujo local de cierre y pago)
-        val systemMsg = ChatMessage(
-            jobId = jobId,
-            senderId = "system",
-            senderName = "Sistema",
-            text = "Servicio finalizado en campo. Se encuentra en estado 'Pendiente de Calificación' hasta que ambos usuarios (Cliente y Profesional) se califiquen mutuamente."
-        )
-        chatMessageDao.insertMessage(systemMsg)
-
-        // Create alert notifications
-        val alertClient = AppNotification(
-            userId = job.clientId,
-            title = "Calificación Pendiente ⚠️",
-            body = "El servicio '${job.title}' requiere tu calificación. Califica al profesional para completar el cierre."
-        )
-        notificationDao.insertNotification(alertClient)
-
-        if (job.professionalId != null) {
-            val alertPro = AppNotification(
-                userId = job.professionalId,
-                title = "Calificación Pendiente ⚠️",
-                body = "El servicio '${job.title}' requiere tu calificación. Califica al cliente para completar el cierre."
+        // Notificación local (el backend también envía push)
+        val currentUser = _currentUser.value
+        if (currentUser != null) {
+            val isClient = currentUser.id == updatedJob.clientId
+            val title = if (isClient) "Servicio finalizado" else "Servicio finalizado"
+            val body = "El trabajo '${updatedJob.title}' ha sido finalizado. ${if (stars != null) "Calificación: $stars ⭐" else "Pendiente de calificación."}"
+            val alert = AppNotification(
+                userId = currentUser.id,
+                title = title,
+                body = body,
+                jobId = jobId
             )
-            notificationDao.insertNotification(alertPro)
+            notificationDao.insertNotification(alert)
         }
-    }
-
-    suspend fun simulateJobPayment(jobId: String, paymentMethod: String) = withContext(Dispatchers.IO) {
-        finalizeAndPayJob(jobId, paymentMethod)
-    }
-
-    suspend fun finalizeAndPayJob(jobId: String, paymentMethod: String = "Transferencia / Nequi") = withContext(Dispatchers.IO) {
-        val job = jobRequestDao.getJobByIdSync(jobId) ?: return@withContext
-        val finalPrice = job.finalPrice ?: job.budgetMin
-
-        // Deduct money from client and add to professional
-        val client = userProfileDao.getUserByIdSync(job.clientId)
-        val pro = if (job.professionalId != null) userProfileDao.getUserByIdSync(job.professionalId) else null
-
-        if (client != null) {
-            val updatedClient = client.copy(
-                balance = (client.balance - finalPrice).coerceAtLeast(0.0),
-                completedJobs = client.completedJobs + 1
-            )
-            userProfileDao.insertUser(updatedClient)
-            if (_currentUser.value?.id == client.id) {
-                setCurrentUser(updatedClient)
-            }
-        }
-
-        if (pro != null) {
-            val updatedPro = pro.copy(
-                balance = pro.balance + finalPrice,
-                completedJobs = pro.completedJobs + 1
-            )
-            userProfileDao.insertUser(updatedPro)
-            if (_currentUser.value?.id == pro.id) {
-                setCurrentUser(updatedPro)
-            }
-        }
-
-        // Complete job request in DB. Firestore es best-effort: si falla, el
-        // cierre local ya quedó aplicado y no debe romper el flujo del usuario.
-        val finalJob = job
-        val finalAddress = if (finalJob.address.isNotBlank()) finalJob.address else if (job.address.isNotBlank()) job.address else "Cl. 51 #62-25, Rionegro, Antioquia, Colombia"
-        val completedJob = finalJob.copy(
-            status = "COMPLETED",
-            address = finalAddress
-        )
-        jobRequestDao.insertJob(completedJob)
-
-        // System message in chat (flujo local de pago)
-        val systemMsg = ChatMessage(
-            jobId = jobId,
-            senderId = "system",
-            senderName = "Sistema Pagos",
-            text = "¡Ambas calificaciones completadas! Pago de $${String.format(Locale.US, "%,.0f", finalPrice)} COP liberado con éxito usando $paymentMethod. El servicio ha sido marcado como COMPLETADO."
-        )
-        chatMessageDao.insertMessage(systemMsg)
-
-        // Create alert notifications
-        val alertClient = AppNotification(
-            userId = job.clientId,
-            title = "Servicio Completado 🏆",
-            body = "El pago a ${job.professionalName} ha sido liberado exitosamente. ¡Gracias por calificar!"
-        )
-        notificationDao.insertNotification(alertClient)
-
-        if (job.professionalId != null) {
-            val alertPro = AppNotification(
-                userId = job.professionalId,
-                title = "Pago recibido ($${String.format(Locale.US, "%,.0f", finalPrice)} COP) 💰",
-                body = "¡Buen trabajo! El servicio se cerró y el pago fue liberado vía $paymentMethod."
-            )
-            notificationDao.insertNotification(alertPro)
-        }
-        AppTelemetry.event("job.payment_released", mapOf("jobId" to jobId, "amount" to finalPrice.toString()))
+        AppTelemetry.event("job.finish", mapOf("jobId" to jobId, "stars" to (stars ?: 0).toString()))
+        updatedJob
     }
 
     suspend fun submitServiceRating(jobId: String, rating: Float, review: String, isClientRating: Boolean) = withContext(Dispatchers.IO) {
@@ -1782,8 +1740,8 @@ class GalibuRepository(
             finalJob.copy(
                 clientRatingOfPro = rating,
                 clientReviewOfPro = review,
-                completionRating = rating, // keep for backward compatibility
-                completionReview = review, // keep for backward compatibility
+                completionRating = rating,
+                completionReview = review,
                 address = finalAddress
             )
         } else {
@@ -1821,21 +1779,6 @@ class GalibuRepository(
             }
         }
 
-        // Check if BOTH ratings are now submitted. Se revisa también la copia
-        // de la nube porque el sync local puede llegar un instante después que
-        // la calificación de la otra parte.
-        val clientRated = updatedJob.clientRatingOfPro != null || finalJob.clientRatingOfPro != null
-        val proRated = updatedJob.proRatingOfClient != null || finalJob.proRatingOfClient != null
-        if (clientRated && proRated) {
-            // La liquidación es posterior a la calificación ya guardada. Si algo
-            // falla aquí se registra, pero no se convierte en error de calificar.
-            try {
-                finalizeAndPayJob(jobId)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "submitServiceRating: falló la liquidación posterior: ${e.localizedMessage}")
-                AppTelemetry.error("rating", "Falló la liquidación posterior a la calificación", e)
-            }
-        }
         AppTelemetry.event(
             "job.rate",
             mapOf(
