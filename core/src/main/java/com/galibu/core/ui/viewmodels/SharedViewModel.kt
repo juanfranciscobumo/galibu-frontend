@@ -415,6 +415,11 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 onResult(error)
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla inicio de sesión con Google: ${e.localizedMessage}")
+                com.galibu.core.data.telemetry.AppTelemetry.error(
+                    "auth",
+                    "Google login falló al guardar la sesión",
+                    e
+                )
                 onResult("No se pudo iniciar sesión con Google. Inténtalo nuevamente.")
             } finally {
                 hideLoading()
@@ -435,6 +440,11 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 onResult(errorMsg)
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla inicio de sesión con contraseña: ${e.localizedMessage}")
+                com.galibu.core.data.telemetry.AppTelemetry.error(
+                    "auth",
+                    "Login con contraseña falló al guardar la sesión",
+                    e
+                )
                 onResult(e.localizedMessage ?: "Error desconocido durante el inicio de sesión.")
                 val warning = AppNotification(
                     userId = "",

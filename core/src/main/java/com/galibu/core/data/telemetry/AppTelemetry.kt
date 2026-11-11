@@ -124,6 +124,8 @@ object AppTelemetry {
             "$message · ${throwable.javaClass.simpleName}: ${throwable.message}"
         }
         enqueue(level = "ERROR", tag = tag, message = detail)
+        // Un error debe llegar al monitor cuanto antes, no en el próximo lote.
+        flush()
     }
 
     fun flush() {

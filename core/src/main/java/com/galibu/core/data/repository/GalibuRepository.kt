@@ -189,6 +189,7 @@ class GalibuRepository(
             true
         } catch (e: Exception) {
             Log.e("GalibuRepository", "Error restaurando sesión: ${e.localizedMessage}")
+            AppTelemetry.error("db", "No se pudo restaurar la sesión", e)
             false
         }
     }

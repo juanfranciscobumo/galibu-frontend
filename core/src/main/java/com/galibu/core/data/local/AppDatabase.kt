@@ -74,12 +74,73 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** v18 -> v19: suscripción Pro del profesional. */
+        /**
+         * v18 -> v19: suscripción Pro del profesional.
+         *
+         * La tabla se reconstruye (no basta con ALTER) porque la versión 18
+         * conserva la columna legada `freeAcceptancesRemaining` y Room rechaza
+         * cualquier columna que no esté declarada en el entity. Recrear la
+         * tabla deja el esquema idéntico al que crea una instalación nueva.
+         */
         private val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE user_profiles ADD COLUMN subscriptionPlan TEXT NOT NULL DEFAULT 'FREE'")
-                db.execSQL("ALTER TABLE user_profiles ADD COLUMN subscriptionStatus TEXT NOT NULL DEFAULT 'NONE'")
-                db.execSQL("ALTER TABLE user_profiles ADD COLUMN subscriptionExpiresAt INTEGER")
+                db.execSQL("DROP TABLE IF EXISTS `user_profiles_new`")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `user_profiles_new` (
+                        `id` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `phone` TEXT NOT NULL,
+                        `role` TEXT NOT NULL,
+                        `isVerified` INTEGER NOT NULL,
+                        `rating` REAL NOT NULL,
+                        `completedJobs` INTEGER NOT NULL,
+                        `balance` REAL NOT NULL,
+                        `subscriptionPlan` TEXT NOT NULL,
+                        `subscriptionStatus` TEXT NOT NULL,
+                        `subscriptionExpiresAt` INTEGER,
+                        `documentType` TEXT,
+                        `documentPhotoSimulatedUrl` TEXT,
+                        `workCategory` TEXT,
+                        `verificationStatus` TEXT NOT NULL,
+                        `password` TEXT NOT NULL,
+                        `profilePhotoUrl` TEXT,
+                        `department` TEXT,
+                        `municipality` TEXT,
+                        `address` TEXT,
+                        `workPhotos` TEXT,
+                        `workDescription` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `hourlyRate` REAL,
+                        `acceptedTerms` INTEGER NOT NULL,
+                        `authProvider` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `user_profiles_new` (
+                        `id`, `name`, `email`, `phone`, `role`, `isVerified`, `rating`,
+                        `completedJobs`, `balance`, `subscriptionPlan`, `subscriptionStatus`,
+                        `subscriptionExpiresAt`, `documentType`, `documentPhotoSimulatedUrl`,
+                        `workCategory`, `verificationStatus`, `password`, `profilePhotoUrl`,
+                        `department`, `municipality`, `address`, `workPhotos`, `workDescription`,
+                        `createdAt`, `hourlyRate`, `acceptedTerms`, `authProvider`
+                    )
+                    SELECT
+                        `id`, `name`, `email`, `phone`, `role`, `isVerified`, `rating`,
+                        `completedJobs`, `balance`, 'FREE', 'NONE', NULL, `documentType`,
+                        `documentPhotoSimulatedUrl`, `workCategory`, `verificationStatus`,
+                        `password`, `profilePhotoUrl`, `department`, `municipality`, `address`,
+                        `workPhotos`, `workDescription`, `createdAt`, `hourlyRate`,
+                        `acceptedTerms`, `authProvider`
+                    FROM `user_profiles`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `user_profiles`")
+                db.execSQL("ALTER TABLE `user_profiles_new` RENAME TO `user_profiles`")
             }
         }
 
