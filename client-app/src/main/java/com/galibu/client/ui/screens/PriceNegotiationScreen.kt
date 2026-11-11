@@ -1502,14 +1502,25 @@ fun PriceNegotiationScreen(
         }
 
         // Hoja de calificación (diseño homologado en todas las pantallas).
-        // Se abre al finalizar o al calificar; si se cierra sin enviar no se
-        // ejecuta ninguna acción y el servicio sigue como estaba.
+        // Si se abre para finalizar y el cliente la cierra sin calificar, el
+        // servicio se cierra igual: la calificación es opcional.
         if (showClientRatingSheet) {
             selectedJob?.let { activeJob ->
                 GalibuRatingSheet(
                     title = "Calificar al profesional",
                     targetName = (activeJob.professionalName ?: "").ifBlank { "el profesional" },
-                    onDismissRequest = { showClientRatingSheet = false },
+                    onDismissRequest = {
+                        showClientRatingSheet = false
+                        if (finishServiceOnRating) {
+                            finishServiceOnRating = false
+                            viewModel.finishServiceWithoutRating(activeJob.id) {
+                                viewModel.showAlert(
+                                    "Aviso",
+                                    "Servicio finalizado. Puedes calificar al profesional más tarde."
+                                )
+                            }
+                        }
+                    },
                     onSubmit = { rating, comment ->
                         // Cerrar la hoja de inmediato: el envío sigue en segundo
                         // plano y el overlay de carga queda visible encima.

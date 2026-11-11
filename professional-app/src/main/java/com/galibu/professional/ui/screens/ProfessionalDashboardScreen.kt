@@ -2869,13 +2869,38 @@ fun ProfessionalDashboardScreen(
 }
 }
     // Calificación del profesional al cliente: se abre al finalizar el servicio.
-    // Si se cierra sin calificar no se finaliza nada (se puede reintentar).
+    // La calificación es opcional: si el profesional cierra la hoja sin
+    // calificar, el servicio se finaliza igual y podrá calificar más tarde.
     if (showProRatingSheet && selectedJobForProfileDetails != null) {
         val ratingJob = selectedJobForProfileDetails!!
         GalibuRatingSheet(
             title = "Calificar al cliente",
             targetName = ratingJob.clientName.ifBlank { "el cliente" },
-            onDismissRequest = { showProRatingSheet = false },
+            onDismissRequest = {
+                showProRatingSheet = false
+                if (ratingJob.status != "COMPLETED") {
+                    viewModel.finishService(ratingJob.id, null, null) {
+                        scope.launch {
+                            val snap = try {
+                                viewModel.repository.getJobSnapshot(ratingJob.id)
+                            } catch (e: Exception) {
+                                null
+                            }
+                            if (snap != null) {
+                                selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(
+                                    status = snap.status,
+                                    proRatingOfClient = snap.proRatingOfClient,
+                                    clientRatingOfPro = snap.clientRatingOfPro
+                                )
+                            }
+                            viewModel.showAlert(
+                                "Aviso",
+                                "Servicio finalizado. Puedes calificar al cliente más tarde."
+                            )
+                        }
+                    }
+                }
+            },
             onSubmit = { rating, comment ->
                 // Cerrar la hoja de inmediato: la finalización sigue en segundo
                 // plano y el overlay de carga queda visible encima.

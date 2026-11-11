@@ -341,5 +341,26 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
             }
         }
     }
+
+    /**
+     * Finaliza el servicio sin calificar. La calificación es opcional: si el
+     * cliente cierra la hoja de estrellas, el trabajo se cierra igual y puede
+     * calificar más tarde desde el historial.
+     */
+    fun finishServiceWithoutRating(jobId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Finalizando servicio...")
+                repository.finishService(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("ClientViewModel", "Falla finalizar servicio: ${e.localizedMessage}")
+                showAlert("Aviso", "No se pudo finalizar el servicio: ${e.localizedMessage}", true)
+            }
+        }
+    }
 }
 
