@@ -746,7 +746,7 @@ fun ClientDashboardScreen(
                     professionalName = pro.name,
                     source = "DIRECTORY",
                     onSuccess = {
-                        viewModel.showSuccess("Solicitud creada exitosamente")
+                        viewModel.showSuccess("Solicitud de cotización enviada")
                         showProfessionalDetail = false
                     },
                     onError = { msg ->
@@ -3695,7 +3695,7 @@ fun JobPostForm(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "Publicar",
+                            text = "Solicitar cotización",
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
