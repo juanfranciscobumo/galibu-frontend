@@ -1524,7 +1524,7 @@ fun InicioTab(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Crear solicitud")
+                    Text("Solicitar cotización")
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -1597,7 +1597,7 @@ fun InicioTab(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Cuando publiques una solicitud aparecerá aquí con sus ofertas",
+                    text = "Cuando solicites una cotización aparecerá aquí con sus ofertas",
                     color = PolishGrayText,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
@@ -1612,7 +1612,7 @@ fun InicioTab(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Crear solicitud", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Solicitar cotización", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
         } else {
@@ -1721,8 +1721,8 @@ fun HomeJobRequestCard(
         title = job.title.ifEmpty { job.category },
         description = job.description,
         priceText = cardPrice?.let {
-            "Ofertado: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(it.toLong())}/h"
-        },
+            "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(it.toLong())} COP"
+        } ?: "Precio a convenir",
         address = job.address.ifEmpty { "${job.municipality ?: ""}, ${job.department ?: ""}" },
         onClick = onClick,
         infoContent = {
@@ -2853,20 +2853,20 @@ fun ProfessionalDetailScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Enviar oferta",
+                    text = "Solicitar cotización",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PolishDark
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Oferta para ${professional.name}",
+                    text = "Solicitud para ${professional.name}",
                     color = Color(0xFF64748B),
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Precio total de tu oferta (COP)",
+                    text = "Presupuesto estimado (opcional)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PolishDark
@@ -2887,6 +2887,11 @@ fun ProfessionalDetailScreen(
                                 text = offerError!!,
                                 color = Color(0xFFDC2626)
                             )
+                        } else {
+                            Text(
+                                text = "Déjalo vacío si prefieres que el profesional te cotice.",
+                                color = Color(0xFF64748B)
+                            )
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
@@ -2899,8 +2904,8 @@ fun ProfessionalDetailScreen(
                 Button(
                     onClick = {
                         val offered = offerPriceInput.toDoubleOrNull() ?: 0.0
-                        if (offered < MIN_HOURLY_PRICE_COP) {
-                            offerError = "El precio no puede ser menor al salario mínimo por hora ($5.417 COP)"
+                        if (offerPriceInput.isNotBlank() && offered < MIN_SERVICE_BUDGET_COP) {
+                            offerError = "El presupuesto debe ser de al menos $5.417 COP o déjalo vacío."
                         } else {
                             offerError = null
                             showOfferSheet = false
@@ -2914,7 +2919,7 @@ fun ProfessionalDetailScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Enviar oferta",
+                        text = "Solicitar cotización",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -3055,7 +3060,7 @@ private fun formatThousandsInput(digits: String): String {
  * canónico. Tolera mayúsculas y diferencias menores ("Bogotá D.C." vs "Bogotá").
  * Ahora vive en com.galibu.core.ui.utils.matchCatalogName.
  */
-private const val MIN_HOURLY_PRICE_COP = 5417.0
+private const val MIN_SERVICE_BUDGET_COP = 5417.0
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -3144,7 +3149,7 @@ fun JobPostForm(
         matchCatalogName(orderedDepartments.map { it.first }, gpsDetectedDept)
     }
     val offeredPriceError = suggestedPriceInput.isNotEmpty() &&
-        (suggestedPriceInput.toDoubleOrNull() ?: 0.0) < MIN_HOURLY_PRICE_COP
+        (suggestedPriceInput.toDoubleOrNull() ?: 0.0) < MIN_SERVICE_BUDGET_COP
     val trimmedDescription = description.trim()
     val trimmedAddress = address.trim()
     val requiredFieldsComplete =
@@ -3153,7 +3158,6 @@ fun JobPostForm(
             trimmedAddress.isNotEmpty() &&
             department.isNotBlank() &&
             municipality.isNotBlank() &&
-            suggestedPriceInput.isNotBlank() &&
             !offeredPriceError
 
     val customCategoryLabel = "Otro"
@@ -3206,7 +3210,7 @@ fun JobPostForm(
                         )
                     }
                     Text(
-                        text = "Publicar solicitud",
+                        text = "Solicitar cotización",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = PolishDark
@@ -3611,7 +3615,7 @@ fun JobPostForm(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Precio ofertado por hora (COP) *",
+                    text = "Presupuesto estimado (opcional)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PolishDark
@@ -3622,7 +3626,7 @@ fun JobPostForm(
                     value = formatThousandsInput(suggestedPriceInput),
                     onValueChange = { suggestedPriceInput = it.filter { c -> c.isDigit() }.take(9) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Ej: 30000") },
+                    placeholder = { Text("Ej: 80000") },
                     prefix = { Text("$ ") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -3630,8 +3634,13 @@ fun JobPostForm(
                     supportingText = {
                         if (offeredPriceError) {
                             Text(
-                                text = "El precio no puede ser menor al salario mínimo por hora ($5.417 COP)",
+                                text = "El presupuesto debe ser de al menos $5.417 COP o déjalo vacío.",
                                 color = Color(0xFFDC2626)
+                            )
+                        } else {
+                            Text(
+                                text = "Déjalo vacío si prefieres recibir cotizaciones y acordar el precio con el profesional.",
+                                color = PolishGrayText
                             )
                         }
                     },

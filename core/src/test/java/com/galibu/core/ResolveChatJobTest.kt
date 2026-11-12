@@ -79,6 +79,29 @@ class ResolveChatJobTest : BaseRepositoryTest() {
     }
 
     @Test
+    fun `resolveChatJobId creates a private thread when contacting a bidder`() = runTest {
+        setCurrentUserDirect(createUser(id = "client_1", email = "c@test.com", role = "CLIENT"))
+        fakeJobDao.insertJob(createJob(id = "job_1", status = "NEGOTIATING", clientId = "client_1"))
+        fakeBidDao.insertBid(createBid(id = "bid_1", jobId = "job_1", professionalId = "pro_1"))
+        val slot = slot<CreateJobDto>()
+        coEvery { mockApi.createJob(capture(slot)) } answers {
+            createJob(
+                id = slot.captured.id ?: "chat_x",
+                status = "NEGOTIATING",
+                clientId = "client_1",
+                professionalId = "pro_1"
+            )
+        }
+
+        val result = repository.resolveChatJobId("pro_1", "Pro", "Plomería", jobId = "job_1")
+
+        assertTrue(result != null && result.startsWith("chat_"))
+        assertEquals("pro_1", slot.captured.professionalId)
+        assertEquals("Consulta", slot.captured.category)
+        assertEquals(result, fakeJobDao.getJobByIdSync(result!!)?.id)
+    }
+
+    @Test
     fun `resolveChatJobId returns null when creation needs a user but none signed in`() = runTest {
         val result = repository.resolveChatJobId("pro_1", "Pro", "Plomería")
 

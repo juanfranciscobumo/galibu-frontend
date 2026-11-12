@@ -104,11 +104,14 @@ fun PriceNegotiationScreen(
         }
         selectedJob?.let { job ->
             val professionalUser = professionals.find { it.id == job.professionalId }
-            val baseRateVal = job.proHourlyRate ?: professionalUser?.hourlyRate ?: job.budgetMin
+            val referenceRate = job.budgetMin.takeIf { it > 0 }
+                ?: job.proHourlyRate?.takeIf { it > 0 }
+                ?: professionalUser?.hourlyRate?.takeIf { it > 0 }
+                ?: 0.0
             val proposedRateValue = when (job.counterOfferSender) {
                 "CLIENT" -> job.counterOfferAmount ?: job.budgetMin
-                "PROFESSIONAL" -> job.counterOfferAmount ?: baseRateVal
-                else -> baseRateVal
+                "PROFESSIONAL" -> job.counterOfferAmount ?: referenceRate
+                else -> referenceRate
             }
             val isWaitingForClient = job.counterOfferSender == "PROFESSIONAL"
             Card(
@@ -406,15 +409,19 @@ fun PriceNegotiationScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "Mi precio (cliente)",
+                                    text = "Presupuesto del cliente",
                                     fontSize = 11.sp,
                                     color = Color(0xFF64748B)
                                 )
                                 Text(
-                                    text = "$${
-                                        NumberFormat.getNumberInstance(Locale.US)
-                                            .format(job.budgetMin)
-                                    }/h",
+                                    text = if (job.budgetMin > 0) {
+                                        "$${
+                                            NumberFormat.getNumberInstance(Locale.US)
+                                                .format(job.budgetMin)
+                                        } COP"
+                                    } else {
+                                        "A convenir"
+                                    },
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF2563EB)
@@ -492,10 +499,11 @@ fun PriceNegotiationScreen(
                                     color = Color(0xFF64748B)
                                 )
                                 Text(
-                                    text = "$${
-                                        NumberFormat.getNumberInstance(Locale.US)
-                                            .format(baseRateVal)
-                                    }",
+                                    text = if (referenceRate > 0) {
+                                        "$${NumberFormat.getNumberInstance(Locale.US).format(referenceRate)}"
+                                    } else {
+                                        "A convenir"
+                                    },
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF64748B)
@@ -511,10 +519,11 @@ fun PriceNegotiationScreen(
                                     color = Color(0xFF64748B)
                                 )
                                 Text(
-                                    text = "$${
-                                        NumberFormat.getNumberInstance(Locale.US)
-                                            .format(proposedRateValue)
-                                    }",
+                                    text = if (proposedRateValue > 0) {
+                                        "$${NumberFormat.getNumberInstance(Locale.US).format(proposedRateValue)}"
+                                    } else {
+                                        "A convenir"
+                                    },
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFEA580C)

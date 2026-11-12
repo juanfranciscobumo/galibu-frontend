@@ -1206,29 +1206,48 @@ class GalibuRepository(
     }
 
     /**
-     * Resolves which job thread backs a chat with a professional, avoiding duplicate
-     * "chat_*" phantom jobs showing up as extra solicitudes:
-     * 1. Explicit jobId (e.g. Contactar desde una oferta) -> reuse it (Room, else cloud).
-     * 2. Otherwise the newest active (not COMPLETED/CANCELLED) job with that professional.
-     * 3. Otherwise creates a fresh direct-chat thread (hidden from solicitudes via isDirectChat).
-     * Returns the job id, or null when a new thread is needed but there is no signed-in user.
+     * Resolves which job thread backs a chat with a professional:
+     * 1. Si el profesional ya está asignado a la solicitud, se reutiliza ese job.
+     * 2. Si el cliente contacta a un profesional que solo envió una oferta, se abre
+     *    un hilo privado por (solicitud, profesional): el hilo público de la
+     *    solicitud lo comparten todos los ofertantes y no sirve para negociar.
+     * 3. Si no hay job explícito, reutiliza el trabajo activo más reciente con ese pro.
+     * 4. Si no existe, crea un hilo de consulta directo (oculto de "solicitudes").
+     * Devuelve el id del job o null si hace falta crear uno y no hay sesión.
      */
-    suspend fun resolveChatJobId(proId: String, proName: String, proSpecialty: String, jobId: String? = null): String? = withContext(Dispatchers.IO) {
+    suspend fun resolveChatJobId(
+        proId: String,
+        proName: String,
+        proSpecialty: String,
+        jobId: String? = null
+    ): String? = withContext(Dispatchers.IO) {
         RequestTrace.withTransaction {
             if (!jobId.isNullOrBlank()) {
-                val local = try { jobRequestDao.getJobByIdSync(jobId) } catch (e: Exception) { null }
-                if (local != null) return@withTransaction local.id
-                val backend = try {
-                    apiService.getJob(jobId)
-                } catch (e: Exception) {
-                    Log.e("GalibuRepository", "Job $jobId no está en backend: ${e.localizedMessage}")
-                    null
-                }
-                if (backend != null) {
-                    try { jobRequestDao.insertJob(backend) } catch (e: Exception) {
-                        Log.e("GalibuRepository", "Error guardando job $jobId en Room: ${e.localizedMessage}")
+                val job = try { jobRequestDao.getJobByIdSync(jobId) } catch (e: Exception) { null }
+                    ?: try {
+                        apiService.getJob(jobId).also { remote ->
+                            try { jobRequestDao.insertJob(remote) } catch (e: Exception) {
+                                Log.e("GalibuRepository", "Error guardando job $jobId en Room: ${e.localizedMessage}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("GalibuRepository", "Job $jobId no está en backend: ${e.localizedMessage}")
+                        null
                     }
-                    return@withTransaction backend.id
+                if (job != null) {
+                    if (job.professionalId == proId) {
+                        return@withTransaction job.id
+                    }
+                    val hasActiveOffer = try {
+                        bidDao.getBidsForJobAndProfessionalSync(job.id, proId)
+                            .any { !it.status.equals("REJECTED", ignoreCase = true) }
+                    } catch (e: Exception) {
+                        false
+                    }
+                    if (hasActiveOffer) {
+                        return@withTransaction openNegotiationChat(job, proId, proName, proSpecialty)
+                    }
+                    return@withTransaction job.id
                 }
             }
             findActiveJobWithProfessional(proId)?.let { return@withTransaction it.id }
@@ -1258,6 +1277,55 @@ class GalibuRepository(
             AppTelemetry.event("chat.start", mapOf("jobId" to created.id))
             return@withTransaction created.id
         }
+    }
+
+    /**
+     * Hilo privado para negociar una oferta. El id es determinístico para
+     * reutilizar el mismo chat cuando el cliente vuelve a tocar "Contactar".
+     */
+    private suspend fun openNegotiationChat(
+        job: JobRequest,
+        proId: String,
+        proName: String,
+        proSpecialty: String
+    ): String? {
+        val chatJobId = "chat_" + UUID.nameUUIDFromBytes("$proId|${job.id}".toByteArray())
+            .toString().replace("-", "")
+        val existing = try { jobRequestDao.getJobByIdSync(chatJobId) } catch (e: Exception) { null }
+        if (existing != null) return existing.id
+        val user = _currentUser.value
+        val created = try {
+            apiService.createJob(
+                CreateJobDto(
+                    id = chatJobId,
+                    category = "Consulta",
+                    title = "Consulta sobre ${job.category.ifBlank { proSpecialty }}",
+                    description = "Chat privado para acordar el precio de una oferta.",
+                    budgetMin = 0.0,
+                    address = job.address.ifBlank { user?.address ?: "Ubicación del cliente" },
+                    department = job.department ?: user?.department ?: "Bogotá D.C.",
+                    municipality = job.municipality ?: user?.municipality ?: "Bogotá",
+                    professionalId = proId,
+                    professionalName = proName,
+                    source = "PUBLISH"
+                )
+            )
+        } catch (e: HttpException) {
+            // Puede existir ya en el backend aunque todavía no esté en Room.
+            try { apiService.getJob(chatJobId) } catch (e2: Exception) { null }
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "No se pudo abrir el chat de negociación: ${e.localizedMessage}")
+            AppTelemetry.error("chat", "No se pudo abrir el chat de negociación", e)
+            null
+        }
+        if (created != null) {
+            try { jobRequestDao.insertJob(created) } catch (e: Exception) {
+                Log.e("GalibuRepository", "Error guardando chat de negociación: ${e.localizedMessage}")
+            }
+            AppTelemetry.event("chat.start", mapOf("jobId" to created.id, "offer" to job.id))
+            return created.id
+        }
+        return null
     }
 
     suspend fun createJobRequest(category: String, title: String, description: String, budget: Double, address: String, department: String = "Bogotá D.C.", municipality: String = "Bogotá", suggestedPrice: Double? = null, professionalId: String? = null, professionalName: String? = null, source: String = "PUBLISH", photos: List<String>? = null) = withContext(Dispatchers.IO) {
@@ -1359,14 +1427,20 @@ class GalibuRepository(
                     AppTelemetry.event("job.hire", mapOf("jobId" to existing.id, "reused" to "true"))
                     return@withTransaction existing.id
                 }
-                val rate = hourlyRate ?: 35000.0
+                // Sin presupuesto (0) la solicitud queda "precio a convenir" y el
+                // profesional cotiza; la tarifa de su perfil solo es referencia.
+                val rate = hourlyRate?.takeIf { it > 0 } ?: 0.0
                 val proProfile = getUserById(proId)
-                val baseHourlyRate = proBaseHourlyRate ?: proProfile?.hourlyRate ?: 35000.0
+                val baseHourlyRate = proBaseHourlyRate?.takeIf { it > 0 } ?: proProfile?.hourlyRate
                 val created = apiService.createJob(
                     CreateJobDto(
                         category = proSpecialty,
                         title = "Contratación de $proSpecialty",
-                        description = "Solicitud de servicio directo con el profesional $proName. Tarifa propuesta: $${rate}/hora.",
+                        description = if (rate > 0) {
+                            "Solicitud de servicio directo con el profesional $proName. Presupuesto propuesto: $${rate} COP."
+                        } else {
+                            "Solicitud de servicio directo con el profesional $proName. Precio a convenir."
+                        },
                         budgetMin = rate,
                         address = user.address ?: "Calle 100 # 15-22",
                         department = user.department ?: "Bogotá D.C.",
@@ -1423,7 +1497,7 @@ class GalibuRepository(
         val notification = AppNotification(
             userId = clientId,
             title = "¡Nueva oferta recibida! 💰",
-            body = "${bid.professionalName} ofertó $amountText COP/hora en '$title'.$comment",
+            body = "${bid.professionalName} ofertó $amountText COP en '$title'.$comment",
             timestamp = System.currentTimeMillis(),
             isRead = false,
             jobId = job.id

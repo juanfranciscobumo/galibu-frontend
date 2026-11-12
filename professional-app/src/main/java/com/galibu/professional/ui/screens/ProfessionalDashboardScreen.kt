@@ -175,11 +175,12 @@ fun ProfessionalDashboardScreen(
     val boldCheckout by viewModel.boldCheckout.collectAsState()
 
     // Escucha en tiempo real de mis chats activos (vistas previas y no leídos del tab Mensajes).
-    // Incluye abiertas donde escribí antes de ofertar/aceptar.
+    // Incluye abiertas donde escribí antes de ofertar/aceptar y los hilos de
+    // consulta creados para negociar una oferta (chat_*).
     val myChatJobIds = remember(allJobs, allMessages, currentUser) {
         val sentIds = allMessages.filter { it.senderId == currentUser?.id }.map { it.jobId }.toSet()
         allJobs.filter {
-            (it.professionalId == currentUser?.id || it.id in sentIds) && !it.isDirectChat() &&
+            (it.professionalId == currentUser?.id || it.id in sentIds) &&
                 it.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO")
         }.map { it.id }
     }
@@ -1821,7 +1822,7 @@ fun ProfessionalDashboardScreen(
             onDismiss = { showBidDialog = false },
             onSubmit = { amount ->
                 if (amount < 5417.0) {
-                    viewModel.showAlert("Aviso", "La tarifa es muy baja. El salario mínimo legal por hora en Colombia es de $5.417 COP.")
+                    viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
                 } else {
                     val hours = job.duration
                     viewModel.submitBid(job.id, amount, "Ofrezco servicio especializado de calidad.", hours)
@@ -2322,7 +2323,7 @@ fun ProfessionalDashboardScreen(
                                         fontSize = 13.sp
                                     )
                                 } ?: Text(
-                                    text = "Sin precio ofertado",
+                                    text = "Precio a convenir",
                                     color = proTextSec,
                                     fontSize = 14.sp
                                 )
@@ -2809,7 +2810,7 @@ fun ProfessionalDashboardScreen(
                                                     onSend = { amount ->
                                                         showFirstOfferInline = false
                                                         if (amount < 5417.0) {
-                                                            viewModel.showAlert("Aviso", "La tarifa es muy baja. El mínimo legal por hora es de $5.417 COP.")
+                                                            viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
                                                         } else if (detail.isDirectHire && assignedToMe) {
                                                             // Directa: la contraoferta vive en el job para que el cliente la vea.
                                                             viewModel.submitCounterOfferDirectHire(detail.id, amount, isClient = false) {
@@ -3117,7 +3118,8 @@ fun JobRequestItem(
         isDirect = (job.source ?: "PUBLISH") == "DIRECTORY",
         title = job.title.ifEmpty { "Servicio de ${job.category}" },
         description = job.description,
-        priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP" },
+        priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP" }
+            ?: "Precio a convenir",
         address = job.address.ifEmpty { "Sin dirección" },
         onClick = { onClientClick(job.clientId) },
         infoContent = {

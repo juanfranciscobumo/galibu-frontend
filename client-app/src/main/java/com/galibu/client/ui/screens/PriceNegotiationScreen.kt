@@ -168,12 +168,17 @@ fun PriceNegotiationScreen(
         }
         selectedJob?.let { job ->
             val professionalUser = professionals.find { it.id == job.professionalId }
-            val baseRateVal = job.proHourlyRate ?: professionalUser?.hourlyRate ?: job.budgetMin
+            // Prioridad: contraoferta vigente > presupuesto del cliente > tarifa
+            // de referencia del profesional. La app nunca inventa un precio.
+            val referenceRate = job.budgetMin.takeIf { it > 0 }
+                ?: job.proHourlyRate?.takeIf { it > 0 }
+                ?: professionalUser?.hourlyRate?.takeIf { it > 0 }
+                ?: 0.0
             val proposedRateValue = when (job.counterOfferSender) {
                 "CLIENT" -> job.counterOfferAmount ?: job.budgetMin
-                "PROFESSIONAL" -> job.counterOfferAmount ?: baseRateVal
+                "PROFESSIONAL" -> job.counterOfferAmount ?: referenceRate
                 // Directa sin contraoferta aún: el precio es el que envió el cliente (budgetMin).
-                else -> if (!job.professionalId.isNullOrEmpty() && job.budgetMin > 0) job.budgetMin else baseRateVal
+                else -> if (!job.professionalId.isNullOrEmpty() && job.budgetMin > 0) job.budgetMin else referenceRate
             }
             val isWaitingForPro =
                 job.counterOfferSender == null || job.counterOfferSender == "CLIENT"
@@ -306,14 +311,24 @@ fun PriceNegotiationScreen(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "$${NumberFormat.getNumberInstance(Locale.US).format(proposedRateValue)}",
-                                    fontSize = 26.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = PolishDark,
-                                    maxLines = 1
-                                )
-                                Text(text = " COP", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                                if (proposedRateValue > 0) {
+                                    Text(
+                                        text = "$${NumberFormat.getNumberInstance(Locale.US).format(proposedRateValue)}",
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PolishDark,
+                                        maxLines = 1
+                                    )
+                                    Text(text = " COP", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                                } else {
+                                    Text(
+                                        text = "Precio a convenir",
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = PolishDark,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                             Text(
                                 text = when (job.counterOfferSender) {
@@ -829,15 +844,19 @@ fun PriceNegotiationScreen(
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
-                        Text(
-                            text = "$${
-                                NumberFormat.getNumberInstance(Locale.US)
-                                    .format(if (job.status == "NEGOTIATING") proposedRateValue else (job.finalPrice ?: proposedRateValue))
-                            }/h",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFEA580C)
-                        )
+                        run {
+                            val historyPrice = if (job.status == "NEGOTIATING") proposedRateValue else (job.finalPrice ?: proposedRateValue)
+                            Text(
+                                text = if (historyPrice > 0) {
+                                    "$${NumberFormat.getNumberInstance(Locale.US).format(historyPrice)} COP"
+                                } else {
+                                    "A convenir"
+                                },
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFEA580C)
+                            )
+                        }
 
                         if (job.status == "ACCEPTED" || job.status == "IN_PROGRESS") {
                             if (job.clientRatingOfPro != null) {
@@ -1805,23 +1824,23 @@ private fun OpenJobRequestCard(
                 )
             }
 
-            if (cardPrice != null) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Payment,
-                        contentDescription = null,
-                        tint = Color(0xFF16A34A),
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = "Ofertado: $${NumberFormat.getNumberInstance(Locale.US).format(cardPrice.toLong())}/h",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF16A34A)
-                    )
-                }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Payment,
+                    contentDescription = null,
+                    tint = Color(0xFF16A34A),
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = cardPrice?.let {
+                        "Presupuesto: $${NumberFormat.getNumberInstance(Locale.US).format(it.toLong())} COP"
+                    } ?: "Precio a convenir",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF16A34A)
+                )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
