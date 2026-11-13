@@ -126,7 +126,12 @@ data class PriceProposalRequest(
 data class SubmitBidDto(
     val amount: Double,
     val comment: String? = null,
-    val durationHours: Int? = null
+    val durationHours: Int? = null,
+    val quoteType: String? = "ESTIMATED",
+    val visitRequired: Boolean? = null,
+    val visitFee: Double? = null,
+    val materialsIncluded: Boolean? = null,
+    val materialsCost: Double? = null
 )
 
 @JsonClass(generateAdapter = true)

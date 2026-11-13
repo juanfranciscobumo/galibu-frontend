@@ -140,6 +140,28 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     fun showInfo(message: String, title: String = "Aviso") =
         showAlert(title, message, type = GalibuAlertType.INFO)
 
+    /**
+     * Propone (o actualiza) el precio desde la tarjeta "Acordar precio" del chat.
+     * El backend crea la oferta y el mensaje de sistema; aquí solo se refresca
+     * la lista local de ofertas.
+     */
+    fun proposePrice(jobId: String, amount: Double, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Enviando propuesta de precio...")
+                kotlinx.coroutines.delay(600)
+                repository.proposePrice(jobId, amount)
+                hideLoading()
+                showSuccess("Propuesta de precio enviada. El otro participante la verá en el chat.")
+                onDone()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("SharedViewModel", "Error proponiendo precio: ${e.localizedMessage}")
+                showError("No se pudo enviar la propuesta de precio: ${e.localizedMessage}")
+            }
+        }
+    }
+
     fun dismissAlert() {
         _globalAlert.value = null
     }

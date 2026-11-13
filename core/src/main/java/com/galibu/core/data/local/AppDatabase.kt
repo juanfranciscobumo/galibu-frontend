@@ -16,7 +16,7 @@ import com.galibu.core.data.model.*
         ChatMessage::class,
         AppNotification::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -144,6 +144,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v19 -> v20: detalle de la cotizacion del profesional (Fase 2b).
+         * Todos los campos tienen default, asi que la tabla existente se migra
+         * sin perder ofertas ya guardadas.
+         */
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bids ADD COLUMN quoteType TEXT NOT NULL DEFAULT 'ESTIMATED'")
+                db.execSQL("ALTER TABLE bids ADD COLUMN visitRequired INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE bids ADD COLUMN visitFee REAL")
+                db.execSQL("ALTER TABLE bids ADD COLUMN materialsIncluded INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE bids ADD COLUMN materialsCost REAL")
+                db.execSQL("ALTER TABLE bids ADD COLUMN counterRound INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -158,7 +174,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_15_16,
                     MIGRATION_16_17,
                     MIGRATION_17_18,
-                    MIGRATION_18_19
+                    MIGRATION_18_19,
+                    MIGRATION_19_20
                 )
                 .fallbackToDestructiveMigration(true)
                 .build()

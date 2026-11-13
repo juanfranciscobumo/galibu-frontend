@@ -292,23 +292,6 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
         }
     }
 
-    /** El cliente propone (o actualiza) su precio para un trabajo desde el chat. */
-    fun proposePrice(jobId: String, amount: Double, onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando propuesta de precio...")
-                kotlinx.coroutines.delay(1000)
-                repository.proposePrice(jobId, amount)
-                hideLoading()
-                onComplete()
-            } catch (e: Exception) {
-                hideLoading()
-                Log.e("ClientViewModel", "Falla proponer precio: ${e.localizedMessage}")
-                showAlert("Error", "No se pudo enviar la propuesta de precio: ${e.localizedMessage}")
-            }
-        }
-    }
-
     /** El cliente también puede finalizar el servicio y calificar al profesional. */
     fun finishService(jobId: String, stars: Int, comment: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {

@@ -1529,13 +1529,32 @@ class GalibuRepository(
             }
         }
 
-    suspend fun submitBid(jobId: String, amount: Double, comment: String, durationHours: Int) = withContext(Dispatchers.IO) {
+    suspend fun submitBid(
+        jobId: String,
+        amount: Double,
+        comment: String,
+        durationHours: Int,
+        quoteType: String = "ESTIMATED",
+        visitRequired: Boolean = false,
+        visitFee: Double? = null,
+        materialsIncluded: Boolean = false,
+        materialsCost: Double? = null
+    ) = withContext(Dispatchers.IO) {
         RequestTrace.withTransaction {
             _currentUser.value ?: return@withTransaction
             val saved = try {
                 apiService.submitBid(
                     jobId,
-                    SubmitBidDto(amount = amount, comment = comment, durationHours = durationHours)
+                    SubmitBidDto(
+                        amount = amount,
+                        comment = comment,
+                        durationHours = durationHours,
+                        quoteType = quoteType,
+                        visitRequired = visitRequired,
+                        visitFee = visitFee,
+                        materialsIncluded = materialsIncluded,
+                        materialsCost = materialsCost
+                    )
                 )
             } catch (e: Exception) {
                 Log.e("GalibuRepository", "submitBid falló en backend: ${e.localizedMessage}")
@@ -1549,7 +1568,12 @@ class GalibuRepository(
             refreshJobDetails(jobId)
             AppTelemetry.event(
                 "bid.submit",
-                mapOf("jobId" to jobId, "bidId" to saved.id, "amount" to amount.toString())
+                mapOf(
+                    "jobId" to jobId,
+                    "bidId" to saved.id,
+                    "amount" to amount.toString(),
+                    "quoteType" to quoteType
+                )
             )
         }
     }

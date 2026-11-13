@@ -1429,6 +1429,17 @@ fun PriceNegotiationScreen(
                                 }
                             }
 
+                            Spacer(modifier = Modifier.height(8.dp))
+                            com.galibu.core.ui.components.BidQuoteDetails(
+                                quoteType = bid.quoteType,
+                                visitRequired = bid.visitRequired,
+                                visitFee = bid.visitFee,
+                                materialsIncluded = bid.materialsIncluded,
+                                materialsCost = bid.materialsCost,
+                                counterRound = bid.counterRound,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
                             // Status tags for counters
                             if (bid.status == "COUNTERED_BY_CLIENT") {
                                 Spacer(modifier = Modifier.height(8.dp))

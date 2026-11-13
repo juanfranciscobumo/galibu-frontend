@@ -1796,26 +1796,32 @@ fun ProfessionalDashboardScreen(
         }
         }
 
-    // Modal Bid Proposal Dialog (Contraofertar) -> shared CounterOfferSheet
+    // Hoja de cotización del profesional: tipo, visita técnica, materiales y valor.
     if (showBidDialog && selectedJobForBid != null) {
         val job = selectedJobForBid!!
-        com.galibu.core.ui.components.CounterOfferSheet(
-            offerLabel = "Oferta del cliente:",
-            descriptionText = "Ingresa un valor negociado inferior o superior. El cliente decidirá de forma inmediata.",
-            currentOffer = job.counterOfferAmount ?: job.budgetMin,
-            category = job.category,
-            city = job.municipality.takeIf { it.isNotBlank() } ?: "Bogotá",
+        com.galibu.core.ui.components.BidQuoteSheet(
             initialAmount = job.counterOfferAmount ?: job.budgetMin,
-            onDismiss = { showBidDialog = false },
-            onSubmit = { amount ->
-                if (amount < 5417.0) {
+            initialDurationHours = job.duration,
+            initialComment = "Ofrezco servicio especializado de calidad.",
+            onSubmit = { quote ->
+                if (quote.amount < 5417.0) {
                     viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
                 } else {
-                    val hours = job.duration
-                    viewModel.submitBid(job.id, amount, "Ofrezco servicio especializado de calidad.", hours)
+                    viewModel.submitBid(
+                        job.id,
+                        quote.amount,
+                        quote.comment,
+                        quote.durationHours,
+                        quoteType = quote.quoteType,
+                        visitRequired = quote.visitRequired,
+                        visitFee = quote.visitFee,
+                        materialsIncluded = quote.materialsIncluded,
+                        materialsCost = quote.materialsCost
+                    )
                     showBidDialog = false
                 }
-            }
+            },
+            onDismiss = { showBidDialog = false }
         )
     }
 

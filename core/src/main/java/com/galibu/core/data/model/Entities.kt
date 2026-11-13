@@ -166,6 +166,13 @@ data class Bid(
     val status: String = "",
     val lastCounterOfferAmount: Double? = null,
     val suggestedPrice: Double? = null,
+    /** ESTIMATED (estimada), AFTER_VISIT (tras visita) o FIXED (cerrada). */
+    val quoteType: String = "ESTIMATED",
+    val visitRequired: Boolean = false,
+    val visitFee: Double? = null,
+    val materialsIncluded: Boolean = false,
+    val materialsCost: Double? = null,
+    val counterRound: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 ) : Serializable
 

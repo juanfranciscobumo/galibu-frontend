@@ -74,6 +74,8 @@ fun CounterOfferSheet(
     category: String,
     city: String,
     initialAmount: Double,
+    title: String = "Negociar Tarifa 🔄",
+    submitLabel: String = "Proponer Contraoferta",
     onDismiss: () -> Unit,
     onSubmit: (Double) -> Unit
 ) {
@@ -102,7 +104,7 @@ fun CounterOfferSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Negociar Tarifa 🔄",
+                    text = title,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
@@ -299,7 +301,7 @@ fun CounterOfferSheet(
                         .testTag("submit_counter_offer")
                 ) {
                     Text(
-                        text = "Proponer Contraoferta",
+                        text = submitLabel,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color.White

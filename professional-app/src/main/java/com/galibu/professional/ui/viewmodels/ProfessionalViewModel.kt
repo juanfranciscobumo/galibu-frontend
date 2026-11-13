@@ -143,12 +143,33 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun submitBid(jobId: String, amount: Double, comment: String, durationHours: Int, onComplete: () -> Unit = {}) {
+    fun submitBid(
+        jobId: String,
+        amount: Double,
+        comment: String,
+        durationHours: Int,
+        quoteType: String = "ESTIMATED",
+        visitRequired: Boolean = false,
+        visitFee: Double? = null,
+        materialsIncluded: Boolean = false,
+        materialsCost: Double? = null,
+        onComplete: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             try {
                 showLoading("Enviando tu propuesta de servicio...")
                 kotlinx.coroutines.delay(1000)
-                repository.submitBid(jobId, amount, comment, durationHours)
+                repository.submitBid(
+                    jobId,
+                    amount,
+                    comment,
+                    durationHours,
+                    quoteType = quoteType,
+                    visitRequired = visitRequired,
+                    visitFee = visitFee,
+                    materialsIncluded = materialsIncluded,
+                    materialsCost = materialsCost
+                )
                 showSuccess("Oferta enviada al cliente.")
                 onComplete()
             } catch (e: Exception) {
@@ -182,13 +203,28 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         amount: Double,
         comment: String,
         durationHours: Int,
+        quoteType: String = "ESTIMATED",
+        visitRequired: Boolean = false,
+        visitFee: Double? = null,
+        materialsIncluded: Boolean = false,
+        materialsCost: Double? = null,
         onResult: () -> Unit = {}
     ) {
         viewModelScope.launch {
             try {
                 showLoading("Enviando cotización...")
                 kotlinx.coroutines.delay(1000)
-                repository.submitBid(jobId, amount, comment, durationHours)
+                repository.submitBid(
+                    jobId,
+                    amount,
+                    comment,
+                    durationHours,
+                    quoteType = quoteType,
+                    visitRequired = visitRequired,
+                    visitFee = visitFee,
+                    materialsIncluded = materialsIncluded,
+                    materialsCost = materialsCost
+                )
                 repository.refreshMe()
                 hideLoading()
                 onResult()

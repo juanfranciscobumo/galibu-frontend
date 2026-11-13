@@ -144,6 +144,7 @@ fun ChatAndPaymentsScreen(
     var showReviewDialog by remember { mutableStateOf(false) }
     var showProFinalizeConfirm by remember { mutableStateOf(false) }
     var isSavingState by remember { mutableStateOf(false) }
+    var showAgreePriceSheet by remember(jobId) { mutableStateOf(false) }
 
     val quickMessages = listOf(
         "Estoy en camino 🚗",
@@ -592,6 +593,60 @@ fun ChatAndPaymentsScreen(
             }
         }
 
+        // Tarjeta "Acordar precio": cualquier participante puede proponer o
+        // actualizar el precio sin salir del chat. El backend crea/actualiza la
+        // oferta y publica el mensaje de sistema.
+        val chatJobStatus = job?.status?.uppercase()
+        val canAgreePrice = !isChatLocked && jobId != null &&
+            (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING")
+        if (canAgreePrice) {
+            val lastBid = jobBids.maxByOrNull { it.createdAt }
+            val referencePrice = lastBid?.amount ?: job?.finalPrice ?: job?.budgetMin ?: 0.0
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFEFF6FF))
+                    .border(1.dp, Color(0xFFBFDBFE), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Handshake,
+                    contentDescription = null,
+                    tint = Color(0xFF1D4ED8),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Acordar precio",
+                        color = Color(0xFF1E3A8A),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (referencePrice > 0) {
+                            "Referencia actual: $${NumberFormat.getNumberInstance(Locale.US).format(referencePrice)} COP"
+                        } else {
+                            "Aún no hay un precio acordado"
+                        },
+                        color = Color(0xFF475569),
+                        fontSize = 11.sp
+                    )
+                }
+                Button(
+                    onClick = { showAgreePriceSheet = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D4ED8)),
+                    shape = RoundedCornerShape(20.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text("Proponer", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
         // Quick dialogue buttons for rapid response
         if (job?.status == "ACCEPTED") {
             Row(
@@ -708,6 +763,29 @@ fun ChatAndPaymentsScreen(
             }
         }
         }
+    }
+
+    // Hoja para acordar el precio desde el chat.
+    if (showAgreePriceSheet && jobId != null) {
+        val lastBid = jobBids.maxByOrNull { it.createdAt }
+        val referencePrice = lastBid?.amount ?: job?.finalPrice ?: job?.budgetMin ?: 0.0
+        com.galibu.core.ui.components.CounterOfferSheet(
+            offerLabel = if (lastBid != null) "Última propuesta:" else "Referencia:",
+            descriptionText = "Propón un precio para este servicio. El otro participante podrá aceptarlo o hacer una contraoferta.",
+            currentOffer = referencePrice,
+            category = job?.category?.takeIf { it.isNotBlank() } ?: "Servicio",
+            city = job?.municipality?.takeIf { it.isNotBlank() } ?: "Bogotá",
+            initialAmount = referencePrice,
+            title = "Acordar precio",
+            submitLabel = "Enviar propuesta",
+            onDismiss = { showAgreePriceSheet = false },
+            onSubmit = { amount ->
+                jobId?.let { targetJobId ->
+                    viewModel.proposePrice(targetJobId, amount)
+                }
+                showAgreePriceSheet = false
+            }
+        )
     }
 
     // Confirmación de finalización. El pago se acuerda por fuera de la app:
