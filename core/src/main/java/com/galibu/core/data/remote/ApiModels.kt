@@ -118,6 +118,11 @@ data class AmountDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class PriceProposalRequest(
+    val amount: Double
+)
+
+@JsonClass(generateAdapter = true)
 data class SubmitBidDto(
     val amount: Double,
     val comment: String? = null,

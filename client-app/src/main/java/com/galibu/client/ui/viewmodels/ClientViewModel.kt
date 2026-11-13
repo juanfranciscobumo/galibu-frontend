@@ -292,34 +292,19 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
         }
     }
 
-    fun acceptDirectHire(jobId: String, onComplete: () -> Unit = {}) {
+    /** El cliente propone (o actualiza) su precio para un trabajo desde el chat. */
+    fun proposePrice(jobId: String, amount: Double, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                showLoading("Aceptando contratación directa...")
+                showLoading("Enviando propuesta de precio...")
                 kotlinx.coroutines.delay(1000)
-                repository.acceptDirectHire(jobId)
+                repository.proposePrice(jobId, amount)
                 hideLoading()
                 onComplete()
             } catch (e: Exception) {
                 hideLoading()
-                Log.e("ClientViewModel", "Falla aceptar contratación: ${e.localizedMessage}")
-                showAlert("Error", "No se pudo aceptar la contratación: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    fun submitCounterOfferDirectHire(jobId: String, amount: Double, isClient: Boolean = true, onComplete: () -> Unit = {}) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando contraoferta...")
-                kotlinx.coroutines.delay(1000)
-                repository.submitCounterOfferDirectHire(jobId, amount, isClient)
-                hideLoading()
-                onComplete()
-            } catch (e: Exception) {
-                hideLoading()
-                Log.e("ClientViewModel", "Falla contraoferta directa: ${e.localizedMessage}")
-                showAlert("Error", "No se pudo enviar la contraoferta: ${e.localizedMessage}")
+                Log.e("ClientViewModel", "Falla proponer precio: ${e.localizedMessage}")
+                showAlert("Error", "No se pudo enviar la propuesta de precio: ${e.localizedMessage}")
             }
         }
     }

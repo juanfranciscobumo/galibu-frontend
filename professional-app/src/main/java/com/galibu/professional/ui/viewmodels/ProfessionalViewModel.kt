@@ -176,12 +176,19 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun acceptDirectHire(jobId: String, onResult: () -> Unit = {}) {
+    /** El profesional cotiza (envía su oferta) en una contratación directa (job NEGOTIATING asignado). */
+    fun submitBidForDirectJob(
+        jobId: String,
+        amount: Double,
+        comment: String,
+        durationHours: Int,
+        onResult: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             try {
-                showLoading("Aceptando contratación...")
+                showLoading("Enviando cotización...")
                 kotlinx.coroutines.delay(1000)
-                repository.acceptDirectHire(jobId)
+                repository.submitBid(jobId, amount, comment, durationHours)
                 repository.refreshMe()
                 hideLoading()
                 onResult()
@@ -190,25 +197,26 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 val msg = e.localizedMessage ?: ""
                 handleProError(
                     msg,
-                    "No se pudo aceptar la contratación. Verifica tu conexión e inténtalo nuevamente."
+                    "No se pudo enviar la cotización. Verifica tu conexión e inténtalo nuevamente."
                 )
-                Log.e("ProfessionalViewModel", "Error al aceptar contratación: ${e.localizedMessage}")
+                Log.e("ProfessionalViewModel", "Error al enviar cotización directa: ${e.localizedMessage}")
             }
         }
     }
 
-    fun rejectDirectHire(jobId: String, onResult: () -> Unit = {}) {
+    /** El profesional declina una invitación de contratación directa (cancela el job). */
+    fun declineDirectJob(jobId: String, onResult: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                showLoading("Rechazando contratación...")
+                showLoading("Declinando invitación...")
                 kotlinx.coroutines.delay(1000)
-                repository.rejectDirectHire(jobId)
+                repository.cancelJob(jobId, "El profesional declinó la invitación")
                 hideLoading()
                 onResult()
             } catch (e: Exception) {
                 hideLoading()
-                Log.e("ProfessionalViewModel", "Error al rechazar contratación: ${e.localizedMessage}")
-                showError("No se pudo rechazar la contratación. Verifica tu conexión e inténtalo nuevamente.")
+                Log.e("ProfessionalViewModel", "Error al declinar invitación: ${e.localizedMessage}")
+                showError("No se pudo declinar la invitación. Verifica tu conexión e inténtalo nuevamente.")
             }
         }
     }
@@ -241,22 +249,6 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 hideLoading()
                 showError("No se pudo finalizar el servicio. Verifica tu conexión e inténtalo nuevamente.")
                 Log.e("ProfessionalViewModel", "Error al finalizar servicio: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    fun submitCounterOfferDirectHire(jobId: String, amount: Double, isClient: Boolean, onResult: () -> Unit = {}) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando contraoferta...")
-                kotlinx.coroutines.delay(1000)
-                repository.submitCounterOfferDirectHire(jobId, amount, isClient)
-                hideLoading()
-                onResult()
-            } catch (e: Exception) {
-                hideLoading()
-                Log.e("ProfessionalViewModel", "Error al enviar contraoferta directa: ${e.localizedMessage}")
-                showError("No se pudo enviar la contraoferta. Verifica tu conexión e inténtalo nuevamente.")
             }
         }
     }

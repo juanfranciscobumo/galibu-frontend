@@ -260,7 +260,7 @@ fun PriceNegotiationScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             val rejectDirect = {
-                                viewModel.rejectDirectHire(job.id) {
+                                viewModel.declineDirectJob(job.id) {
                                     viewModel.showAlert(
                                         "Aviso",
                                         "Solicitud rechazada exitosamente"
@@ -269,21 +269,14 @@ fun PriceNegotiationScreen(
                             }
                             if (!isWaitingForClient) {
                                 HireDecisionButtons(
-                                    onAccept = {
-                                        viewModel.acceptDirectHire(job.id) {
-                                            viewModel.showAlert(
-                                                "Aviso",
-                                                "¡Contratación directa aceptada exitosamente!"
-                                            )
-                                        }
-                                    },
+                                    onAccept = { showDirectCounterInline = true },
                                     onCounter = if (!showDirectCounterInline) {
                                         { showDirectCounterInline = true }
                                     } else {
                                         null
                                     },
                                     onReject = rejectDirect,
-                                    acceptLabel = "Aceptar oferta",
+                                    acceptLabel = "Enviar cotización",
                                     rejectLabel = "Rechazar solicitud"
                                 )
                             } else {
@@ -333,14 +326,15 @@ fun PriceNegotiationScreen(
                                             initialAmount = 0.0,
                                             accentColor = Color(0xFF1D4ED8),
                                             onSend = { amount ->
-                                                viewModel.submitCounterOfferDirectHire(
+                                                viewModel.submitBid(
                                                     job.id,
                                                     amount,
-                                                    isClient = false
+                                                    "Ofrezco servicio especializado de calidad.",
+                                                    2
                                                 ) {
                                                     viewModel.showAlert(
                                                         "Aviso",
-                                                        "¡Contraoferta enviada exitosamente!"
+                                                        "¡Cotización enviada exitosamente!"
                                                     )
                                                 }
                                                 showDirectCounterInline = false

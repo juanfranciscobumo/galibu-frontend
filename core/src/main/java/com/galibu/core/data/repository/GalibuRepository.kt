@@ -17,6 +17,7 @@ import com.galibu.core.data.remote.GoogleLoginRequestDto
 import com.galibu.core.data.remote.LoginRequestDto
 import com.galibu.core.data.remote.DeviceTokenRequestDto
 import com.galibu.core.data.remote.PasswordChangeDto
+import com.galibu.core.data.remote.PriceProposalRequest
 import com.galibu.core.data.remote.RefreshRequestDto
 import com.galibu.core.data.remote.RegisterRequestDto
 import com.galibu.core.data.remote.SubmitBidDto
@@ -1915,29 +1916,6 @@ class GalibuRepository(
         notificationDao.markAsRead(id)
     }
 
-    suspend fun acceptDirectHire(jobId: String) = withContext(Dispatchers.IO) {
-        val updatedJob = try {
-            apiService.acceptDirect(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "acceptDirectHire falló en backend: ${e.localizedMessage}")
-            throw e
-        }
-        jobRequestDao.insertJob(updatedJob)
-        // El mensaje "Chat seguro iniciado" lo crea el backend.
-        AppTelemetry.event("job.accept_direct", mapOf("jobId" to jobId))
-    }
-
-    suspend fun rejectDirectHire(jobId: String) = withContext(Dispatchers.IO) {
-        val updatedJob = try {
-            apiService.rejectDirect(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "rejectDirectHire falló en backend: ${e.localizedMessage}")
-            throw e
-        }
-        jobRequestDao.insertJob(updatedJob)
-        AppTelemetry.event("job.reject_direct", mapOf("jobId" to jobId))
-    }
-
     suspend fun startService(jobId: String) = withContext(Dispatchers.IO) {
         val updatedJob = try {
             apiService.startService(jobId)
@@ -2010,20 +1988,34 @@ class GalibuRepository(
         AppTelemetry.event("job.delete", mapOf("jobId" to jobId))
     }
 
-    suspend fun submitCounterOfferDirectHire(jobId: String, amount: Double, isClient: Boolean) = withContext(Dispatchers.IO) {
-        val updatedJob = try {
-            apiService.counterJob(jobId, AmountDto(amount))
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "submitCounterOfferDirectHire falló en backend: ${e.localizedMessage}")
-            throw e
+    /**
+     * Propone (o actualiza) un precio para un trabajo desde la tarjeta
+     * "Acordar precio" del chat. Crea una oferta del usuario actual si no
+     * existe, o contraoferta la vigente.
+     */
+    suspend fun proposePrice(jobId: String, amount: Double) = withContext(Dispatchers.IO) {
+        RequestTrace.withTransaction {
+            _currentUser.value ?: return@withTransaction
+            val updated = try {
+                apiService.proposePrice(
+                    jobId,
+                    PriceProposalRequest(amount = amount)
+                )
+            } catch (e: Exception) {
+                Log.e("GalibuRepository", "proposePrice falló en backend: ${e.localizedMessage}")
+                AppTelemetry.error("jobs", "No se pudo proponer el precio", e)
+                throw e
+            }
+            // updated es una Bid; sincronizar el job y las bids locales.
+            refreshJobDetails(jobId)
+            try { bidDao.insertBid(updated) } catch (e: Exception) {
+                Log.e("GalibuRepository", "Error guardando propuesta de precio: ${e.localizedMessage}")
+            }
+            AppTelemetry.event(
+                "job.propose_price",
+                mapOf("jobId" to jobId, "amount" to amount.toString())
+            )
         }
-        jobRequestDao.insertJob(updatedJob)
-
-        // El mensaje "nueva tarifa propuesta" lo crea el backend.
-        AppTelemetry.event(
-            "job.counter_direct",
-            mapOf("jobId" to jobId, "amount" to amount.toString(), "sender" to if (isClient) "CLIENT" else "PROFESSIONAL")
-        )
     }
 
     private suspend fun processProfilePhotoToBase64(context: Context, photoUrl: String?, defaultPhoto: String): String {

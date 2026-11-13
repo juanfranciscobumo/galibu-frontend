@@ -182,6 +182,8 @@ fun PriceNegotiationScreen(
             }
             val isWaitingForPro =
                 job.counterOfferSender == null || job.counterOfferSender == "CLIENT"
+            val jobBids by viewModel.selectedJobBids.collectAsState()
+            val proBid = jobBids.firstOrNull { it.professionalId == job.professionalId && it.status != "REJECTED" }
             // Detalle de contratación directa con estilo ficha del profesional;
             // la lista de ofertas no aplica aquí.
             if (isDirectNegotiation) {
@@ -354,8 +356,18 @@ fun PriceNegotiationScreen(
                     if (!isWaitingForPro) {
                     Button(
                         onClick = {
-                            viewModel.acceptDirectHire(job.id) {
-                                viewModel.showAlert("Aviso", "¡Contratación directa aceptada exitosamente!")
+                            proBid?.let { bid ->
+                                viewModel.acceptBid(bid.id)
+                            } ?: run {
+                                // Aún no hay cotización del profesional: el cliente propone su precio.
+                                val amt = proposedRateValue.takeIf { it > 0 } ?: job.budgetMin
+                                if (amt > 0) {
+                                    viewModel.proposePrice(job.id, amt) {
+                                        viewModel.showAlert("Aviso", "¡Precio propuesto al profesional!")
+                                    }
+                                } else {
+                                    viewModel.showAlert("Aviso", "Define un precio antes de enviar.")
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
@@ -391,8 +403,12 @@ fun PriceNegotiationScreen(
                                     initialAmount = 0.0,
                                     accentColor = PolishBlue,
                                     onSend = { amount ->
-                                        viewModel.submitCounterOfferDirectHire(job.id, amount, isClient = true) {
-                                            viewModel.showAlert("Aviso", "¡Contraoferta enviada exitosamente!")
+                                        proBid?.let { bid ->
+                                            viewModel.proposeCounterOffer(bid.id, amount)
+                                        } ?: run {
+                                            viewModel.proposePrice(job.id, amount) {
+                                                viewModel.showAlert("Aviso", "¡Precio propuesto al profesional!")
+                                            }
                                         }
                                         showDirectCounterInline = false
                                     },
@@ -597,11 +613,23 @@ fun PriceNegotiationScreen(
                             if (!isWaitingForPro) {
                                 HireDecisionButtons(
                                     onAccept = {
-                                        viewModel.acceptDirectHire(job.id) {
-                                            viewModel.showAlert(
-                                                "Aviso",
-                                                "¡Contratación directa aceptada exitosamente!"
-                                            )
+                                        proBid?.let { bid ->
+                                            viewModel.acceptBid(bid.id)
+                                        } ?: run {
+                                            val amt = proposedRateValue.takeIf { it > 0 } ?: job.budgetMin
+                                            if (amt > 0) {
+                                                viewModel.proposePrice(job.id, amt) {
+                                                    viewModel.showAlert(
+                                                        "Aviso",
+                                                        "¡Precio propuesto al profesional!"
+                                                    )
+                                                }
+                                            } else {
+                                                viewModel.showAlert(
+                                                    "Aviso",
+                                                    "Define un precio antes de enviar."
+                                                )
+                                            }
                                         }
                                     },
                                     onCounter = if (!showDirectCounterInline) {
@@ -661,15 +689,15 @@ fun PriceNegotiationScreen(
                                             initialAmount = proposedRateValue,
                                             accentColor = PolishBlue,
                                             onSend = { amount ->
-                                                viewModel.submitCounterOfferDirectHire(
-                                                    job.id,
-                                                    amount,
-                                                    isClient = true
-                                                ) {
-                                                    viewModel.showAlert(
-                                                        "Aviso",
-                                                        "¡Contraoferta enviada exitosamente!"
-                                                    )
+                                                proBid?.let { bid ->
+                                                    viewModel.proposeCounterOffer(bid.id, amount)
+                                                } ?: run {
+                                                    viewModel.proposePrice(job.id, amount) {
+                                                        viewModel.showAlert(
+                                                            "Aviso",
+                                                            "¡Precio propuesto al profesional!"
+                                                        )
+                                                    }
                                                 }
                                                 showDirectCounterInline = false
                                             },

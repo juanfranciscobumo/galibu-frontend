@@ -104,6 +104,9 @@ interface ApiService {
     @POST("jobs/{jobId}/bids")
     suspend fun submitBid(@Path("jobId") jobId: String, @Body req: SubmitBidDto): Bid
 
+    @POST("jobs/{jobId}/propose-price")
+    suspend fun proposePrice(@Path("jobId") jobId: String, @Body req: PriceProposalRequest): Bid
+
     @POST("bids/{bidId}/counter")
     suspend fun counterBid(@Path("bidId") bidId: String, @Body req: AmountDto): Bid
 

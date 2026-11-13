@@ -811,33 +811,20 @@ fun ProfessionalDashboardScreen(
                                 balance = currentUser?.balance ?: 0.0,
                                 hasBid = job.id in jobIdsWithBids,
                                 onAccept = {
-                                    scope.launch {
-                                        try {
-                                            viewModel.acceptDirectHire(job.id) {
-                                                viewModel.showAlert("Aviso", "¡Aceptaste la contratación directa!")
-                                            }
-                                        } catch (e: Exception) {
-                                            viewModel.showAlert("Aviso", "Error: ${e.message}")
-                                        }
-                                    }
+                                    // Contratación directa: el profesional no acepta "al precio del cliente",
+                                    // sino que envía su propia cotización (oferta) al cliente.
+                                    selectedJobForBid = job
+                                    showBidDialog = true
                                 },
                                 onContraofertar = { proposedRate ->
-                                    scope.launch {
-                                        try {
-                                            viewModel.submitCounterOfferDirectHire(job.id, proposedRate, isClient = false) {
-                                                val formattedRate = com.galibu.core.ui.utils.PriceUtils.formatThousands(proposedRate.toInt().toString())
-                                                viewModel.showAlert("Aviso", "¡Contraoferta de $$formattedRate COP enviada!")
-                                            }
-                                        } catch (e: Exception) {
-                                            viewModel.showAlert("Aviso", "Error: ${e.message}")
-                                        }
-                                    }
+                                    selectedJobForBid = job
+                                    showBidDialog = true
                                 },
                                 onIgnore = {
                                     scope.launch {
                                         try {
-                                            viewModel.rejectDirectHire(job.id) {
-                                                viewModel.showAlert("Aviso", "Contratación declinada")
+                                            viewModel.declineDirectJob(job.id) {
+                                                viewModel.showAlert("Aviso", "Invitación declinada")
                                             }
                                         } catch (e: Exception) {
                                             viewModel.showAlert("Aviso", "Error: ${e.message}")
@@ -2571,9 +2558,10 @@ fun ProfessionalDashboardScreen(
                                     Button(
                                         onClick = {
                                             if (isDirectAssigned) {
-                                                viewModel.acceptDirectHire(detail.id) {
-                                                    selectedClientIdForProfile = null
-                                                }
+                                                // Contratación directa: el profesional envía su cotización
+                                                // (no acepta "al precio del cliente" sin negociar).
+                                                selectedJobForBid = detail
+                                                showBidDialog = true
                                             } else {
                                                 receivedBid?.let {
                                                     viewModel.acceptBid(it.id)
@@ -2643,8 +2631,8 @@ fun ProfessionalDashboardScreen(
                                                         } else {
                                                             scope.launch {
                                                                 try {
-                                                                    viewModel.submitCounterOfferDirectHire(detail.id, amount, isClient = false) {
-                                                                        viewModel.showAlert("Aviso", "¡Contraoferta enviada!")
+                                                                    viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration) {
+                                                                        viewModel.showAlert("Aviso", "¡Cotización enviada!")
                                                                     }
                                                                 } catch (e: Exception) {
                                                                     viewModel.showAlert("Aviso", "Error: ${e.message}")
@@ -2749,9 +2737,9 @@ fun ProfessionalDashboardScreen(
                                         } else if (isDirectInitialOffer) {
                                             Button(
                                                 onClick = {
-                                                    viewModel.acceptDirectHire(detail.id) {
-                                                        selectedClientIdForProfile = null
-                                                    }
+                                                    // Enviar cotización en lugar de aceptar directo.
+                                                    selectedJobForBid = detail
+                                                    showBidDialog = true
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = proGreenStyle),
                                                 shape = RoundedCornerShape(14.dp),
@@ -2812,10 +2800,8 @@ fun ProfessionalDashboardScreen(
                                                         if (amount < 5417.0) {
                                                             viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
                                                         } else if (detail.isDirectHire && assignedToMe) {
-                                                            // Directa: la contraoferta vive en el job para que el cliente la vea.
-                                                            viewModel.submitCounterOfferDirectHire(detail.id, amount, isClient = false) {
-                                                                viewModel.showAlert("Aviso", "¡Contraoferta enviada!")
-                                                            }
+                                                            // Directa: la cotización se envía como oferta del profesional.
+                                                            viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration)
                                                         } else {
                                                             viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration)
                                                         }
@@ -2833,7 +2819,7 @@ fun ProfessionalDashboardScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     OutlinedButton(
                                         onClick = {
-                                            viewModel.rejectDirectHire(detail.id) {
+                                            viewModel.declineDirectJob(detail.id) {
                                                 selectedClientIdForProfile = null
                                                 selectedJobForProfileDetails = null
                                             }

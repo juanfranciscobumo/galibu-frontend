@@ -68,54 +68,38 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `acceptDirectHire applies server job`() = runTest {
+    fun `proposePrice stores backend bid and refreshes job`() = runTest {
+        val user = createUser(id = "client_1", name = "Ana Client")
+        setCurrentUser(user)
         fakeJobDao.insertJob(
             createJob(
                 id = "job_1",
                 status = "NEGOTIATING",
                 professionalId = "pro_1",
-                professionalName = "Carlos Garcia",
-                clientId = "client_1",
-                counterOfferAmount = 80000.0
-            )
-        )
-        val accepted = createJob(
-            id = "job_1",
-            status = "ACCEPTED",
-            professionalId = "pro_1",
-            clientId = "client_1"
-        )
-        coEvery { mockApi.acceptDirect("job_1") } returns accepted
-
-        repository.acceptDirectHire("job_1")
-
-        val updatedJob = fakeJobDao.getJobByIdSync("job_1")
-        assertNotNull(updatedJob)
-        assertEquals("ACCEPTED", updatedJob?.status)
-
-        val msgList = fakeChatDao.getMessagesForJobFlow("job_1").first()
-        assertTrue(msgList.isEmpty()) // el mensaje de sistema lo crea el backend
-    }
-
-    @Test
-    fun `rejectDirectHire applies CANCELLED from server`() = runTest {
-        fakeJobDao.insertJob(
-            createJob(
-                id = "job_1",
-                status = "NEGOTIATING",
-                professionalId = "pro_1",
-                professionalName = "Carlos Garcia",
                 clientId = "client_1"
             )
         )
-        coEvery { mockApi.rejectDirect("job_1") } returns
-            createJob(id = "job_1", status = "CANCELLED", clientId = "client_1")
+        val apiBid = createBid(
+            id = "bid_job_1_client_1",
+            jobId = "job_1",
+            professionalId = "client_1",
+            professionalName = "Ana Client",
+            amount = 90000.0,
+            status = "PENDING"
+        )
+        coEvery { mockApi.proposePrice(any(), any()) } returns apiBid
+        coEvery { mockApi.getJob("job_1") } returns
+            createJob(id = "job_1", status = "NEGOTIATING", clientId = "client_1")
 
-        repository.rejectDirectHire("job_1")
+        repository.proposePrice("job_1", 90000.0)
+
+        val bidList = fakeBidDao.getBidsForJobFlow("job_1").first()
+        assertEquals(1, bidList.size)
+        assertEquals("bid_job_1_client_1", bidList[0].id)
+        assertEquals(90000.0, bidList[0].amount, 0.01)
 
         val updatedJob = fakeJobDao.getJobByIdSync("job_1")
         assertNotNull(updatedJob)
-        assertEquals("CANCELLED", updatedJob?.status)
     }
 
     @Test
@@ -128,38 +112,6 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
         assertNull(fakeJobDao.getJobByIdSync("job_1"))
         assertNull(fakeBidDao.getBidByIdSync("bid_1"))
         coVerify { mockApi.deleteJob("job_1") }
-    }
-
-    @Test
-    fun `submitCounterOfferDirectHire applies server counter`() = runTest {
-        fakeJobDao.insertJob(
-            createJob(
-                id = "job_1",
-                status = "NEGOTIATING",
-                professionalId = "pro_1",
-                clientId = "client_1"
-            )
-        )
-        val countered = createJob(
-            id = "job_1",
-            status = "NEGOTIATING",
-            professionalId = "pro_1",
-            clientId = "client_1",
-            counterOfferAmount = 90000.0,
-            counterOfferSender = "CLIENT"
-        )
-        coEvery { mockApi.counterJob(any(), any()) } returns countered
-
-        repository.submitCounterOfferDirectHire("job_1", 90000.0, isClient = true)
-
-        val updatedJob = fakeJobDao.getJobByIdSync("job_1")
-        assertNotNull(updatedJob)
-        assertEquals("NEGOTIATING", updatedJob?.status)
-        assertEquals(90000.0, updatedJob?.counterOfferAmount!!, 0.01)
-        assertEquals("CLIENT", updatedJob?.counterOfferSender)
-
-        val msgList = fakeChatDao.getMessagesForJobFlow("job_1").first()
-        assertTrue(msgList.isEmpty()) // el mensaje de sistema lo crea el backend
     }
 
     @Test
