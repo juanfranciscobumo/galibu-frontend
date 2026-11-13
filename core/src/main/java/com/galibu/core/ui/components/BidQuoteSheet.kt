@@ -22,9 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -37,6 +40,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
@@ -65,7 +70,8 @@ data class BidQuote(
     val visitRequired: Boolean,
     val visitFee: Double?,
     val materialsIncluded: Boolean,
-    val materialsCost: Double?
+    val materialsCost: Double?,
+    val visitScheduledAt: Long? = null
 )
 
 const val QUOTE_TYPE_ESTIMATED = "ESTIMATED"
@@ -105,6 +111,9 @@ fun BidQuoteSheet(
     var visitFeeRaw by remember { mutableStateOf("") }
     var materialsIncluded by remember { mutableStateOf(false) }
     var materialsCostRaw by remember { mutableStateOf("") }
+    var visitDateMillis by remember { mutableStateOf<Long?>(null) }
+    var visitTimeRaw by remember { mutableStateOf("09:00") }
+    var showVisitDatePicker by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
 
     val amount = PriceUtils.cleanPrice(amountRaw).toDoubleOrNull() ?: 0.0
@@ -278,6 +287,46 @@ fun BidQuoteSheet(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showVisitDatePicker = true },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = visitDateMillis?.let { formatVisitDate(it) } ?: "Elegir fecha",
+                            fontSize = 12.sp
+                        )
+                    }
+                    OutlinedTextField(
+                        value = visitTimeRaw,
+                        onValueChange = { input ->
+                            if (input.length <= 5) visitTimeRaw = input.filter { it.isDigit() || it == ':' }
+                        },
+                        label = { Text("Hora") },
+                        placeholder = { Text("09:00") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PolishBlue,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
+                            focusedLabelColor = PolishBlue,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
+                        modifier = Modifier.width(110.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -360,7 +409,10 @@ fun BidQuoteSheet(
                                     visitRequired = visitRequired,
                                     visitFee = if (visitRequired) visitFee else null,
                                     materialsIncluded = materialsIncluded,
-                                    materialsCost = if (materialsIncluded) materialsCost else null
+                                    materialsCost = if (materialsIncluded) materialsCost else null,
+                                    visitScheduledAt = if (visitRequired) {
+                                        combineVisitDateTime(visitDateMillis, visitTimeRaw)
+                                    } else null
                                 )
                             )
                         }
@@ -382,6 +434,45 @@ fun BidQuoteSheet(
             }
         }
     }
+
+    if (showVisitDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = visitDateMillis ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showVisitDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    visitDateMillis = datePickerState.selectedDateMillis
+                    showVisitDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showVisitDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun combineVisitDateTime(dateMillis: Long?, timeRaw: String): Long? {
+    if (dateMillis == null) return null
+    val parts = timeRaw.split(":")
+    val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 9
+    val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+    val calendar = java.util.Calendar.getInstance()
+    calendar.timeInMillis = dateMillis
+    calendar.set(java.util.Calendar.HOUR_OF_DAY, hour)
+    calendar.set(java.util.Calendar.MINUTE, minute)
+    calendar.set(java.util.Calendar.SECOND, 0)
+    calendar.set(java.util.Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
+}
+
+private fun formatVisitDate(millis: Long): String {
+    val formatter = java.text.SimpleDateFormat("dd MMM", java.util.Locale("es", "CO"))
+    return formatter.format(java.util.Date(millis))
 }
 
 @Composable
@@ -436,15 +527,31 @@ fun BidQuoteDetails(
     materialsIncluded: Boolean,
     materialsCost: Double?,
     counterRound: Int,
+    visitScheduledAt: Long? = null,
     modifier: Modifier = Modifier
 ) {
     val amountFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale.US) }
-    val chips = remember(quoteType, visitRequired, visitFee, materialsIncluded, materialsCost, counterRound) {
+    val visitFormat = remember {
+        java.text.SimpleDateFormat("dd MMM · HH:mm", java.util.Locale("es", "CO"))
+    }
+    val chips = remember(
+        quoteType, visitRequired, visitFee, materialsIncluded, materialsCost,
+        counterRound, visitScheduledAt
+    ) {
         buildList {
             add(Triple(quoteTypeLabel(quoteType), Color(0xFFEFF6FF), Color(0xFF2563EB)))
             if (visitRequired) {
                 val feeText = visitFee?.takeIf { it > 0 }?.let { " · $${amountFormat.format(it)}" } ?: ""
                 add(Triple("Requiere visita$feeText", Color(0xFFFEF3C7), Color(0xFFB45309)))
+            }
+            if (visitScheduledAt != null) {
+                add(
+                    Triple(
+                        "Visita: ${visitFormat.format(java.util.Date(visitScheduledAt))}",
+                        Color(0xFFFFEDD5),
+                        Color(0xFFC2410C)
+                    )
+                )
             }
             if (materialsIncluded) {
                 val costText = materialsCost?.takeIf { it > 0 }?.let { " · $${amountFormat.format(it)}" } ?: ""

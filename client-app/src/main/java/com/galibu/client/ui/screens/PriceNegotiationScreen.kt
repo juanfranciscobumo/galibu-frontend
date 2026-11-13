@@ -96,6 +96,7 @@ fun PriceNegotiationScreen(
     var portfolioProId by remember { mutableStateOf<String?>(null) }
     var portfolioProName by remember { mutableStateOf("") }
     var showProfileDetailForBid by remember { mutableStateOf<Bid?>(null) }
+    var historyBid by remember { mutableStateOf<Bid?>(null) }
     var showAssignedRatingsSheet by remember { mutableStateOf(false) }
     var assignedProRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
     val hasAssignedProfessional = selectedJob?.professionalId?.isNotEmpty() == true
@@ -1437,8 +1438,24 @@ fun PriceNegotiationScreen(
                                 materialsIncluded = bid.materialsIncluded,
                                 materialsCost = bid.materialsCost,
                                 counterRound = bid.counterRound,
+                                visitScheduledAt = bid.visitScheduledAt,
                                 modifier = Modifier.fillMaxWidth()
                             )
+
+                            if (bid.counterRound > 0) {
+                                TextButton(
+                                    onClick = { historyBid = bid },
+                                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Ver historial de rondas", fontSize = 11.sp)
+                                }
+                            }
 
                             // Status tags for counters
                             if (bid.status == "COUNTERED_BY_CLIENT") {
@@ -1703,6 +1720,14 @@ fun PriceNegotiationScreen(
             )
         }
 
+    }
+
+    historyBid?.let { bid ->
+        com.galibu.core.ui.components.BidHistorySheet(
+            bidId = bid.id,
+            viewModel = viewModel,
+            onDismiss = { historyBid = null }
+        )
     }
 
     if (showProfileDetailForBid != null) {

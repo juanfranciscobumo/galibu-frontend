@@ -172,6 +172,7 @@ data class Bid(
     val visitFee: Double? = null,
     val materialsIncluded: Boolean = false,
     val materialsCost: Double? = null,
+    val visitScheduledAt: Long? = null,
     val counterRound: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 ) : Serializable

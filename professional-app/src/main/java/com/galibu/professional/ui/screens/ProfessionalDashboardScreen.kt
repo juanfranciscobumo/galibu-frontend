@@ -1816,7 +1816,8 @@ fun ProfessionalDashboardScreen(
                         visitRequired = quote.visitRequired,
                         visitFee = quote.visitFee,
                         materialsIncluded = quote.materialsIncluded,
-                        materialsCost = quote.materialsCost
+                        materialsCost = quote.materialsCost,
+                        visitScheduledAt = quote.visitScheduledAt
                     )
                     showBidDialog = false
                 }

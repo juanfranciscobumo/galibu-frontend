@@ -101,6 +101,9 @@ interface ApiService {
     @GET("bids/mine")
     suspend fun myBids(): List<Bid>
 
+    @GET("bids/{bidId}/history")
+    suspend fun bidHistory(@Path("bidId") bidId: String): List<BidEventDto>
+
     @POST("jobs/{jobId}/bids")
     suspend fun submitBid(@Path("jobId") jobId: String, @Body req: SubmitBidDto): Bid
 

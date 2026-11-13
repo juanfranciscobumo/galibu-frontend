@@ -16,7 +16,7 @@ import com.galibu.core.data.model.*
         ChatMessage::class,
         AppNotification::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -160,6 +160,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v20 -> v21: fecha/hora agendada de la visita tecnica (nullable).
+         */
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bids ADD COLUMN visitScheduledAt INTEGER")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -175,7 +184,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_16_17,
                     MIGRATION_17_18,
                     MIGRATION_18_19,
-                    MIGRATION_19_20
+                    MIGRATION_19_20,
+                    MIGRATION_20_21
                 )
                 .fallbackToDestructiveMigration(true)
                 .build()

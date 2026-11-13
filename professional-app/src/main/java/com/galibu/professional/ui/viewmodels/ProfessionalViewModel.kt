@@ -153,6 +153,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         visitFee: Double? = null,
         materialsIncluded: Boolean = false,
         materialsCost: Double? = null,
+        visitScheduledAt: Long? = null,
         onComplete: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -168,7 +169,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                     visitRequired = visitRequired,
                     visitFee = visitFee,
                     materialsIncluded = materialsIncluded,
-                    materialsCost = materialsCost
+                    materialsCost = materialsCost,
+                    visitScheduledAt = visitScheduledAt
                 )
                 showSuccess("Oferta enviada al cliente.")
                 onComplete()
@@ -208,6 +210,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         visitFee: Double? = null,
         materialsIncluded: Boolean = false,
         materialsCost: Double? = null,
+        visitScheduledAt: Long? = null,
         onResult: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -223,7 +226,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                     visitRequired = visitRequired,
                     visitFee = visitFee,
                     materialsIncluded = materialsIncluded,
-                    materialsCost = materialsCost
+                    materialsCost = materialsCost,
+                    visitScheduledAt = visitScheduledAt
                 )
                 repository.refreshMe()
                 hideLoading()

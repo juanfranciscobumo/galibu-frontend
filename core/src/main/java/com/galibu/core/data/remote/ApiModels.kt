@@ -131,7 +131,22 @@ data class SubmitBidDto(
     val visitRequired: Boolean? = null,
     val visitFee: Double? = null,
     val materialsIncluded: Boolean? = null,
-    val materialsCost: Double? = null
+    val materialsCost: Double? = null,
+    val visitScheduledAt: Long? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class BidEventDto(
+    val id: String = "",
+    val bidId: String = "",
+    val jobId: String = "",
+    val authorId: String = "",
+    val authorRole: String = "",
+    val action: String = "",
+    val amount: Double = 0.0,
+    val round: Int = 0,
+    val note: String? = null,
+    val createdAt: Long = 0L
 )
 
 @JsonClass(generateAdapter = true)

@@ -598,6 +598,7 @@ fun ChatAndPaymentsScreen(
         // oferta y publica el mensaje de sistema.
         val chatJobStatus = job?.status?.uppercase()
         val canAgreePrice = !isChatLocked && jobId != null &&
+            job?.professionalId?.isNotBlank() == true &&
             (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING")
         if (canAgreePrice) {
             val lastBid = jobBids.maxByOrNull { it.createdAt }

@@ -12,6 +12,7 @@ import com.galibu.core.data.remote.AmountDto
 import com.galibu.core.data.remote.ApiService
 import com.galibu.core.data.remote.BoldCheckoutResponse
 import com.galibu.core.data.remote.BoldOrderStatusResponse
+import com.galibu.core.data.remote.BidEventDto
 import com.galibu.core.data.remote.CreateJobDto
 import com.galibu.core.data.remote.GoogleLoginRequestDto
 import com.galibu.core.data.remote.LoginRequestDto
@@ -1538,7 +1539,8 @@ class GalibuRepository(
         visitRequired: Boolean = false,
         visitFee: Double? = null,
         materialsIncluded: Boolean = false,
-        materialsCost: Double? = null
+        materialsCost: Double? = null,
+        visitScheduledAt: Long? = null
     ) = withContext(Dispatchers.IO) {
         RequestTrace.withTransaction {
             _currentUser.value ?: return@withTransaction
@@ -1553,7 +1555,8 @@ class GalibuRepository(
                         visitRequired = visitRequired,
                         visitFee = visitFee,
                         materialsIncluded = materialsIncluded,
-                        materialsCost = materialsCost
+                        materialsCost = materialsCost,
+                        visitScheduledAt = visitScheduledAt
                     )
                 )
             } catch (e: Exception) {
@@ -1578,11 +1581,20 @@ class GalibuRepository(
         }
     }
 
+    /** Historial de rondas de una oferta (backend). */
+    suspend fun getBidHistory(bidId: String): List<BidEventDto> = withContext(Dispatchers.IO) {
+        try {
+            apiService.bidHistory(bidId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "getBidHistory falló: ${e.localizedMessage}")
+            emptyList()
+        }
+    }
+
     /**
      * Counter offer negotiation in real-time
      */
-    suspend fun proposeCounterOffer(bidId: String, counterAmount: Double) = withContext(Dispatchers.IO) {
-        RequestTrace.withTransaction {
+    suspend fun proposeCounterOffer(bidId: String, counterAmount: Double) = withContext(Dispatchers.IO) {        RequestTrace.withTransaction {
             val updated = try {
                 apiService.counterBid(bidId, AmountDto(counterAmount))
             } catch (e: Exception) {
