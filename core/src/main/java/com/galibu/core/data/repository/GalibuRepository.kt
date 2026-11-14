@@ -1583,12 +1583,7 @@ class GalibuRepository(
 
     /** Historial de rondas de una oferta (backend). */
     suspend fun getBidHistory(bidId: String): List<BidEventDto> = withContext(Dispatchers.IO) {
-        try {
-            apiService.bidHistory(bidId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "getBidHistory falló: ${e.localizedMessage}")
-            emptyList()
-        }
+        apiService.bidHistory(bidId)
     }
 
     /**

@@ -267,15 +267,24 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
 
     fun addCategory(name: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val success = repository.addCategory(name)
-            if (success) {
-                try {
-                    com.galibu.core.data.AppGraph.updateCategories(repository.getCategories())
-                } catch (e: Exception) {
-                    Log.e("SharedViewModel", "Error reloading categories: ${e.localizedMessage}")
+            try {
+                showLoading("Agregando categoría...")
+                val success = repository.addCategory(name)
+                hideLoading()
+                if (success) {
+                    try {
+                        com.galibu.core.data.AppGraph.updateCategories(repository.getCategories())
+                    } catch (e: Exception) {
+                        Log.e("SharedViewModel", "Error reloading categories: ${e.localizedMessage}")
+                    }
                 }
+                onResult(success)
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("SharedViewModel", "Error adding category: ${e.localizedMessage}")
+                showError("No se pudo agregar la categoría: ${e.localizedMessage}")
+                onResult(false)
             }
-            onResult(success)
         }
     }
 

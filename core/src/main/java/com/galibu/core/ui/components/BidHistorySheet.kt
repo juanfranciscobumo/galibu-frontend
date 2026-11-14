@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,11 +23,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -40,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,15 +70,23 @@ fun BidHistorySheet(
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     var events by remember(bidId) { mutableStateOf<List<BidEventDto>>(emptyList()) }
     var loading by remember(bidId) { mutableStateOf(true) }
+    var error by remember(bidId) { mutableStateOf<String?>(null) }
+    var reloadKey by remember(bidId) { mutableStateOf(0) }
     val dateFormat = remember {
         SimpleDateFormat("dd MMM · HH:mm", Locale("es", "CO"))
     }
     val amountFormat = remember { NumberFormat.getNumberInstance(Locale.US) }
 
-    LaunchedEffect(bidId) {
+    LaunchedEffect(bidId, reloadKey) {
         loading = true
-        events = viewModel.repository.getBidHistory(bidId)
-        loading = false
+        error = null
+        try {
+            events = viewModel.repository.getBidHistory(bidId)
+        } catch (e: Exception) {
+            error = e.localizedMessage ?: "No se pudo cargar el historial"
+        } finally {
+            loading = false
+        }
     }
 
     ModalBottomSheet(
@@ -132,6 +145,38 @@ fun BidHistorySheet(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PolishBlue, strokeWidth = 2.dp)
+                }
+                error != null -> Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error cargando historial",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFDC2626)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = error.orEmpty(),
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { reloadKey++ },
+                            colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                            shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(vertical = 12.dp, horizontal = 24.dp)
+                        ) {
+                            Text("Reintentar", fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
                 }
                 events.isEmpty() -> Box(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
