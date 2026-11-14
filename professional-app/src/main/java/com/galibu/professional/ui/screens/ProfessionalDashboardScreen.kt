@@ -65,6 +65,7 @@ import com.galibu.core.ui.components.BoldCheckoutDialog
 import com.galibu.core.ui.components.GalibuRatingSheet
 import com.galibu.core.ui.components.PrimaryContactButton
 import com.galibu.core.ui.components.RequestSummaryCard
+import com.galibu.core.ui.components.BidHistorySheet
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishIce
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
@@ -296,6 +297,7 @@ fun ProfessionalDashboardScreen(
     // Dialog trigger states
     var showBidDialog by remember { mutableStateOf(false) }
     var selectedJobForBid by remember { mutableStateOf<ProDisplayJob?>(null) }
+    var historyBid by remember { mutableStateOf<com.galibu.core.data.model.Bid?>(null) }
 
     var showPlanSheet by remember { mutableStateOf(false) }
     var selectedPlan by rememberSaveable { mutableStateOf("MONTHLY") }
@@ -896,6 +898,7 @@ fun ProfessionalDashboardScreen(
                                     balance = currentUser?.balance ?: 0.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
+                                    onOpenHistory = { historyBid = myBid },
                                     onAcceptBidCounter = {
                                         myBid?.let { bid -> viewModel.acceptBid(bid.id) }
                                     },
@@ -951,6 +954,7 @@ fun ProfessionalDashboardScreen(
                                     balance = currentUser?.balance ?: 0.0,
                                     hasBid = job.id in jobIdsWithBids,
                                     myBid = myBid,
+                                    onOpenHistory = { historyBid = myBid },
                                     onAcceptBidCounter = {
                                         myBid?.let { bid -> viewModel.acceptBid(bid.id) }
                                     },
@@ -1823,6 +1827,14 @@ fun ProfessionalDashboardScreen(
                 }
             },
             onDismiss = { showBidDialog = false }
+        )
+    }
+
+    if (historyBid != null) {
+        com.galibu.core.ui.components.BidHistorySheet(
+            bidId = historyBid!!.id,
+            viewModel = viewModel,
+            onDismiss = { historyBid = null }
         )
     }
 
@@ -3054,7 +3066,8 @@ fun JobRequestItem(
     myBid: com.galibu.core.data.model.Bid? = null,
     onAcceptBidCounter: (() -> Unit)? = null,
     onProposeBidCounter: ((Double) -> Unit)? = null,
-    onRejectBidCounter: (() -> Unit)? = null
+    onRejectBidCounter: (() -> Unit)? = null,
+    onOpenHistory: (() -> Unit)? = null
 ) {
     val isBidCountered = myBid != null && myBid.status == "COUNTERED_BY_CLIENT"
     val isBidPending = myBid != null && myBid.status == "COUNTERED_BY_PROFESSIONAL"
@@ -3101,6 +3114,32 @@ fun JobRequestItem(
     }
     val cardPrice = job.suggestedPrice?.takeIf { it > 0 }
         ?: if (job.isDirectHire || (job.source ?: "PUBLISH") == "DIRECTORY") finalPriceVal.takeIf { it > 0 } else null
+
+    if (myBid != null && myBid.counterRound > 0 && onOpenHistory != null) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(
+                onClick = onOpenHistory,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Ver historial de rondas (${myBid.counterRound})",
+                        fontSize = 11.sp,
+                        color = Color(0xFF7E22CE)
+                    )
+                }
+            }
+        }
+    }
 
     RequestSummaryCard(
         timeAgo = formatTimeAgo(job.createdAt),
