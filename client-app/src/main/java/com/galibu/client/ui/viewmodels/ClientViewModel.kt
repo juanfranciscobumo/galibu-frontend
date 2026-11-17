@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.galibu.core.data.model.*
-import com.galibu.client.ui.util.BidPushHelper
 import com.galibu.core.ui.viewmodels.SharedViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,17 +19,7 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
 
     /** Push del sistema ante aceptar/iniciar/finalizar/calificar (abre el detalle). */
     override fun dispatchEventPush(notif: com.galibu.core.data.model.AppNotification) {
-        try {
-            BidPushHelper.showEventPush(
-                getApplication(),
-                notif.title,
-                notif.body,
-                notif.jobId,
-                com.galibu.client.MainActivity::class.java
-            )
-        } catch (e: Exception) {
-            Log.e("ClientViewModel", "Falla mostrar push de evento: ${e.localizedMessage}")
-        }
+        // Push de ofertas eliminadas; se ignora.
     }
 
     /**
@@ -38,17 +27,8 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
      * Se alimenta de los bids locales (ver [refreshClientBids]).
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val clientBidsByJob: StateFlow<Map<String, Int>> = combine(allJobs, currentUser) { jobs, user ->
-        jobs.filter { it.clientId == user?.id && !it.isDirectChat() }.map { it.id }
-    }.flatMapLatest { jobIds ->
-        if (jobIds.isEmpty()) {
-            flowOf(emptyMap())
-        } else {
-            combine(jobIds.map { id ->
-                repository.getBidsForJob(id).map { bids -> id to bids.size }
-            }) { pairs -> pairs.toMap() }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    val clientBidsByJob: StateFlow<Map<String, Int>> =
+        flowOf(emptyMap<String, Int>()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap<String, Int>())
 
     /**
      * Baja del backend las ofertas de cada solicitud propia (para el contador y el detalle).
@@ -56,36 +36,7 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
      * con el detalle de la oferta.
      */
     fun refreshClientBids(jobIds: List<String>) {
-        viewModelScope.launch {
-            val context = getApplication<Application>()
-            jobIds.forEach { id ->
-                try {
-                    val before = repository.getBidsForJobSync(id).map { it.id }.toSet()
-                    repository.refreshBidsForJob(id)
-                    val after = repository.getBidsForJobSync(id)
-                    val userId = currentUser.value?.id
-                    val job = allJobs.value.find { it.id == id }
-                    after.filter { it.id !in before }.forEach { bid ->
-                        if (BidPushHelper.isAlreadyNotified(context, bid.id)) return@forEach
-                        BidPushHelper.markBidNotified(context, bid.id)
-                        // Solo ofertas recientes: evita spam de bids viejos en el primer sync.
-                        val createdMs = if (bid.createdAt < 1_000_000_000_000L) bid.createdAt * 1000 else bid.createdAt
-                        val isRecent = System.currentTimeMillis() - createdMs < 45 * 60 * 1000L
-                        if (isRecent && userId != null && job != null && job.clientId == userId &&
-                            bid.professionalId != userId
-                        ) {
-                            val amountText = java.text.NumberFormat
-                                .getNumberInstance(java.util.Locale.US)
-                                .format(bid.amount)
-                            val notif = repository.notifyNewBidOffer(userId, job, bid, amountText)
-                            BidPushHelper.showNewOfferPush(context, notif.title, notif.body, job.id)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("ClientViewModel", "Falla refrescar ofertas de $id: ${e.localizedMessage}")
-                }
-            }
-        }
+        // Modelo de ofertas eliminado: no hay ofertas que refrescar.
     }
 
     fun createJobRequest(category: String, title: String, description: String, budget: Double, address: String, department: String = "Bogotá D.C.", municipality: String = "Bogotá", suggestedPrice: Double? = null,

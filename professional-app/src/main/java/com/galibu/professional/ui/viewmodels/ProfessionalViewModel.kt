@@ -156,47 +156,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         visitScheduledAt: Long? = null,
         onComplete: () -> Unit = {}
     ) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando tu propuesta de servicio...")
-                kotlinx.coroutines.delay(1000)
-                repository.submitBid(
-                    jobId,
-                    amount,
-                    comment,
-                    durationHours,
-                    quoteType = quoteType,
-                    visitRequired = visitRequired,
-                    visitFee = visitFee,
-                    materialsIncluded = materialsIncluded,
-                    materialsCost = materialsCost,
-                    visitScheduledAt = visitScheduledAt
-                )
-                showSuccess("Oferta enviada al cliente.")
-                onComplete()
-            } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "Falla enviar propuesta: ${e.localizedMessage}")
-                val msg = e.localizedMessage ?: ""
-                when {
-                    msg.contains("403") || msg.contains("Solo un profesional", ignoreCase = true) ->
-                        showError("Solo un perfil profesional puede enviar ofertas.")
-                    msg.contains("402") || msg.contains("Galibu Pro", ignoreCase = true) ||
-                        msg.contains("servicios gratis", ignoreCase = true) ->
-                        handleProError(msg, "No se pudo enviar la oferta.")
-                    msg.contains("409") || msg.contains("propia solicitud", ignoreCase = true) ->
-                        showError("No puedes ofertar en tu propia solicitud.")
-                    msg.contains("409") || msg.contains("no admite ofertas", ignoreCase = true) ->
-                        showError("La solicitud ya no admite ofertas en su estado actual.")
-                    msg.contains("Unable to resolve host", ignoreCase = true) ||
-                        msg.contains("timeout", ignoreCase = true) ||
-                        msg.contains("IOException", ignoreCase = true) ->
-                        showError("Sin conexión: no se pudo enviar la oferta. Inténtalo de nuevo.")
-                    else -> showError("No se pudo enviar la oferta: ${msg.ifBlank { "error desconocido" }}")
-                }
-            } finally {
-                hideLoading()
-            }
-        }
+        // Modelo de ofertas eliminado: el precio se acuerda por el chat.
+        onComplete()
     }
 
     /** El profesional cotiza (envía su oferta) en una contratación directa (job NEGOTIATING asignado). */
@@ -213,35 +174,8 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         visitScheduledAt: Long? = null,
         onResult: () -> Unit = {}
     ) {
-        viewModelScope.launch {
-            try {
-                showLoading("Enviando cotización...")
-                kotlinx.coroutines.delay(1000)
-                repository.submitBid(
-                    jobId,
-                    amount,
-                    comment,
-                    durationHours,
-                    quoteType = quoteType,
-                    visitRequired = visitRequired,
-                    visitFee = visitFee,
-                    materialsIncluded = materialsIncluded,
-                    materialsCost = materialsCost,
-                    visitScheduledAt = visitScheduledAt
-                )
-                repository.refreshMe()
-                hideLoading()
-                onResult()
-            } catch (e: Exception) {
-                hideLoading()
-                val msg = e.localizedMessage ?: ""
-                handleProError(
-                    msg,
-                    "No se pudo enviar la cotización. Verifica tu conexión e inténtalo nuevamente."
-                )
-                Log.e("ProfessionalViewModel", "Error al enviar cotización directa: ${e.localizedMessage}")
-            }
-        }
+        // Modelo de ofertas eliminado: el precio se acuerda por el chat.
+        onResult()
     }
 
     /** El profesional declina una invitación de contratación directa (cancela el job). */
@@ -310,40 +244,11 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
     }
 
     fun acceptBid(bidId: String) {
-        viewModelScope.launch {
-            try {
-                showLoading("Aceptando cotización de servicio...")
-                kotlinx.coroutines.delay(1200)
-                repository.acceptBid(bidId)
-                repository.refreshMe()
-                showSuccess("Oferta aceptada correctamente.")
-            } catch (e: Exception) {
-                val msg = e.localizedMessage ?: ""
-                handleProError(
-                    msg,
-                    "No se pudo aceptar la oferta. Verifica tu conexión e inténtalo nuevamente."
-                )
-                Log.e("ProfessionalViewModel", "Falla aceptar propuesta: ${e.localizedMessage}")
-            } finally {
-                hideLoading()
-            }
-        }
+        // Modelo de ofertas eliminado: la contratación se define por el chat.
     }
 
     fun rejectBid(bidId: String) {
-        viewModelScope.launch {
-            try {
-                showLoading("Rechazando cotización de servicio...")
-                kotlinx.coroutines.delay(1000)
-                repository.rejectBid(bidId)
-                showSuccess("Oferta rechazada.")
-            } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "Falla rechazar propuesta: ${e.localizedMessage}")
-                showError("No se pudo rechazar la oferta. Verifica tu conexión e inténtalo nuevamente.")
-            } finally {
-                hideLoading()
-            }
-        }
+        // Modelo de ofertas eliminado: la contratación se define por el chat.
     }
 
     fun proposeCounterOffer(bidId: String, amount: Double) {
