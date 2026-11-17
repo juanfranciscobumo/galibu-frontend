@@ -34,3 +34,10 @@ val StatusAccepted = PolishGreen
 val StatusCompleted = Color(0xFF702080)
 val StatusCancelled = Color(0xFFBA1A1A)
 
+
+// Semantic status colors (homologated aliases)
+val StatusSuccess = PolishGreen
+val StatusWarning = Color(0xFFF59E0B)
+val StatusError = Color(0xFFDC2626)
+val StatusInfo = PolishBlue
+val StatusSuccessSoft = Color(0xFFDCFCE7)

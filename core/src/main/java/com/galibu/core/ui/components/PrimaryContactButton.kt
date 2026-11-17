@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.galibu.core.ui.theme.PolishBlue
 
 /**
  * Botón "Contactar" homologado para todos los módulos.
@@ -30,7 +31,7 @@ fun PrimaryContactButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     text: String = "Contactar",
-    containerColor: Color = Color(0xFF0066FF),
+    containerColor: Color = PolishBlue,
     enabled: Boolean = true
 ) {
     OutlinedButton(

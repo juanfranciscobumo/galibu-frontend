@@ -40,6 +40,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBlue
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 
 /**
  * Pantalla de chat y pagos compartida entre el modo cliente y el modo profesional.
@@ -144,7 +150,6 @@ fun ChatAndPaymentsScreen(
     var showReviewDialog by remember { mutableStateOf(false) }
     var showProFinalizeConfirm by remember { mutableStateOf(false) }
     var isSavingState by remember { mutableStateOf(false) }
-    var showAgreePriceSheet by remember(jobId) { mutableStateOf(false) }
 
     val quickMessages = listOf(
         "Estoy en camino 🚗",
@@ -183,7 +188,7 @@ fun ChatAndPaymentsScreen(
     // Helper functions inside composable
     fun getAvatarInitialsAndColor(name: String): Pair<String, Color> {
         val cleanName = name.trim()
-        if (cleanName.startsWith("Carlos")) return "CM" to Color(0xFF0066FF)
+        if (cleanName.startsWith("Carlos")) return "CM" to PolishBlue
         if (cleanName.startsWith("Ana")) return "AT" to Color(0xFFFA7FC1)
         val words = cleanName.split("\\s+".toRegex())
         val initials = if (words.size >= 2) {
@@ -339,7 +344,7 @@ fun ChatAndPaymentsScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = targetUserName,
-                    color = Color(0xFF0F172A),
+                    color = PolishDark,
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     maxLines = 1
@@ -353,7 +358,7 @@ fun ChatAndPaymentsScreen(
                     } else {
                         when (job?.status) {
                             "ACCEPTED" -> Pair("Servicio activo", Color(0xFF22C55E))
-                            "IN_PROGRESS" -> Pair("En progreso", Color(0xFF16A34A))
+                            "IN_PROGRESS" -> Pair("En progreso", PolishGreen)
                             "PENDING_RATING" -> Pair("Por calificar", Color(0xFFD97706))
                             "COMPLETED" -> Pair("Finalizado", Color(0xFF94A3B8))
                             "OPEN", "NEGOTIATING", "PENDING", "COUNTERED_BY_CLIENT", "COUNTERED_BY_PROFESSIONAL" -> Pair("En negociación", Color(0xFF3B82F6))
@@ -369,7 +374,7 @@ fun ChatAndPaymentsScreen(
                     )
                     Text(
                         text = statusText,
-                        color = Color(0xFF64748B),
+                        color = PolishGrayText,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -465,7 +470,7 @@ fun ChatAndPaymentsScreen(
                                             )
                                         )
                                         .background(
-                                            if (isOwn) Color(0xFF0066FF) else Color.White
+                                            if (isOwn) PolishBlue else Color.White
                                         )
                                         .then(
                                             if (!isOwn) {
@@ -517,7 +522,7 @@ fun ChatAndPaymentsScreen(
                                         if (msg.read) {
                                             Text(
                                                 text = "✓✓ leído",
-                                                color = Color(0xFF0066FF),
+                                                color = PolishBlue,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -576,12 +581,12 @@ fun ChatAndPaymentsScreen(
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(12.dp),
                                             strokeWidth = 2.dp,
-                                            color = Color(0xFF0066FF)
+                                            color = PolishBlue
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = "$partnerName está escribiendo...",
-                                            color = Color(0xFF64748B),
+                                            color = PolishGrayText,
                                             fontSize = 13.sp
                                         )
                                     }
@@ -637,14 +642,6 @@ fun ChatAndPaymentsScreen(
                         fontSize = 11.sp
                     )
                 }
-                Button(
-                    onClick = { showAgreePriceSheet = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D4ED8)),
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                ) {
-                    Text("Proponer", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
             }
         }
 
@@ -662,11 +659,11 @@ fun ChatAndPaymentsScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color.White)
-                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                            .border(1.dp, PolishBorder, RoundedCornerShape(20.dp))
                             .clickable { viewModel.sendChatMessage(item) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(item, color = Color(0xFF0066FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(item, color = PolishBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -683,7 +680,7 @@ fun ChatAndPaymentsScreen(
             ) {
                 Text(
                     text = "Chat finalizado. Puedes ver el historial, pero ya no se pueden enviar mensajes.",
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
                 )
@@ -704,14 +701,14 @@ fun ChatAndPaymentsScreen(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .border(width = 1.dp, color = Color(0xFFE2E8F0), shape = RoundedCornerShape(12.dp))
+                    .border(width = 1.dp, color = PolishBorder, shape = RoundedCornerShape(12.dp))
                     .clickable { showImageSourceDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Image,
                     contentDescription = "Adjuntar Foto",
-                    tint = Color(0xFF64748B),
+                    tint = PolishGrayText,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -725,10 +722,10 @@ fun ChatAndPaymentsScreen(
                 placeholder = { Text("Escribe un mensaje...", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                 maxLines = 3,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFE2E8F0),
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                    focusedContainerColor = Color(0xFFF8FAFC),
-                    unfocusedContainerColor = Color(0xFFF8FAFC),
+                    focusedBorderColor = PolishBorder,
+                    unfocusedBorderColor = PolishBorder,
+                    focusedContainerColor = PolishBg,
+                    unfocusedContainerColor = PolishBg,
                     focusedTextColor = Color(0xFF1E293B),
                     unfocusedTextColor = Color(0xFF1E293B)
                 ),
@@ -745,7 +742,7 @@ fun ChatAndPaymentsScreen(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0066FF))
+                    .background(PolishBlue)
                     .clickable {
                         val input = messageText.trim()
                         if (input.isNotEmpty()) {
@@ -766,28 +763,6 @@ fun ChatAndPaymentsScreen(
         }
     }
 
-    // Hoja para acordar el precio desde el chat.
-    if (showAgreePriceSheet && jobId != null) {
-        val lastBid = jobBids.maxByOrNull { it.createdAt }
-        val referencePrice = lastBid?.amount ?: job?.finalPrice ?: job?.budgetMin ?: 0.0
-        com.galibu.core.ui.components.CounterOfferSheet(
-            offerLabel = if (lastBid != null) "Última propuesta:" else "Referencia:",
-            descriptionText = "Propón un precio para este servicio. El otro participante podrá aceptarlo o hacer una contraoferta.",
-            currentOffer = referencePrice,
-            category = job?.category?.takeIf { it.isNotBlank() } ?: "Servicio",
-            city = job?.municipality?.takeIf { it.isNotBlank() } ?: "Bogotá",
-            initialAmount = referencePrice,
-            title = "Acordar precio",
-            submitLabel = "Enviar propuesta",
-            onDismiss = { showAgreePriceSheet = false },
-            onSubmit = { amount ->
-                jobId?.let { targetJobId ->
-                    viewModel.proposePrice(targetJobId, amount)
-                }
-                showAgreePriceSheet = false
-            }
-        )
-    }
 
     // Confirmación de finalización. El pago se acuerda por fuera de la app:
     // aquí solo se cierra el trabajo y se habilita la calificación.

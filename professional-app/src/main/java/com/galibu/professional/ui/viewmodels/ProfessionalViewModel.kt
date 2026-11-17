@@ -252,18 +252,6 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
     }
 
     fun proposeCounterOffer(bidId: String, amount: Double) {
-        viewModelScope.launch {
-            try {
-                showLoading("Proponiendo nueva tarifa de negociación...")
-                kotlinx.coroutines.delay(1000)
-                repository.proposeCounterOffer(bidId, amount)
-                showSuccess("Contraoferta enviada al cliente.")
-            } catch (e: Exception) {
-                Log.e("ProfessionalViewModel", "Falla contraoferta: ${e.localizedMessage}")
-                showError("No se pudo enviar la contraoferta. Verifica tu conexión e inténtalo nuevamente.")
-            } finally {
-                hideLoading()
-            }
-        }
+        // Modelo de ofertas eliminado.
     }
 }

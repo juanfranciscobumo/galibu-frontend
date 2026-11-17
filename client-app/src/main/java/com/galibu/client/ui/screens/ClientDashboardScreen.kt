@@ -64,7 +64,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Badge
@@ -189,7 +188,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -206,7 +204,6 @@ import com.galibu.core.ui.utils.GpsFix
 import com.galibu.core.ui.utils.getCurrentGpsLocation
 import com.galibu.core.ui.utils.isDeviceLocationEnabled
 import com.galibu.core.ui.utils.matchCatalogName
-import com.galibu.core.data.model.Bid
 import com.galibu.core.data.remote.RatingDto
 import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.JobRequest
@@ -331,8 +328,8 @@ private fun getCategoryColor(category: String): Color {
         "carpintería", "carpinteria" -> Color(0xFFD97706) // Amber-600
         "pintura" -> Color(0xFFDB2777)                   // Pink-600
         "albañilería", "albanileria" -> Color(0xFF4F46E5) // Indigo-600
-        "jardinería", "jardineria" -> Color(0xFF16A34A)  // Green-600
-        "cerrajería", "cerrajeria" -> Color(0xFF64748B)  // Slate-500
+        "jardinería", "jardineria" -> PolishGreen  // Green-600
+        "cerrajería", "cerrajeria" -> PolishGrayText  // Slate-500
         "fumigación", "fumigacion" -> Color(0xFF7C3AED)  // Violet-600
         "mecánica", "mecanica" -> Color(0xFFDC2626)      // Red-600
         "limpieza" -> Color(0xFF0891B2)                  // Cyan-600
@@ -1269,7 +1266,7 @@ fun HistorialTab(
                     Spacer(modifier = Modifier.height(4.dp))
                     Row {
                         (1..5).forEach { i ->
-                            Icon(Icons.Default.Star, contentDescription = null, tint = if (i <= avg.toInt()) Color(0xFFF59E0B) else Color(0xFFE2E8F0), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Star, contentDescription = null, tint = if (i <= avg.toInt()) Color(0xFFF59E0B) else PolishBorder, modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -1331,7 +1328,7 @@ fun HistorialTab(
                                 Icon(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = null,
-                                    tint = if (i <= rating.stars) Color(0xFFF59E0B) else Color(0xFFE2E8F0),
+                                    tint = if (i <= rating.stars) Color(0xFFF59E0B) else PolishBorder,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1372,7 +1369,7 @@ private fun HistorialStarsRow(stars: Float) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = if (i <= stars.toInt()) Color(0xFFF59E0B) else Color(0xFFE2E8F0),
+                tint = if (i <= stars.toInt()) Color(0xFFF59E0B) else PolishBorder,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -1688,7 +1685,7 @@ fun HomeJobRequestCard(
 ) {
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
-        "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), Color(0xFF16A34A))
+        "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), PolishGreen)
         "PENDING_RATING", "PENDIENTE_CALIFICACION" -> if (job.clientRatingOfPro == null) {
             Triple("Por calificar", Color(0xFFFFFBEB), Color(0xFFD97706))
         } else {
@@ -1699,7 +1696,7 @@ fun HomeJobRequestCard(
         } else {
             Triple("Esperando cierre", Color(0xFFEFF6FF), Color(0xFF2563EB))
         }
-        "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), Color(0xFF64748B))
+        "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), PolishGrayText)
         else -> Triple("En espera", Color(0xFFFFFBEB), Color(0xFFD97706))
     }
     val timeAgo = formatTimestamp(job.createdAt)
@@ -1937,7 +1934,7 @@ fun ProfessionalRowCard(
                 Icon(
                     Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = Color(0xFF64748B),
+                    tint = PolishGrayText,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -2287,6 +2284,7 @@ fun PerfilTab(
         onChangePassword = onChangePassword,
         onSupport = { showSupportDialog = true },
         onSwitchRole = onSwitchRole,
+        versionText = "v${com.galibu.client.BuildConfig.VERSION_NAME}",
         onActivateProfessional = onActivateProfessional,
         onLogout = onLogout,
         onDeleteAccount = onDeleteAccount
@@ -2506,7 +2504,7 @@ fun ProfessionalDetailScreen(
                         )
                         Text(
                             text = " ($reviewsCount reseñas)",
-                            color = Color(0xFF64748B),
+                            color = PolishGrayText,
                             fontSize = 14.sp
                         )
                     }
@@ -2516,7 +2514,7 @@ fun ProfessionalDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFE0E7FF))
+                                .background(PolishIce)
                                 .padding(horizontal = 10.dp, vertical = 5.dp)
                         ) {
                             Icon(
@@ -2541,7 +2539,7 @@ fun ProfessionalDetailScreen(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Ver reseñas",
-                    tint = Color(0xFF64748B),
+                    tint = PolishGrayText,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -2611,7 +2609,7 @@ fun ProfessionalDetailScreen(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = proWorkDescription,
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     fontSize = 13.sp
                 )
             }
@@ -2671,13 +2669,13 @@ fun ProfessionalDetailScreen(
                     Text(
                         text = "COP",
                         fontSize = 13.sp,
-                        color = Color(0xFF64748B),
+                        color = PolishGrayText,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
                 Text(
                     text = "Tarifa base del profesional",
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     fontSize = 12.sp
                 )
             }
@@ -2777,7 +2775,7 @@ fun ProfessionalDetailScreen(
                         )
                         Text(
                             text = professional.name,
-                            color = Color(0xFF64748B),
+                            color = PolishGrayText,
                             fontSize = 13.sp
                         )
                     }
@@ -2786,7 +2784,7 @@ fun ProfessionalDetailScreen(
                 if (proRatings.isEmpty()) {
                     Text(
                         text = "Aún no tiene reseñas.",
-                        color = Color(0xFF64748B),
+                        color = PolishGrayText,
                         fontSize = 14.sp
                     )
                 } else {
@@ -2794,7 +2792,7 @@ fun ProfessionalDetailScreen(
                     proRatings.forEach { rating ->
                         val sheetReview = rating.comment
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            colors = CardDefaults.cardColors(containerColor = PolishBg),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2806,7 +2804,7 @@ fun ProfessionalDetailScreen(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            tint = if (i <= rating.stars) Color(0xFFF59E0B) else Color(0xFFE2E8F0),
+                                            tint = if (i <= rating.stars) Color(0xFFF59E0B) else PolishBorder,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -2814,7 +2812,7 @@ fun ProfessionalDetailScreen(
                                     Text(
                                         text = dateFmt.format(java.util.Date(rating.createdAt)),
                                         fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
+                                        color = PolishGrayText
                                     )
                                 }
                                 if (!sheetReview.isNullOrBlank()) {
@@ -2861,7 +2859,7 @@ fun ProfessionalDetailScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Solicitud para ${professional.name}",
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -2890,7 +2888,7 @@ fun ProfessionalDetailScreen(
                         } else {
                             Text(
                                 text = "Déjalo vacío si prefieres que el profesional te cotice.",
-                                color = Color(0xFF64748B)
+                                color = PolishGrayText
                             )
                         }
                     },
@@ -4063,8 +4061,8 @@ fun EditProfileScreen(
                             unfocusedContainerColor = Color(0xFFF1F5F9),
                             focusedBorderColor = PolishBorder,
                             unfocusedBorderColor = PolishBorder,
-                            focusedTextColor = Color(0xFF64748B),
-                            unfocusedTextColor = Color(0xFF64748B)
+                            focusedTextColor = PolishGrayText,
+                            unfocusedTextColor = PolishGrayText
                         )
                     )
                 }
@@ -5754,211 +5752,6 @@ fun CounterOfferDialog(
             }
         }
     )
-}
-
-@Composable
-fun BidCard(
-    bid: Bid,
-    onAccept: () -> Unit,
-    onReject: () -> Unit,
-    onCounterOffer: () -> Unit,
-    onChat: () -> Unit
-) {
-    val photoModel = remember(bid.professionalPhoto) { decodePhotoModel(bid.professionalPhoto) }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = PolishCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (photoModel != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(photoModel)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = bid.professionalName,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, PolishBlue, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(PolishIce)
-                            .border(3.dp, PolishBlue, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = PolishBlue,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = bid.professionalName,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PolishDark
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = String.format("%.1f", bid.professionalRating),
-                            fontSize = 13.sp,
-                            color = PolishGrayText
-                        )
-                    }
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = formatCurrency(bid.amount),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PolishBlue
-                    )
-                    if (bid.durationHours != null) {
-                        Text(
-                            text = "${bid.durationHours}h estimadas",
-                            fontSize = 12.sp,
-                            color = PolishGrayText
-                        )
-                    }
-                }
-            }
-
-            if (bid.comment != null && bid.comment.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = bid.comment,
-                    fontSize = 13.sp,
-                    color = PolishGrayText,
-                    lineHeight = 18.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            val lcoAmount = bid.lastCounterOfferAmount
-            if (lcoAmount != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFFFFF3E0)
-                ) {
-                    Text(
-                        text = "Contraoferta: ${formatCurrency(lcoAmount)}",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 12.sp,
-                        color = Color(0xFFE65100),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            when (bid.status.uppercase()) {
-                "PENDING", "PENDIENTE" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onReject,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE53935)),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE53935))
-                            )
-                        ) {
-                            Text(text = "Rechazar", fontSize = 13.sp)
-                        }
-                        OutlinedButton(
-                            onClick = onCounterOffer,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF9800)),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFFF9800))
-                            )
-                        ) {
-                            Text(text = "Contraoferta", fontSize = 13.sp)
-                        }
-                        Button(
-                            onClick = onAccept,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Aceptar",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-                "ACCEPTED", "ACEPTADO" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onChat,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Chat,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Chatear", fontSize = 13.sp)
-                        }
-                    }
-                }
-                "REJECTED", "RECHAZADA" -> {
-                    Text(
-                        text = "Oferta rechazada",
-                        fontSize = 13.sp,
-                        color = Color(0xFFE53935),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

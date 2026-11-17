@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.theme.*
+import com.galibu.core.ui.theme.PolishDark
 
 /**
  * Tarjeta de opción de perfil compartida entre el modo cliente y el modo profesional.
@@ -31,7 +32,7 @@ fun ProfileOptionCard(
     iconBgColor: Color,
     iconColor: Color,
     title: String,
-    titleColor: Color = Color(0xFF0F172A),
+    titleColor: Color = PolishDark,
     showChevron: Boolean = true,
     chevronColor: Color = Color(0xFF94A3B8),
     isProminent: Boolean = false,

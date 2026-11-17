@@ -68,6 +68,7 @@ import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishBorder
 import com.galibu.core.ui.theme.PolishDark
 import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 
 /**
  * Identidad visual única para las categorías de servicio.
@@ -88,8 +89,8 @@ fun categoryVisual(category: String): CategoryVisual {
         key.contains("carpinter") -> CategoryVisual(Icons.Default.Hardware, Color(0xFFD97706))
         key.contains("pintura") -> CategoryVisual(Icons.Default.FormatPaint, Color(0xFFDB2777))
         key.contains("alba") -> CategoryVisual(Icons.Default.Construction, Color(0xFF4F46E5))
-        key.contains("jardin") -> CategoryVisual(Icons.Default.Eco, Color(0xFF16A34A))
-        key.contains("cerraj") -> CategoryVisual(Icons.Default.Key, Color(0xFF64748B))
+        key.contains("jardin") -> CategoryVisual(Icons.Default.Eco, PolishGreen)
+        key.contains("cerraj") -> CategoryVisual(Icons.Default.Key, PolishGrayText)
         key.contains("fumig") -> CategoryVisual(Icons.Default.BugReport, Color(0xFF7C3AED))
         key.contains("mecan") -> CategoryVisual(Icons.Default.Build, Color(0xFFDC2626))
         key.contains("soldad") -> CategoryVisual(Icons.Default.Whatshot, Color(0xFFB45309))
@@ -101,7 +102,7 @@ fun categoryVisual(category: String): CategoryVisual {
             CategoryVisual(Icons.Default.Home, Color(0xFF92400E))
         key.contains("tecnolog") || key.contains("comput") ->
             CategoryVisual(Icons.Default.Computer, Color(0xFF4F46E5))
-        key.contains("otro") -> CategoryVisual(Icons.Default.Category, Color(0xFF64748B))
+        key.contains("otro") -> CategoryVisual(Icons.Default.Category, PolishGrayText)
         else -> CategoryVisual(Icons.Default.Build, PolishBlue)
     }
 }

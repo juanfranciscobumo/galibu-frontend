@@ -75,15 +75,20 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 
 // Clean premium Light Palette matching the high-fidelity screenshots 
-private val proBg = Color(0xFFF8FAFC)      // Ultra-clean light gray/blue page background
+private val proBg = PolishBg      // Ultra-clean light gray/blue page background
 private val proCardBg = Color(0xFFFFFFFF)  // Solid crisp white cards
-private val proPrimary = Color(0xFF0066FF)  // Eye-catching brand blue
-private val proTextMain = Color(0xFF0F172A) // Sleek slate near-black primary texts
-private val proTextSec = Color(0xFF64748B)  // Muted gray support texts
-private val proBorder = Color(0xFFE2E8F0)   // Light gray borders for dividers
-private val proGreenStyle = Color(0xFF16A34A)// Active/Verified emerald green
+private val proPrimary = PolishBlue  // Eye-catching brand blue
+private val proTextMain = PolishDark // Sleek slate near-black primary texts
+private val proTextSec = PolishGrayText  // Muted gray support texts
+private val proBorder = PolishBorder   // Light gray borders for dividers
+private val proGreenStyle = PolishGreen// Active/Verified emerald green
 private val proRedStyle = Color(0xFFDC2626)  // Warning/Critical red
 private val proOrangeStyle = Color(0xFFEAB308)// Gold Star Rating yellow
 
@@ -663,12 +668,12 @@ fun ProfessionalDashboardScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(20.dp))
-                                        .background(Color(0xFF16A34A).copy(alpha = 0.1f))
+                                        .background(PolishGreen.copy(alpha = 0.1f))
                                         .padding(horizontal = 12.dp, vertical = 5.dp)
                                 ) {
                                     Text(
                                         text = "Profesionales",
-                                        color = Color(0xFF16A34A),
+                                        color = PolishGreen,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -737,7 +742,7 @@ fun ProfessionalDashboardScreen(
                                     Icon(
                                         Icons.Default.Notifications,
                                         contentDescription = "Notificaciones",
-                                        tint = Color(0xFF0F172A),
+                                        tint = PolishDark,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -1115,7 +1120,7 @@ fun ProfessionalDashboardScreen(
                                     .background(
                                         Brush.verticalGradient(
                                             colors = if (planActive) {
-                                                listOf(Color(0xFF16A34A), Color(0xFF15803D))
+                                                listOf(PolishGreen, Color(0xFF15803D))
                                             } else {
                                                 listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
                                             }
@@ -1569,7 +1574,7 @@ fun ProfessionalDashboardScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row {
                                         (1..5).forEach { i ->
-                                            Icon(Icons.Default.Star, contentDescription = null, tint = if (i <= avgRating.toInt()) Color(0xFFF59E0B) else Color(0xFFE2E8F0), modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.Star, contentDescription = null, tint = if (i <= avgRating.toInt()) Color(0xFFF59E0B) else PolishBorder, modifier = Modifier.size(14.dp))
                                         }
                                     }
                                 }
@@ -1651,7 +1656,7 @@ fun ProfessionalDashboardScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.Star,
                                                     contentDescription = null,
-                                                    tint = if (i <= rating.stars) Color(0xFFF59E0B) else Color(0xFFE2E8F0),
+                                                    tint = if (i <= rating.stars) Color(0xFFF59E0B) else PolishBorder,
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
@@ -1708,7 +1713,7 @@ fun ProfessionalDashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .border(2.dp, Color(0xFFE2E8F0), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                .border(2.dp, PolishBorder, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
         ) {
             Row(
                 modifier = Modifier
@@ -2955,7 +2960,7 @@ fun ProfessionalDashboardScreen(
                 } else {
                     clientRatings.forEach { rating ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            colors = CardDefaults.cardColors(containerColor = PolishBg),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2967,7 +2972,7 @@ fun ProfessionalDashboardScreen(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            tint = if (i <= rating.stars) proOrangeStyle else Color(0xFFE2E8F0),
+                                            tint = if (i <= rating.stars) proOrangeStyle else PolishBorder,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -3061,7 +3066,7 @@ fun JobRequestItem(
     var inputBidVal by remember(job) { mutableStateOf(finalPriceVal.toInt().toString()) }
 
     val statusTriple = when (job.status.uppercase()) {
-        "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), Color(0xFF16A34A))
+        "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), PolishGreen)
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
         "PENDING_RATING", "POR_CALIFICAR", "PENDIENTE_CALIFICACION" -> if (job.proRatingOfClient == null) {
             Triple("Por calificar", Color(0xFFFFFBEB), Color(0xFFD97706))
@@ -3073,7 +3078,7 @@ fun JobRequestItem(
         } else {
             Triple("Completado", Color(0xFFF1F5F9), Color(0xFF475569))
         }
-        "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), Color(0xFF64748B))
+        "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), PolishGrayText)
         "NEGOTIATING", "NEGOCIANDO" -> Triple("En negociación", Color(0xFFFFFBEB), Color(0xFFD97706))
         else -> Triple("Abierta", Color(0xFFEFF6FF), Color(0xFF2563EB))
     }
@@ -3164,7 +3169,7 @@ fun ProRadarScanner(
                         modifier = Modifier
                             .size(54.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE2E8F0)),
+                            .background(PolishBorder),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -3379,7 +3384,7 @@ fun AcceptedServiceYellowBanner(
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)), // light slate/gray border
+        border = BorderStroke(1.dp, PolishBorder), // light slate/gray border
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -3414,7 +3419,7 @@ fun AcceptedServiceYellowBanner(
                     )
                     Text(
                         text = "$${com.galibu.core.ui.utils.PriceUtils.formatThousands(agreedPrice.toLong().toString())}",
-                        color = Color(0xFF0066FF),
+                        color = PolishBlue,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -3426,7 +3431,7 @@ fun AcceptedServiceYellowBanner(
             // Real job data
             Text(
                 text = job.title.ifEmpty { job.category },
-                color = Color(0xFF0F172A),
+                color = PolishDark,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -3435,7 +3440,7 @@ fun AcceptedServiceYellowBanner(
 
             Text(
                 text = "${job.category} · ${formatTimeAgo(job.createdAt)}",
-                color = Color(0xFF64748B),
+                color = PolishGrayText,
                 fontSize = 14.sp
             )
 

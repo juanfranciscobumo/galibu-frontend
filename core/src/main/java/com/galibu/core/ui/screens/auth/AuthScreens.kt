@@ -45,7 +45,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -76,14 +75,19 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import androidx.activity.ComponentActivity
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBlue
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
 
 // ==================== COLORES CONSTANTES ====================
-private val brandBlue = Color(0xFF0066FF)
+private val brandBlue = PolishBlue
 private val lightBlueActive = Color(0xFFE8F0FE)
-private val textMain = Color(0xFF0F172A)
-private val textSec = Color(0xFF64748B)
-private val borderLight = Color(0xFFE2E8F0)
-private val bgLightField = Color(0xFFF8FAFC)
+private val textMain = PolishDark
+private val textSec = PolishGrayText
+private val borderLight = PolishBorder
+private val bgLightField = PolishBg
 private val successGreen = Color(0xFF10B981)
 private val errorRed = Color(0xFFEF4444)
 private val warningYellow = Color(0xFFD97706)
@@ -946,7 +950,7 @@ private fun LoginContent(
         )
         Text(
             text = "soluciones que llegan.",
-            color = Color(0xFF0066FF),
+            color = PolishBlue,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
@@ -1264,7 +1268,7 @@ private fun RegistrationContent(
                         .weight(1f)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(if (i <= registrationStep) brandBlue else Color(0xFFE2E8F0))
+                        .background(if (i <= registrationStep) brandBlue else PolishBorder)
                 )
             }
         }
@@ -2355,7 +2359,7 @@ private fun RoleIntentCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (selected) Color.White else Color(0xFF64748B),
+                    tint = if (selected) Color.White else PolishGrayText,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -2370,7 +2374,7 @@ private fun RoleIntentCard(
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = Color(0xFF64748B)
+                    color = PolishGrayText
                 )
             }
         }

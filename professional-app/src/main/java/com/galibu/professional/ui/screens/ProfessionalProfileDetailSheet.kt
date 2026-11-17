@@ -58,6 +58,10 @@ import com.galibu.core.ui.theme.PolishIce
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import java.text.NumberFormat
 import java.util.Locale
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -134,14 +138,14 @@ fun ProfessionalProfileDetailSheet(
                         .width(40.dp)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Color(0xFFE2E8F0))
+                        .background(PolishBorder)
                 )
             }
 
             // Close button
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF64748B), modifier = Modifier.size(22.dp))
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Cerrar", tint = PolishGrayText, modifier = Modifier.size(22.dp))
                 }
             }
 
@@ -187,18 +191,18 @@ fun ProfessionalProfileDetailSheet(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = proProfile?.name ?: bid.professionalName, color = Color(0xFF0F172A), fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 24.sp)
+                    Text(text = proProfile?.name ?: bid.professionalName, color = PolishDark, fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 24.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = address, color = Color(0xFF64748B), fontSize = 12.sp, lineHeight = 16.sp)
+                        Text(text = address, color = PolishGrayText, fontSize = 12.sp, lineHeight = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(12.dp))
+                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = PolishGrayText, modifier = Modifier.size(12.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = memberDate, color = Color(0xFF64748B), fontSize = 12.sp)
+                        Text(text = memberDate, color = PolishGrayText, fontSize = 12.sp)
                     }
                 }
             }
@@ -209,28 +213,28 @@ fun ProfessionalProfileDetailSheet(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    colors = CardDefaults.cardColors(containerColor = PolishBg),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "%.1f".format(rating), color = Color(0xFF0F172A), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "${totalReviews} reseñas", color = Color(0xFF64748B), fontSize = 12.sp)
+                        Text(text = "%.1f".format(rating), color = PolishDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "${totalReviews} reseñas", color = PolishGrayText, fontSize = 12.sp)
                     }
                 }
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    colors = CardDefaults.cardColors(containerColor = PolishBg),
                     shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(imageVector = Icons.Default.BusinessCenter, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "$completedCount", color = Color(0xFF0F172A), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "Servicios realizados", color = Color(0xFF64748B), fontSize = 12.sp)
+                        Text(text = "$completedCount", color = PolishDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Servicios realizados", color = PolishGrayText, fontSize = 12.sp)
                     }
                 }
             }
@@ -240,24 +244,24 @@ fun ProfessionalProfileDetailSheet(
             // Pricing row: Tarifa base | Precio de negociación
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                colors = CardDefaults.cardColors(containerColor = PolishBg),
                 shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
             ) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     val hourlyRate = proProfile?.hourlyRate ?: bid.amount
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "Tarifa base", color = Color(0xFF64748B), fontSize = 12.sp)
+                            Text(text = "Tarifa base", color = PolishGrayText, fontSize = 12.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp))
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "$${NumberFormat.getNumberInstance(Locale.US).format(hourlyRate.toInt())} COP", color = Color(0xFF0066FF), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text(text = "$${NumberFormat.getNumberInstance(Locale.US).format(hourlyRate.toInt())} COP", color = PolishBlue, fontSize = 18.sp, fontWeight = FontWeight.Black)
                     }
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "Precio de negociación", color = Color(0xFF64748B), fontSize = 12.sp)
+                            Text(text = "Precio de negociación", color = PolishGrayText, fontSize = 12.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp))
                         }
@@ -272,13 +276,13 @@ fun ProfessionalProfileDetailSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Detalle de la solicitud
-            Text(text = "Detalle de la solicitud", color = Color(0xFF0F172A), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Detalle de la solicitud", color = PolishDark, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                colors = CardDefaults.cardColors(containerColor = PolishBg),
                 shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
             ) {
                 Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     CategoryIconCircle(
@@ -288,8 +292,8 @@ fun ProfessionalProfileDetailSheet(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = jobCategory.ifEmpty { "Servicio general" }, color = Color(0xFF0F172A), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "Solicitud de servicio para ${bid.professionalName}.", color = Color(0xFF64748B), fontSize = 12.sp)
+                        Text(text = jobCategory.ifEmpty { "Servicio general" }, color = PolishDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Solicitud de servicio para ${bid.professionalName}.", color = PolishGrayText, fontSize = 12.sp)
                     }
                 }
             }
@@ -298,11 +302,11 @@ fun ProfessionalProfileDetailSheet(
 
             // Calificaciones
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Calificaciones", color = Color(0xFF0F172A), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Calificaciones", color = PolishDark, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "%.1f (%d)".format(rating, totalReviews), color = Color(0xFF0F172A), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "%.1f (%d)".format(rating, totalReviews), color = PolishDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -318,12 +322,12 @@ fun ProfessionalProfileDetailSheet(
             breakdown.forEach { (stars, pct) ->
                 val count = (pct * totalReviews).toInt()
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "$stars", color = Color(0xFF64748B), fontSize = 13.sp, modifier = Modifier.width(16.dp))
+                    Text(text = "$stars", color = PolishGrayText, fontSize = 13.sp, modifier = Modifier.width(16.dp))
                     Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    LinearProgressIndicator(progress = { pct }, modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)), color = Color(0xFFF59E0B), trackColor = Color(0xFFE2E8F0))
+                    LinearProgressIndicator(progress = { pct }, modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)), color = Color(0xFFF59E0B), trackColor = PolishBorder)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "${(pct * 100).toInt()}% ($count)", color = Color(0xFF64748B), fontSize = 12.sp, modifier = Modifier.width(60.dp))
+                    Text(text = "${(pct * 100).toInt()}% ($count)", color = PolishGrayText, fontSize = 12.sp, modifier = Modifier.width(60.dp))
                 }
             }
 
@@ -331,8 +335,8 @@ fun ProfessionalProfileDetailSheet(
 
             // Comentarios recientes
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Comentarios recientes", color = Color(0xFF0F172A), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Ver todos", color = Color(0xFF0066FF), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "Comentarios recientes", color = PolishDark, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Ver todos", color = PolishBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -341,9 +345,9 @@ fun ProfessionalProfileDetailSheet(
                 reviews.forEach { job ->
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        colors = CardDefaults.cardColors(containerColor = PolishBg),
                         shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -353,10 +357,10 @@ fun ProfessionalProfileDetailSheet(
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
-                                        Text(text = job.clientName, color = Color(0xFF0F172A), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text(text = job.clientName, color = PolishDark, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             repeat(5) { i ->
-                                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = if (i < (job.clientRatingOfPro ?: 5f).toInt()) Color(0xFFF59E0B) else Color(0xFFE2E8F0), modifier = Modifier.size(10.dp))
+                                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = if (i < (job.clientRatingOfPro ?: 5f).toInt()) Color(0xFFF59E0B) else PolishBorder, modifier = Modifier.size(10.dp))
                                             }
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 4.dp, vertical = 1.dp)) {
@@ -384,16 +388,16 @@ fun ProfessionalProfileDetailSheet(
             } else {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    colors = CardDefaults.cardColors(containerColor = PolishBg),
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishBorder)
                 ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFDBEAFE)), contentAlignment = Alignment.Center) {
                             Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
                         }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = "Aún no hay reseñas. Sé el primero en valorar su servicio.", color = Color(0xFF64748B), fontSize = 13.sp)
+                        Text(text = "Aún no hay reseñas. Sé el primero en valorar su servicio.", color = PolishGrayText, fontSize = 13.sp)
                     }
                 }
             }
@@ -413,26 +417,6 @@ fun ProfessionalProfileDetailSheet(
                     Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = "Contraofertar", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            androidx.compose.animation.AnimatedVisibility(visible = showCounterInline) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        com.galibu.core.ui.components.InlineCounterOfferInput(
-                            initialAmount = 0.0,
-                            accentColor = Color(0xFF0066FF),
-                            onSend = { amount ->
-                                showCounterInline = false
-                                onCounter(amount)
-                            },
-                            onCancel = { showCounterInline = false }
-                        )
-                    }
                 }
             }
 
@@ -457,8 +441,8 @@ fun ProfessionalProfileDetailSheet(
                 OutlinedButton(
                     onClick = onReject,
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF0066FF)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0066FF)),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, PolishBlue),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PolishBlue),
                     contentPadding = PaddingValues(vertical = 14.dp),
                     modifier = Modifier.weight(1f)
                 ) {

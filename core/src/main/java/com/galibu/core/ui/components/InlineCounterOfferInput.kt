@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.utils.PriceUtils
+import com.galibu.core.ui.theme.PolishGrayText
 
 /**
  * Campo en línea para contraofertar dentro de la misma pantalla.
@@ -133,7 +134,7 @@ fun InlineCounterOfferInput(
             Text(
                 text = "Cancelar",
                 fontSize = 12.sp,
-                color = Color(0xFF64748B)
+                color = PolishGrayText
             )
         }
         Spacer(modifier = Modifier.width(0.dp))

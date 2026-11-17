@@ -20,17 +20,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.components.PasswordField
 import com.galibu.core.ui.viewmodels.SharedViewModel
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
 
 private val RecoveryBrandBlue = Color(0xFF2563EB)
-private val RecoveryTextMain = Color(0xFF0F172A)
-private val RecoveryTextSec = Color(0xFF64748B)
+private val RecoveryTextMain = PolishDark
+private val RecoveryTextSec = PolishGrayText
 private val RecoveryError = Color(0xFFDC2626)
 
 /**

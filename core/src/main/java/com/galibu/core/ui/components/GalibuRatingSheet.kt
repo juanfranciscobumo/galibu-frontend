@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.utils.capitalizeFirstLetter
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
 
 /**
  * Hoja única de calificación de Galibu, compartida por las apps cliente y
@@ -81,12 +83,12 @@ fun GalibuRatingSheet(
                 text = title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A)
+                color = PolishDark
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Comparte tu experiencia con ${targetName.ifBlank { "el usuario" }}.",
-                color = Color(0xFF64748B),
+                color = PolishGrayText,
                 fontSize = 13.sp
             )
             Spacer(modifier = Modifier.height(14.dp))

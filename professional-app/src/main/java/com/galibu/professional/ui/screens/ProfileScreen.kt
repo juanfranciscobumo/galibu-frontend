@@ -40,7 +40,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +72,11 @@ import com.galibu.core.data.model.hasMissingRequiredFields
 import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.data.model.canSwitchToClient
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 
 enum class ProfileSubScreen {
     EDIT_INFO,
@@ -374,7 +378,7 @@ fun ProfileScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(PolishBg)
     ) {
         when (activeSubScreen) {
             ProfileSubScreen.EDIT_INFO -> {
@@ -418,7 +422,7 @@ fun ProfileScreen(
                             text = "Editar perfil",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
+                            color = PolishDark,
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }
@@ -452,7 +456,7 @@ fun ProfileScreen(
                                 modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A))
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PolishGreen)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(text = showSuccessMessage!!, color = Color(0xFF15803D), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             }
@@ -523,7 +527,7 @@ fun ProfileScreen(
                             text = "Nombre completo",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
+                            color = PolishDark
                         )
                         OutlinedTextField(
                             value = nameInput,
@@ -538,7 +542,7 @@ fun ProfileScreen(
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
                                 focusedBorderColor = PolishBlue,
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
+                                unfocusedBorderColor = PolishBorder
                             ),
                             singleLine = true
                         )
@@ -550,7 +554,7 @@ fun ProfileScreen(
                             text = "Correo electrónico",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
+                            color = PolishDark
                         )
                         OutlinedTextField(
                             value = currentUser?.email ?: "",
@@ -561,10 +565,10 @@ fun ProfileScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFFF1F5F9),
                                 unfocusedContainerColor = Color(0xFFF1F5F9),
-                                focusedBorderColor = Color(0xFFE2E8F0),
-                                unfocusedBorderColor = Color(0xFFE2E8F0),
-                                focusedTextColor = Color(0xFF64748B),
-                                unfocusedTextColor = Color(0xFF64748B)
+                                focusedBorderColor = PolishBorder,
+                                unfocusedBorderColor = PolishBorder,
+                                focusedTextColor = PolishGrayText,
+                                unfocusedTextColor = PolishGrayText
                             ),
                             singleLine = true
                         )
@@ -577,7 +581,7 @@ fun ProfileScreen(
                             text = "Ubicación",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
+                            color = PolishDark
                         )
                         OutlinedTextField(
                             value = addressInput,
@@ -617,7 +621,7 @@ fun ProfileScreen(
                                 focusedContainerColor = Color.White,
                                 unfocusedContainerColor = Color.White,
                                 focusedBorderColor = PolishBlue,
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
+                                unfocusedBorderColor = PolishBorder
                             ),
                             singleLine = true
                         )
@@ -629,7 +633,7 @@ fun ProfileScreen(
                             text = "Departamento",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
+                            color = PolishDark
                         )
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
@@ -654,7 +658,7 @@ fun ProfileScreen(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
                                     focusedBorderColor = PolishBlue,
-                                    unfocusedBorderColor = Color(0xFFE2E8F0)
+                                    unfocusedBorderColor = PolishBorder
                                 ),
                                 singleLine = true
                             )
@@ -677,7 +681,7 @@ fun ProfileScreen(
                                 }
                                 orderedDepts.forEach { (dept, munis) ->
                                     DropdownMenuItem(
-                                        text = { Text(dept, color = Color(0xFF0F172A), fontSize = 14.sp) },
+                                        text = { Text(dept, color = PolishDark, fontSize = 14.sp) },
                                         onClick = {
                                             currentDeptEdit = dept
                                             currentMuniEdit = munis.firstOrNull() ?: ""
@@ -695,7 +699,7 @@ fun ProfileScreen(
                             text = "Municipio",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = Color(0xFF0F172A)
+                            color = PolishDark
                         )
                         Box(modifier = Modifier.fillMaxWidth()) {
                             val baseMunis = remember(currentDeptEdit, departmentsAndMunicipalities) {
@@ -738,7 +742,7 @@ fun ProfileScreen(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
                                     focusedBorderColor = PolishBlue,
-                                    unfocusedBorderColor = Color(0xFFE2E8F0)
+                                    unfocusedBorderColor = PolishBorder
                                 ),
                                 singleLine = true
                             )
@@ -749,7 +753,7 @@ fun ProfileScreen(
                             ) {
                                 currentMunis.forEach { muni ->
                                     DropdownMenuItem(
-                                        text = { Text(muni, color = Color(0xFF0F172A), fontSize = 14.sp) },
+                                        text = { Text(muni, color = PolishDark, fontSize = 14.sp) },
                                         onClick = {
                                             currentMuniEdit = muni
                                             showMuniDropdown = false
@@ -789,10 +793,10 @@ fun ProfileScreen(
                                 label = "Categoría",
                                 placeholder = "Seleccionar categorías",
                                 accentColor = PolishBlue,
-                                borderColor = Color(0xFFE2E8F0),
+                                borderColor = PolishBorder,
                                 containerColor = Color.White,
-                                textColor = Color(0xFF0F172A),
-                                mutedTextColor = Color(0xFF64748B),
+                                textColor = PolishDark,
+                                mutedTextColor = PolishGrayText,
                                 customOptionLabel = otherCategory,
                                 onAddCustom = { showEditCategoryDialog = true }
                             )
@@ -808,7 +812,7 @@ fun ProfileScreen(
                             title = {
                                 Text(
                                     text = "Agregar categoría",
-                                    color = Color(0xFF0F172A),
+                                    color = PolishDark,
                                     fontWeight = FontWeight.Bold
                                 )
                             },
@@ -821,7 +825,7 @@ fun ProfileScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = PolishBlue,
-                                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        unfocusedBorderColor = PolishBorder
                                     )
                                 )
                             },
@@ -846,7 +850,7 @@ fun ProfileScreen(
                                         showEditCategoryDialog = false
                                     }
                                 ) {
-                                    Text("Cancelar", color = Color(0xFF64748B))
+                                    Text("Cancelar", color = PolishGrayText)
                                 }
                             },
                             containerColor = Color.White,
@@ -878,12 +882,12 @@ fun ProfileScreen(
                                         text = "Portafolio de trabajos",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
-                                        color = Color(0xFF0F172A)
+                                        color = PolishDark
                                     )
                                     Text(
                                         text = "Muestra tus mejores trabajos a los clientes",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
+                                        color = PolishGrayText
                                     )
                                 }
                             }
@@ -919,9 +923,9 @@ fun ProfileScreen(
                                     focusedContainerColor = Color.White,
                                     unfocusedContainerColor = Color.White,
                                     focusedBorderColor = PolishBlue,
-                                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                                    focusedTextColor = Color(0xFF0F172A),
-                                    unfocusedTextColor = Color(0xFF0F172A)
+                                    unfocusedBorderColor = PolishBorder,
+                                    focusedTextColor = PolishDark,
+                                    unfocusedTextColor = PolishDark
                                 )
                             )
 
@@ -929,7 +933,7 @@ fun ProfileScreen(
                                 text = "Fotos (${portfolioPhotos.size}/$MAX_PORTFOLIO_PHOTOS)",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
-                                color = Color(0xFF0F172A)
+                                color = PolishDark
                             )
 
                             Row(
@@ -960,13 +964,13 @@ fun ProfileScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Add,
                                                 contentDescription = "Agregar foto",
-                                                tint = Color(0xFF64748B),
+                                                tint = PolishGrayText,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
                                                 text = "Agregar",
-                                                color = Color(0xFF64748B),
+                                                color = PolishGrayText,
                                                 fontSize = 11.sp
                                             )
                                         }
@@ -1012,7 +1016,7 @@ fun ProfileScreen(
                             Text(
                                 text = "Toca una foto para verla en grande. Máximo $MAX_PORTFOLIO_PHOTOS fotos.",
                                 fontSize = 11.sp,
-                                color = Color(0xFF64748B)
+                                color = PolishGrayText
                             )
                         }
                     }
@@ -1114,7 +1118,7 @@ fun ProfileScreen(
                             text = "Cambiar contraseña",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
+                            color = PolishDark,
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }
@@ -1227,6 +1231,7 @@ fun ProfileScreen(
                     },
                     onSupport = { showSupportDialog = true },
                     onSwitchRole = onSwitchRole,
+                    versionText = "v${com.galibu.professional.BuildConfig.VERSION_NAME}",
                     onActivateClient = { showActivateClient = true },
                     onLogout = { showLogoutDialog = true },
                     onDeleteAccount = { showDeleteDialog = true }

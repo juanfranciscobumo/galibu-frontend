@@ -23,7 +23,7 @@ android {
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = providers.gradleProperty("galibuVersion").get()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     buildConfigField("String", "API_URL", "\"$apiUrl\"")
   }

@@ -37,14 +37,15 @@ import com.galibu.core.ui.utils.ImageUtils
 import com.galibu.core.ui.utils.PriceUtils
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 
-private val ScreenBg = Color(0xFFF8FAFC)
-private val TextMain = Color(0xFF0F172A)
-private val TextSec = Color(0xFF64748B)
-private val BrandBlue = Color(0xFF2563EB)
-private val SuccessBg = Color(0xFFDCFCE7)
-private val SuccessFg = Color(0xFF16A34A)
-private val PolishDark = Color(0xFF0F172A)
-private val PolishBlue = Color(0xFF2563EB)
+import com.galibu.core.ui.theme.PolishBg as ScreenBg
+import com.galibu.core.ui.theme.PolishDark as TextMain
+import com.galibu.core.ui.theme.PolishGrayText as TextSec
+import com.galibu.core.ui.theme.PolishBlue as BrandBlue
+import com.galibu.core.ui.theme.StatusSuccessSoft as SuccessBg
+import com.galibu.core.ui.theme.PolishGreen as SuccessFg
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishBlue
+import com.galibu.core.ui.theme.PolishBorder
 
 private const val MAX_PORTFOLIO_PHOTOS = 6
 
@@ -169,7 +170,7 @@ fun ActivateProfessionalScreen(
                     label = "Categoría(s) de servicio *",
                     placeholder = "Seleccionar categorías",
                     accentColor = BrandBlue,
-                    borderColor = Color(0xFFE2E8F0),
+                    borderColor = PolishBorder,
                     customOptionLabel = "Otra categoría",
                     onAddCustom = { showAddCategoryDialog = true },
                     testTag = "category_multi_select"
@@ -502,7 +503,7 @@ fun ActivateClientScreen(
                     .padding(horizontal = 20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                border = BorderStroke(1.dp, PolishBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {

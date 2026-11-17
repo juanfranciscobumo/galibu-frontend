@@ -31,14 +31,16 @@ import com.galibu.core.ui.utils.ImageUtils
 import com.galibu.core.ui.utils.PriceUtils
 import com.galibu.core.ui.utils.capitalizeFirstLetter
 
-private val ScreenBg = Color(0xFFF8FAFC)
-private val TextMain = Color(0xFF0F172A)
-private val TextSec = Color(0xFF64748B)
-private val BrandBlue = Color(0xFF2563EB)
-private val SuccessBg = Color(0xFFDCFCE7)
-private val SuccessFg = Color(0xFF16A34A)
-private val PolishDark = Color(0xFF0F172A)
-private val PolishBlue = Color(0xFF2563EB)
+import com.galibu.core.ui.theme.PolishBg as ScreenBg
+import com.galibu.core.ui.theme.PolishDark as TextMain
+import com.galibu.core.ui.theme.PolishGrayText as TextSec
+import com.galibu.core.ui.theme.PolishBlue as BrandBlue
+import com.galibu.core.ui.theme.StatusSuccessSoft as SuccessBg
+import com.galibu.core.ui.theme.PolishGreen as SuccessFg
+import com.galibu.core.ui.theme.PolishDark
+import com.galibu.core.ui.theme.PolishBlue
+import com.galibu.core.ui.theme.PolishBorder
+import com.galibu.core.ui.theme.PolishGrayText
 
 private const val MAX_PORTFOLIO_PHOTOS = 6
 
@@ -60,13 +62,13 @@ fun PasswordField(
             text = label,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF0F172A) // PolishDark
+            color = PolishDark // PolishDark
         )
 
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text("........", color = Color(0xFF64748B)) },
+            placeholder = { Text("........", color = PolishGrayText) },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -79,7 +81,7 @@ fun PasswordField(
                     Icon(
                         imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
-                        tint = Color(0xFF64748B)
+                        tint = PolishGrayText
                     )
                 }
             },
@@ -87,9 +89,9 @@ fun PasswordField(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
                 focusedBorderColor = Color(0xFF1764FF), // PolishBlue
-                unfocusedBorderColor = Color(0xFFE2E8F0), // PolishBorder
-                focusedTextColor = Color(0xFF0F172A), // PolishDark
-                unfocusedTextColor = Color(0xFF0F172A) // PolishDark
+                unfocusedBorderColor = PolishBorder, // PolishBorder
+                focusedTextColor = PolishDark, // PolishDark
+                unfocusedTextColor = PolishDark // PolishDark
             ),
             modifier = Modifier
                 .fillMaxWidth()

@@ -93,6 +93,8 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishBorder
 
 @Composable
 private fun DetailInfoRow(icon: ImageVector, text: String) {
@@ -128,7 +130,7 @@ private fun DetailStatColumn(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFFE0E7FF), CircleShape),
+                .background(PolishIce, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -149,7 +151,7 @@ private fun DetailStatColumn(
         )
         Text(
             text = subtitle,
-            color = Color(0xFF64748B),
+            color = PolishGrayText,
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             maxLines = 1
@@ -344,7 +346,7 @@ fun ProfessionalProfileDetailScreen(
                         if (reviewsCount != null) {
                             Text(
                                 text = " ($reviewsCount reseñas)",
-                                color = Color(0xFF64748B),
+                                color = PolishGrayText,
                                 fontSize = 14.sp
                             )
                         }
@@ -354,7 +356,7 @@ fun ProfessionalProfileDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE0E7FF))
+                            .background(PolishIce)
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Icon(
@@ -377,7 +379,7 @@ fun ProfessionalProfileDetailScreen(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Ver reseñas",
-                    tint = Color(0xFF64748B),
+                    tint = PolishGrayText,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -444,7 +446,7 @@ fun ProfessionalProfileDetailScreen(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = proWorkDescription,
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     fontSize = 13.sp
                 )
             }
@@ -511,13 +513,13 @@ fun ProfessionalProfileDetailScreen(
                         Text(
                             text = "COP",
                             fontSize = 13.sp,
-                            color = Color(0xFF64748B),
+                            color = PolishGrayText,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
                     Text(
                         text = "Precio de la oferta",
-                        color = Color(0xFF64748B),
+                        color = PolishGrayText,
                         fontSize = 12.sp
                     )
                 }
@@ -581,26 +583,6 @@ fun ProfessionalProfileDetailScreen(
                 }
             }
 
-            androidx.compose.animation.AnimatedVisibility(visible = showCounterInline && !proAcceptedOutright) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        com.galibu.core.ui.components.InlineCounterOfferInput(
-                            initialAmount = 0.0,
-                            accentColor = PolishBlue,
-                            onSend = { amount ->
-                                showCounterInline = false
-                                onCounter(amount)
-                            },
-                            onCancel = { showCounterInline = false }
-                        )
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -664,7 +646,7 @@ fun ProfessionalProfileDetailScreen(
                         Text(
                             text = bid.professionalName,
                             fontSize = 13.sp,
-                            color = Color(0xFF64748B)
+                            color = PolishGrayText
                         )
                     }
                 }
@@ -672,14 +654,14 @@ fun ProfessionalProfileDetailScreen(
                 if (proRatings.isEmpty()) {
                     Text(
                         text = "Aún no tiene reseñas.",
-                        color = Color(0xFF64748B),
+                        color = PolishGrayText,
                         fontSize = 14.sp
                     )
                 } else {
                     val dateFmt = remember { SimpleDateFormat("dd MMM yyyy", Locale.US) }
                     proRatings.forEach { rating ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            colors = CardDefaults.cardColors(containerColor = PolishBg),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -691,7 +673,7 @@ fun ProfessionalProfileDetailScreen(
                                         Icon(
                                             imageVector = Icons.Default.Star,
                                             contentDescription = null,
-                                            tint = if (i <= rating.stars) Color(0xFFF59E0B) else Color(0xFFE2E8F0),
+                                            tint = if (i <= rating.stars) Color(0xFFF59E0B) else PolishBorder,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -699,7 +681,7 @@ fun ProfessionalProfileDetailScreen(
                                     Text(
                                         text = dateFmt.format(Date(rating.createdAt)),
                                         fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
+                                        color = PolishGrayText
                                     )
                                 }
                                 if (!rating.comment.isNullOrBlank()) {

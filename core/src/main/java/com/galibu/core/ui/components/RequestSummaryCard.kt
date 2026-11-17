@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.galibu.core.ui.theme.PolishBorder
 import com.galibu.core.ui.theme.PolishDark
 import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.PolishGreen
 
 /**
  * Tarjeta homologada de solicitud de servicio.
@@ -160,7 +161,7 @@ fun RequestSummaryCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = priceText,
-                    color = Color(0xFF16A34A),
+                    color = PolishGreen,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )

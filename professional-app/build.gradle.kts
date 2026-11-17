@@ -19,6 +19,7 @@ android {
 
   defaultConfig {
     minSdk = 24
+    buildConfigField("String", "VERSION_NAME", "\"${providers.gradleProperty("galibuVersion").get()}\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     buildConfigField("String", "API_URL", "\"$apiUrl\"")
   }

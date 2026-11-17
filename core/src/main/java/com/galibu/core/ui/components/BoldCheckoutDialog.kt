@@ -48,6 +48,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishNavy
+import com.galibu.core.ui.theme.PolishBg
+import com.galibu.core.ui.theme.PolishGrayText
 
 /** Debe coincidir con app.bold.callback-url del backend. */
 const val BOLD_CALLBACK_PREFIX = "https://galibu.app/bold/return"
@@ -113,7 +115,7 @@ fun BoldCheckoutDialog(
                         )
                         Text(
                             text = "Tarjeta, PSE, Nequi o Botón Bancolombia",
-                            color = Color(0xFF64748B),
+                            color = PolishGrayText,
                             fontSize = 11.sp
                         )
                     }
@@ -202,14 +204,14 @@ fun BoldCheckoutDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFF8FAFC))
+                        .background(PolishBg)
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Al terminar el pago volverás automáticamente a Galibu. " +
                                 "Si tu banco no redirige, usa el botón de abajo.",
-                            color = Color(0xFF64748B),
+                            color = PolishGrayText,
                             fontSize = 10.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))

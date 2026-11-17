@@ -43,6 +43,7 @@ import com.galibu.core.ui.theme.PolishGrayText
 import com.galibu.core.ui.theme.PolishGreen
 import com.galibu.core.ui.theme.PolishIce
 import com.galibu.core.ui.utils.ImageUtils
+import com.galibu.core.ui.theme.PolishDark
 
 /**
  * Vista principal de perfil compartida por el modo cliente y el profesional.
@@ -72,7 +73,7 @@ fun ProfileOverviewContent(
     onActivateClient: () -> Unit = {},
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
-    versionText: String = "v1.0.0"
+    versionText: String
 ) {
     val profilePhotoModel = remember(currentUser?.profilePhotoUrl) {
         ImageUtils.getCoilModel(currentUser?.profilePhotoUrl)
@@ -105,7 +106,7 @@ fun ProfileOverviewContent(
         if (showTitle) {
             Text(
                 text = "Perfil",
-                color = Color(0xFF0F172A),
+                color = PolishDark,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
                 modifier = Modifier
@@ -130,7 +131,7 @@ fun ProfileOverviewContent(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF16A34A)
+                        tint = PolishGreen
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -191,7 +192,7 @@ fun ProfileOverviewContent(
                     text = currentUser?.name ?: "Usuario",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A),
+                    color = PolishDark,
                     textAlign = TextAlign.Center
                 )
 
@@ -200,7 +201,7 @@ fun ProfileOverviewContent(
                 Text(
                     text = currentUser?.email ?: "",
                     fontSize = 14.sp,
-                    color = Color(0xFF64748B),
+                    color = PolishGrayText,
                     textAlign = TextAlign.Center
                 )
 
@@ -296,7 +297,7 @@ fun ProfileOverviewContent(
                 ProfileOptionCard(
                     icon = Icons.Default.Work,
                     iconBgColor = Color(0xFFDCFCE7),
-                    iconColor = Color(0xFF16A34A),
+                    iconColor = PolishGreen,
                     title = "Ofrecer mis servicios",
                     onClick = onActivateProfessional
                 )
@@ -306,7 +307,7 @@ fun ProfileOverviewContent(
                 ProfileOptionCard(
                     icon = Icons.Default.Search,
                     iconBgColor = Color(0xFFDCFCE7),
-                    iconColor = Color(0xFF16A34A),
+                    iconColor = PolishGreen,
                     title = "Buscar un profesional",
                     onClick = onActivateClient
                 )
@@ -385,45 +386,21 @@ fun ProfileOverviewContent(
 
         // Diálogo de confirmación al cambiar de modo cuando la cuenta es BOTH
         if (showSwitchConfirm) {
-            AlertDialog(
-                onDismissRequest = { showSwitchConfirm = false },
-                title = {
-                    Text(
-                        text = "Cambiar de modo",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
+            GalibuAlertDialog(
+                title = "Cambiar de modo",
+                message = if (isProfessional) {
+                    "Al cambiar a modo cliente, dejarás de ver las solicitudes de profesionales y no podrás ofertar servicios. ¿Deseas continuar?"
+                } else {
+                    "Al cambiar a modo profesional, dejarás de ver las solicitudes de clientes y no podrás contratar servicios. ¿Deseas continuar?"
                 },
-                text = {
-                    Text(
-                        text = if (isProfessional) {
-                            "Al cambiar a modo cliente, dejarás de ver las solicitudes de profesionales y no podrás ofertar servicios. ¿Deseas continuar?"
-                        } else {
-                            "Al cambiar a modo profesional, dejarás de ver las solicitudes de clientes y no podrás contratar servicios. ¿Deseas continuar?"
-                        },
-                        color = Color(0xFF64748B),
-                        fontSize = 14.sp
-                    )
+                type = GalibuAlertType.WARNING,
+                confirmText = "Confirmar",
+                dismissText = "Cancelar",
+                onConfirm = {
+                    showSwitchConfirm = false
+                    onSwitchRole()
                 },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showSwitchConfirm = false
-                            onSwitchRole()
-                        }
-                    ) {
-                        Text("Confirmar", color = PolishBlue, fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showSwitchConfirm = false }
-                    ) {
-                        Text("Cancelar", color = Color(0xFF64748B))
-                    }
-                },
-                containerColor = Color.White,
-                shape = RoundedCornerShape(16.dp)
+                onDismissRequest = { showSwitchConfirm = false }
             )
         }
     }
