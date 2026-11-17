@@ -34,9 +34,7 @@ import com.galibu.core.data.model.preferredMode
 import com.galibu.core.ui.screens.ChatAndPaymentsScreen
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
 import com.galibu.client.ui.screens.ClientDashboardScreen
-import com.galibu.client.ui.screens.PriceNegotiationScreen
 import com.galibu.professional.ui.screens.ProfessionalDashboardScreen
-import com.galibu.professional.ui.screens.PriceNegotiationScreen as ProfessionalPriceNegotiationScreen
 import com.galibu.client.ui.viewmodels.ClientViewModel
 import com.galibu.professional.ui.viewmodels.ProfessionalViewModel
 import com.galibu.core.ui.theme.*
@@ -65,9 +63,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingOpenJobId.value = intent.getStringExtra(
-            com.galibu.client.ui.util.BidPushHelper.EXTRA_OPEN_JOB_ID
-        )
+        pendingOpenJobId.value = intent.getStringExtra("open_job_id")
     }
 
     override fun onStop() {
@@ -80,22 +76,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         ApiConfig.baseUrl = BuildConfig.API_URL
         AppTelemetry.init("galibu", BuildConfig.VERSION_NAME)
-        pendingOpenJobId.value = intent?.getStringExtra(
-            com.galibu.client.ui.util.BidPushHelper.EXTRA_OPEN_JOB_ID
-        )
+        pendingOpenJobId.value = intent?.getStringExtra("open_job_id")
 
         viewModel = ViewModelProvider(this)[ClientViewModel::class.java]
 
         // El repositorio solo conoce un callback; la Activity decide cómo se
         // muestra la push del sistema. Se registra una vez por proceso.
         com.galibu.core.data.AppGraph.eventPushHandler = { notif ->
-            com.galibu.client.ui.util.BidPushHelper.showEventPush(
-                applicationContext,
-                notif.title,
-                notif.body,
-                notif.jobId,
-                MainActivity::class.java
-            )
+            // Las push de ofertas ya no existen; se ignoran.
         }
 
         setContent {
@@ -145,7 +133,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.selectJob(jobId)
                             viewModel.markJobNotificationsAsRead(jobId)
                         }
-                        currentRoute = "NEGOTIATION"
+                        currentRoute = "CHAT"
                     }
                 }
 
@@ -244,17 +232,9 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onNavigateToNegotiation = { jobId ->
                                                     proViewModel.selectJob(jobId)
-                                                    currentRoute = "NEGOTIATION"
-                                                },
-                                                onSwitchRole = { switchMode("CLIENT") }
-                                            )
-                                            "NEGOTIATION" -> ProfessionalPriceNegotiationScreen(
-                                                viewModel = proViewModel,
-                                                onOpenChat = { jobId ->
-                                                    proViewModel.selectJob(jobId)
                                                     currentRoute = "CHAT"
                                                 },
-                                                onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" }
+                                                onSwitchRole = { switchMode("CLIENT") }
                                             )
                                             "CHAT" -> ChatAndPaymentsScreen(
                                                 viewModel = proViewModel,
@@ -266,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                                 onOpenJob = { jobId ->
                                                     proViewModel.selectJob(jobId)
                                                     proViewModel.markJobNotificationsAsRead(jobId)
-                                                    currentRoute = "NEGOTIATION"
+                                                    currentRoute = "CHAT"
                                                 },
                                                 emptyMessage = "Aquí se grabarán tus alertas push de ofertas, inicios, finalizaciones y recargas de saldo en tiempo real."
                                             )
@@ -283,7 +263,7 @@ class MainActivity : ComponentActivity() {
                                                 viewModel = viewModel,
                                                 onNavigateToJobBids = { jobId ->
                                                     viewModel.selectJob(jobId)
-                                                    currentRoute = "NEGOTIATION"
+                                                    currentRoute = "CHAT"
                                                 },
                                                 onNavigateToChat = { jobId ->
                                                     viewModel.selectJob(jobId)
@@ -295,14 +275,6 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onSwitchRole = { switchMode("PROFESSIONAL") }
                                             )
-                                            "NEGOTIATION" -> PriceNegotiationScreen(
-                                                viewModel = viewModel,
-                                                onOpenChat = { jobId ->
-                                                    viewModel.selectJob(jobId)
-                                                    currentRoute = "CHAT"
-                                                },
-                                                onBack = { currentRoute = "CLIENT_DASHBOARD" }
-                                            )
                                             "CHAT" -> ChatAndPaymentsScreen(
                                                 viewModel = viewModel,
                                                 onBack = { currentRoute = "CLIENT_DASHBOARD" }
@@ -313,7 +285,7 @@ class MainActivity : ComponentActivity() {
                                                 onOpenJob = { jobId ->
                                                     viewModel.selectJob(jobId)
                                                     viewModel.markJobNotificationsAsRead(jobId)
-                                                    currentRoute = "NEGOTIATION"
+                                                    currentRoute = "CHAT"
                                                 },
                                                 emptyMessage = "Aquí se grabarán tus alertas push de presupuestos, verificaciones y pagos en tiempo real."
                                             )

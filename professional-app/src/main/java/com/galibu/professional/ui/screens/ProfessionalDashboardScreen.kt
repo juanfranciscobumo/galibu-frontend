@@ -65,7 +65,8 @@ import com.galibu.core.ui.components.BoldCheckoutDialog
 import com.galibu.core.ui.components.GalibuRatingSheet
 import com.galibu.core.ui.components.PrimaryContactButton
 import com.galibu.core.ui.components.RequestSummaryCard
-import com.galibu.core.ui.components.BidHistorySheet
+// import removed
+
 import com.galibu.core.ui.theme.PolishBlue
 import com.galibu.core.ui.theme.PolishIce
 import com.galibu.core.ui.screens.NotificationsAndHistoryScreen
@@ -1800,43 +1801,7 @@ fun ProfessionalDashboardScreen(
         }
         }
 
-    // Hoja de cotización del profesional: tipo, visita técnica, materiales y valor.
-    if (showBidDialog && selectedJobForBid != null) {
-        val job = selectedJobForBid!!
-        com.galibu.core.ui.components.BidQuoteSheet(
-            initialAmount = job.counterOfferAmount ?: job.budgetMin,
-            initialDurationHours = job.duration,
-            initialComment = "Ofrezco servicio especializado de calidad.",
-            onSubmit = { quote ->
-                if (quote.amount < 5417.0) {
-                    viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
-                } else {
-                    viewModel.submitBid(
-                        job.id,
-                        quote.amount,
-                        quote.comment,
-                        quote.durationHours,
-                        quoteType = quote.quoteType,
-                        visitRequired = quote.visitRequired,
-                        visitFee = quote.visitFee,
-                        materialsIncluded = quote.materialsIncluded,
-                        materialsCost = quote.materialsCost,
-                        visitScheduledAt = quote.visitScheduledAt
-                    )
-                    showBidDialog = false
-                }
-            },
-            onDismiss = { showBidDialog = false }
-        )
-    }
 
-    if (historyBid != null) {
-        com.galibu.core.ui.components.BidHistorySheet(
-            bidId = historyBid!!.id,
-            viewModel = viewModel,
-            onDismiss = { historyBid = null }
-        )
-    }
 
     // Hoja inferior para activar o renovar Galibu Pro.
     if (showPlanSheet) {
