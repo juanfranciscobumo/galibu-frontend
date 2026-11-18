@@ -702,13 +702,45 @@ fun ChatAndPaymentsScreen(
 
         // Chat finalizado: historial visible, sin escritura.
         if (isChatLocked) {
-            Box(
+            // Servicio completado y pendiente de mi calificación: se ofrece la
+            // acción en el propio chat, sin tener que salir a la home.
+            val jobCompleted = job?.status?.uppercase() in listOf("COMPLETED", "COMPLETADO")
+            val iAmClient = activeRole.equals("CLIENT", ignoreCase = true)
+            val iStillHaveToRate = jobCompleted && if (iAmClient) {
+                job?.clientRatingOfPro == null
+            } else {
+                job?.proRatingOfClient == null
+            }
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF1F5F9))
                     .padding(horizontal = 16.dp, vertical = 14.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                if (iStillHaveToRate) {
+                    Button(
+                        onClick = { showReviewDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (iAmClient) "Calificar al profesional" else "Calificar al cliente",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
                 Text(
                     text = "Chat finalizado. Puedes ver el historial, pero ya no se pueden enviar mensajes.",
                     color = PolishGrayText,

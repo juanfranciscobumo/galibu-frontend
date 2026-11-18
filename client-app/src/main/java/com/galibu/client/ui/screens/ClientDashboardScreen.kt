@@ -595,6 +595,29 @@ fun ClientDashboardScreen(
         it.status.uppercase() in listOf("PENDING_RATING", "PENDIENTE_CALIFICACION")
     }
 
+    // Al entrar se sincroniza el estado real de las solicitudes (por ejemplo,
+    // cuando el profesional finaliza el servicio mientras el cliente estaba fuera).
+    LaunchedEffect(currentUser?.id) {
+        if (currentUser != null) {
+            viewModel.checkPendingJobRefresh()
+            viewModel.refreshMyJobs()
+        }
+    }
+
+    // Respaldo del push FCM: re-sincroniza cada 60 s para que el cliente vea al
+    // instante el cambio a "Por calificar" y pueda calificar al profesional.
+    LaunchedEffect(currentUser?.id, selectedTab) {
+        if (currentUser?.id.isNullOrEmpty()) return@LaunchedEffect
+        if (selectedTab != 0) return@LaunchedEffect
+        while (true) {
+            delay(60_000)
+            try {
+                viewModel.refreshMyJobs()
+            } catch (e: Exception) {
+            }
+        }
+    }
+
     Scaffold(
         topBar = { },
         bottomBar = {
@@ -1696,7 +1719,12 @@ fun HomeJobRequestCard(
                 }
             }
         )
-        if (job.status.uppercase() in listOf("PENDING_RATING", "PENDIENTE_CALIFICACION") && job.clientRatingOfPro == null) {
+        // El backend cierra el servicio como COMPLETED (no PENDING_RATING): se
+        // cubren ambos alias para que el cliente siempre encuentre la acción.
+        if (job.status.uppercase() in listOf(
+                "PENDING_RATING", "PENDIENTE_CALIFICACION", "COMPLETED", "COMPLETADO"
+            ) && job.clientRatingOfPro == null
+        ) {
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = { onRateClick(job.id) },
