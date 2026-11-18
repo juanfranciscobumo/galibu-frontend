@@ -275,28 +275,6 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     val openJobs: StateFlow<List<JobRequest>> = repository.getOpenJobs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val jobIdsWithBids: StateFlow<List<String>> = currentUser
-        .flatMapLatest { user ->
-            if (user != null && (user.role == "PROFESSIONAL" || user.role == "BOTH")) {
-                repository.getJobIdsWithBids(user.id)
-            } else {
-                flowOf(emptyList())
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val proBids: StateFlow<List<Bid>> = currentUser
-        .flatMapLatest { user ->
-            if (user != null && (user.role == "PROFESSIONAL" || user.role == "BOTH")) {
-                repository.getBidsByProfessional(user.id)
-            } else {
-                flowOf(emptyList())
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     val notifications: StateFlow<List<AppNotification>> = repository.getNotificationsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -367,13 +345,6 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
             if (id != null) repository.getJobById(id) else flowOf(null)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val selectedJobBids: StateFlow<List<Bid>> = _selectedJobId
-        .flatMapLatest { id ->
-            if (id != null) repository.getBidsForJob(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val selectedJobMessages: StateFlow<List<ChatMessage>> = _selectedJobId

@@ -123,22 +123,12 @@ fun ChatAndPaymentsScreen(
     val messages by viewModel.messages.collectAsState()
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
 
-    // Ofertas del job (útil en modo cliente cuando aún no hay profesional asignado).
-    val jobBids by viewModel.selectedJobBids.collectAsState()
-
-    // Contraparte cuando aún no hay profesional asignado (oferta sin aceptar).
-    val peerBid = remember(jobBids) {
-        jobBids.filter { !it.professionalId.isNullOrBlank() }.maxByOrNull { it.createdAt }
-    }
-    val peerNameFromBid = peerBid?.professionalName?.takeIf { it.isNotBlank() }
-    val peerPhotoFromBid = peerBid?.professionalPhoto?.takeIf { it.isNotBlank() }
     // Nombre del remitente tomado de los mensajes (cubre pre-oferta sin bid ni asignado).
     val peerNameFromMessages = remember(messages, currentUser) {
         messages.filter { it.senderId != currentUser?.id }
             .maxByOrNull { it.timestamp }?.senderName?.takeIf { it.isNotBlank() }
     }
     val resolvedPeerName = job?.professionalName?.takeIf { it.isNotBlank() }
-        ?: (if (activeRole == "CLIENT") peerNameFromBid ?: peerNameFromMessages else null)
         ?: peerNameFromMessages
 
     var messageText by remember { mutableStateOf("") }
@@ -225,13 +215,11 @@ fun ChatAndPaymentsScreen(
         }
     }
 
-    val otherUserPhotoUrl = remember(otherUserProfile, job, activeRole, peerPhotoFromBid) {
+    val otherUserPhotoUrl = remember(otherUserProfile, job, activeRole) {
         val otherUserId = if (activeRole == "CLIENT") job?.professionalId else job?.clientId
         val dbPhoto = otherUserProfile?.profilePhotoUrl
         if (!dbPhoto.isNullOrEmpty()) {
             dbPhoto
-        } else if (activeRole == "CLIENT" && !peerPhotoFromBid.isNullOrEmpty()) {
-            peerPhotoFromBid
         } else {
             when (otherUserId) {
                 "bot_carlos" -> "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop"
@@ -606,8 +594,7 @@ fun ChatAndPaymentsScreen(
             job?.professionalId?.isNotBlank() == true &&
             (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING")
         if (canAgreePrice) {
-            val lastBid = jobBids.maxByOrNull { it.createdAt }
-            val referencePrice = lastBid?.amount ?: job?.finalPrice ?: job?.budgetMin ?: 0.0
+            val referencePrice = job?.finalPrice ?: job?.budgetMin ?: 0.0
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

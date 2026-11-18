@@ -1,6 +1,5 @@
 package com.galibu.core.data.remote
 
-import com.galibu.core.data.model.Bid
 import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
@@ -79,45 +78,14 @@ interface ApiService {
     @DELETE("jobs/{id}")
     suspend fun deleteJob(@Path("id") id: String)
 
-    @POST("jobs/{id}/counter")
-    suspend fun counterJob(@Path("id") id: String, @Body req: AmountDto): JobRequest
-
-    @POST("jobs/{id}/accept-direct")
-    suspend fun acceptDirect(@Path("id") id: String): JobRequest
-
-    @POST("jobs/{id}/reject-direct")
-    suspend fun rejectDirect(@Path("id") id: String): JobRequest
+    @POST("jobs/{id}/accept")
+    suspend fun acceptJob(@Path("id") id: String): JobRequest
 
     @POST("jobs/{id}/start")
     suspend fun startService(@Path("id") id: String): JobRequest
 
     @POST("jobs/{id}/finish")
     suspend fun finishService(@Path("id") id: String, @Body req: RatingRequestDto): JobRequest
-
-    // Bids
-    @GET("jobs/{jobId}/bids")
-    suspend fun jobBids(@Path("jobId") jobId: String): List<Bid>
-
-    @GET("bids/mine")
-    suspend fun myBids(): List<Bid>
-
-    @GET("bids/{bidId}/history")
-    suspend fun bidHistory(@Path("bidId") bidId: String): List<BidEventDto>
-
-    @POST("jobs/{jobId}/bids")
-    suspend fun submitBid(@Path("jobId") jobId: String, @Body req: SubmitBidDto): Bid
-
-    @POST("jobs/{jobId}/propose-price")
-    suspend fun proposePrice(@Path("jobId") jobId: String, @Body req: PriceProposalRequest): Bid
-
-    @POST("bids/{bidId}/counter")
-    suspend fun counterBid(@Path("bidId") bidId: String, @Body req: AmountDto): Bid
-
-    @POST("bids/{bidId}/reject")
-    suspend fun rejectBid(@Path("bidId") bidId: String): Bid
-
-    @POST("bids/{bidId}/accept")
-    suspend fun acceptBid(@Path("bidId") bidId: String): Bid
 
     // Wallet
     @POST("wallet/recharge")

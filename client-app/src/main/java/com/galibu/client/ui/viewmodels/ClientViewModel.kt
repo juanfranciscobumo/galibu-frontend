@@ -22,23 +22,6 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
         // Push de ofertas eliminadas; se ignora.
     }
 
-    /**
-     * Ofertas por solicitud del cliente (jobId -> cantidad).
-     * Se alimenta de los bids locales (ver [refreshClientBids]).
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val clientBidsByJob: StateFlow<Map<String, Int>> =
-        flowOf(emptyMap<String, Int>()).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap<String, Int>())
-
-    /**
-     * Baja del backend las ofertas de cada solicitud propia (para el contador y el detalle).
-     * Detecta ofertas nuevas y genera notificación in-app (campanita) + push del sistema
-     * con el detalle de la oferta.
-     */
-    fun refreshClientBids(jobIds: List<String>) {
-        // Modelo de ofertas eliminado: no hay ofertas que refrescar.
-    }
-
     fun createJobRequest(category: String, title: String, description: String, budget: Double, address: String, department: String = "Bogotá D.C.", municipality: String = "Bogotá", suggestedPrice: Double? = null,
         photos: List<String>? = null) {
         viewModelScope.launch {
@@ -135,94 +118,6 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
                 hideLoading()
                 Log.e("ClientViewModel", "Error al contratar profesional: ${e.localizedMessage}")
                 showError("No se pudo enviar la solicitud de contratación. Verifica tu conexión e inténtalo nuevamente.")
-            }
-        }
-    }
-
-    fun acceptBid(bidId: String) {
-        viewModelScope.launch {
-            try {
-                showLoading("Aceptando cotización de servicio...")
-                kotlinx.coroutines.delay(1200)
-                repository.acceptBid(bidId)
-                showSuccess("Oferta aceptada correctamente.")
-            } catch (e: Exception) {
-                Log.e("ClientViewModel", "Falla aceptar propuesta: ${e.localizedMessage}")
-                val msg = e.localizedMessage ?: ""
-                if (msg.contains("Galibu Pro", ignoreCase = true) ||
-                    msg.contains("servicios gratis", ignoreCase = true) ||
-                    msg.contains("402") || msg.contains("409")
-                ) {
-                    showError(
-                        "El profesional ya superó sus 3 servicios gratis y necesita activar " +
-                            "Galibu Pro. Pídele que active su plan para poder trabajar contigo.",
-                        "No se puede aceptar"
-                    )
-                    return@launch
-                }
-                val user = currentUser.value
-                val warning = AppNotification(
-                    userId = user?.id ?: "",
-                    title = "Propuesta Aceptada Localmente ⏳",
-                    body = "Se aceptó la propuesta de forma offline. Falló la sincronización con Firebase: ${e.localizedMessage}"
-                )
-                database.appNotificationDao().insertNotification(warning)
-                showWarning("La oferta se procesó localmente y se sincronizará automáticamente al recuperar la conexión.")
-            } finally {
-                hideLoading()
-            }
-        }
-    }
-
-    fun rejectBid(bidId: String) {
-        viewModelScope.launch {
-            try {
-                showLoading("Rechazando cotización de servicio...")
-                kotlinx.coroutines.delay(1000)
-                repository.rejectBid(bidId)
-                showSuccess("Oferta rechazada.")
-            } catch (e: Exception) {
-                Log.e("ClientViewModel", "Falla rechazar propuesta: ${e.localizedMessage}")
-                val user = currentUser.value
-                val warning = AppNotification(
-                    userId = user?.id ?: "",
-                    title = "Propuesta Rechazada Localmente ⏳",
-                    body = "Se rechazó la propuesta de forma offline. Falló la sincronización con Firebase: ${e.localizedMessage}"
-                )
-                database.appNotificationDao().insertNotification(warning)
-                showWarning("El rechazo se procesó localmente y se sincronizará automáticamente al recuperar la conexión.")
-            } finally {
-                hideLoading()
-            }
-        }
-    }
-
-    /** Refuerza la lista de ofertas del job desde el backend (se usa tras aceptar/rechazar). */
-    fun refreshSelectedJobBids(jobId: String) {
-        viewModelScope.launch {
-            repository.refreshBidsForJob(jobId)
-        }
-    }
-
-    fun proposeCounterOffer(bidId: String, amount: Double) {
-        viewModelScope.launch {
-            try {
-                showLoading("Proponiendo nueva tarifa de negociación...")
-                kotlinx.coroutines.delay(1000)
-                repository.proposeCounterOffer(bidId, amount)
-                showSuccess("Contraoferta enviada al profesional.")
-            } catch (e: Exception) {
-                Log.e("ClientViewModel", "Falla contraoferta: ${e.localizedMessage}")
-                val user = currentUser.value
-                val warning = AppNotification(
-                    userId = user?.id ?: "",
-                    title = "Contraoferta Guardada Localmente 🔄",
-                    body = "Tu contraoferta de $$amount COP se guardó de forma offline. Falló sincronización Firebase: ${e.localizedMessage}"
-                )
-                database.appNotificationDao().insertNotification(warning)
-                showWarning("La contraoferta se guardó localmente y se sincronizará automáticamente al recuperar la conexión.")
-            } finally {
-                hideLoading()
             }
         }
     }

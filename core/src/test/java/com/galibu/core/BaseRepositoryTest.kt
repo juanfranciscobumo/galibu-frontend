@@ -45,7 +45,6 @@ abstract class BaseRepositoryTest {
         Dispatchers.setMain(testDispatcher)
 
         fakeJobDao = FakeJobRequestDao()
-        fakeBidDao = FakeBidDao()
         fakeUserDao = FakeUserProfileDao()
         fakeChatDao = FakeChatMessageDao()
         fakeNotificationDao = FakeAppNotificationDao()
@@ -56,7 +55,6 @@ abstract class BaseRepositoryTest {
         repository = GalibuRepository(
             userProfileDao = fakeUserDao,
             jobRequestDao = fakeJobDao,
-            bidDao = fakeBidDao,
             chatMessageDao = fakeChatDao,
             notificationDao = fakeNotificationDao,
             firebaseService = mockFirebase,

@@ -149,7 +149,6 @@ object AppGraph {
         return GalibuRepository(
             userProfileDao = database.userProfileDao(),
             jobRequestDao = database.jobRequestDao(),
-            bidDao = database.bidDao(),
             chatMessageDao = database.chatMessageDao(),
             notificationDao = database.appNotificationDao(),
             firebaseService = FirebaseService(),

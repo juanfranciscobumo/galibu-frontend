@@ -175,8 +175,6 @@ fun ProfessionalDashboardScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val openJobs by viewModel.openJobs.collectAsState()
     val allJobs by viewModel.allJobs.collectAsState()
-    val jobIdsWithBids by viewModel.jobIdsWithBids.collectAsState()
-    val proBids by viewModel.proBids.collectAsState()
     val notifications by viewModel.notifications.collectAsState(initial = emptyList())
     val allMessages by viewModel.allChatMessages.collectAsState()
     val boldCheckout by viewModel.boldCheckout.collectAsState()
@@ -300,10 +298,6 @@ fun ProfessionalDashboardScreen(
     var isAvailable by rememberSaveable { mutableStateOf(true) }
     var dismissedJobIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
 
-    // Dialog trigger states
-    var showBidDialog by remember { mutableStateOf(false) }
-    var selectedJobForBid by remember { mutableStateOf<ProDisplayJob?>(null) }
-    var historyBid by remember { mutableStateOf<com.galibu.core.data.model.Bid?>(null) }
 
     var showPlanSheet by remember { mutableStateOf(false) }
     var selectedPlan by rememberSaveable { mutableStateOf("MONTHLY") }
@@ -325,23 +319,13 @@ fun ProfessionalDashboardScreen(
     val proMuni = currentUser?.municipality ?: ""
     val proDept = currentUser?.department ?: ""
 
-    // Filter: OPEN jobs + NEGOTIATING jobs where professional has a bid
-    val availableJobsForPro = remember(openJobs, allJobs, jobIdsWithBids, currentUser) {
-        val openJobsList = openJobs.filter { job ->
+    // Solicitudes abiertas que este profesional todavía no ha tomado.
+    val availableJobsForPro = remember(openJobs, currentUser) {
+        openJobs.filter { job ->
             val notCreatedByMe = job.clientId != (currentUser?.id ?: "")
             val notAssignedToMe = (job.professionalId ?: "") != (currentUser?.id ?: "")
             notCreatedByMe && notAssignedToMe
         }
-        
-        // Add NEGOTIATING jobs where this professional has an active bid
-        val negotiatingWithMyBids = allJobs.filter { job ->
-            job.status == "NEGOTIATING" && 
-            job.id in jobIdsWithBids && 
-            job.professionalId.isNullOrEmpty() && // Not yet assigned
-            job.clientId != (currentUser?.id ?: "")
-        }
-        
-        (openJobsList + negotiatingWithMyBids).distinctBy { it.id }
     }
 
     val filteredRealJobs = availableJobsForPro
@@ -458,9 +442,6 @@ fun ProfessionalDashboardScreen(
     var selectedClientProfile by remember { mutableStateOf<UserProfile?>(null) }
     var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
     var isLoadingClientProfile by remember { mutableStateOf(false) }
-    var clientDetailCounterOfferAmount by remember { mutableStateOf("") }
-    var showDetailCounterInline by remember { mutableStateOf(false) }
-    var showFirstOfferInline by remember { mutableStateOf(false) }
     var showProRatingSheet by remember { mutableStateOf(false) }
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
     var showClientRatingsHistory by remember { mutableStateOf(false) }
@@ -482,9 +463,6 @@ fun ProfessionalDashboardScreen(
     }
 
     LaunchedEffect(selectedClientIdForProfile, selectedJobForProfileDetails?.id) {
-        clientDetailCounterOfferAmount = ""
-        showDetailCounterInline = false
-        showFirstOfferInline = false
         val clientId = selectedClientIdForProfile
         if (clientId != null && clientId.isNotEmpty()) {
             isLoadingClientProfile = true
@@ -516,10 +494,6 @@ fun ProfessionalDashboardScreen(
             }
             selectedClientProfile = user
             clientRatings = viewModel.repository.getUserRatings(clientId)
-            selectedJobForProfileDetails?.let { job ->
-                val defaultAmount = (job.counterOfferAmount ?: job.budgetMin).toInt().toString()
-                clientDetailCounterOfferAmount = com.galibu.core.ui.utils.PriceUtils.formatThousands(defaultAmount)
-            }
             isLoadingClientProfile = false
         } else {
             selectedClientProfile = null
@@ -527,16 +501,10 @@ fun ProfessionalDashboardScreen(
     }
 
     // Real historical active jobs
-    val professionalActiveJobs = remember(allJobs, currentUser, jobIdsWithBids) {
+    val professionalActiveJobs = remember(allJobs, currentUser) {
         allJobs.filter { job ->
             val isAssignedPro = job.professionalId == currentUser?.id
-            val isBidder = job.id in jobIdsWithBids
-            val proId = job.professionalId
-            val isAssignedToOther = proId != null && proId.isNotBlank() && proId != currentUser?.id
-            
-            val isMyJob = isAssignedPro || (isBidder && !isAssignedToOther)
-            
-            !job.isDirectChat() && isMyJob && (job.status == "OPEN" || job.status == "ACCEPTED" || job.status == "IN_PROGRESS" || job.status == "COMPLETED" || job.status == "NEGOTIATING" || job.status == "PENDING_RATING")
+            !job.isDirectChat() && isAssignedPro && (job.status == "OPEN" || job.status == "ACCEPTED" || job.status == "IN_PROGRESS" || job.status == "COMPLETED" || job.status == "NEGOTIATING" || job.status == "PENDING_RATING")
         }
     }
 
@@ -816,47 +784,9 @@ fun ProfessionalDashboardScreen(
                         directMappedJobs.forEach { job ->
                             JobRequestItem(
                                 job = job,
-                                balance = currentUser?.balance ?: 0.0,
-                                hasBid = job.id in jobIdsWithBids,
-                                onAccept = {
-                                    // Contratación directa: el profesional no acepta "al precio del cliente",
-                                    // sino que envía su propia cotización (oferta) al cliente.
-                                    selectedJobForBid = job
-                                    showBidDialog = true
-                                },
-                                onContraofertar = { proposedRate ->
-                                    selectedJobForBid = job
-                                    showBidDialog = true
-                                },
-                                onIgnore = {
-                                    scope.launch {
-                                        try {
-                                            viewModel.declineDirectJob(job.id) {
-                                                viewModel.showAlert("Aviso", "Invitación declinada")
-                                            }
-                                        } catch (e: Exception) {
-                                            viewModel.showAlert("Aviso", "Error: ${e.message}")
-                                        }
-                                    }
-                                },
-                                onNavigateToChat = {
-                                    viewModel.selectJob(job.id)
-                                    onNavigateToChat(job.id)
-                                },
                                 onClientClick = { clickedId ->
                                     selectedClientIdForProfile = clickedId
                                     selectedJobForProfileDetails = job
-                                },
-                                onFinalize = {
-                                    val realJob = allJobs.find { it.id == job.id }
-                                    viewModel.payAndCompleteJob(job.id, "Transferencia / Nequi") {
-                                        selectedJobForRating = realJob
-                                        viewModel.showAlert("Aviso", "¡Servicio finalizado con éxito! Califica al cliente.")
-                                    }
-                                },
-                                onRateClient = {
-                                    val realJob = allJobs.find { it.id == job.id }
-                                    selectedJobForRating = realJob
                                 }
                             )
                         }
@@ -898,47 +828,11 @@ fun ProfessionalDashboardScreen(
                                 )
                             }
                             matchingJobs.forEach { job ->
-                                val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    balance = currentUser?.balance ?: 0.0,
-                                    hasBid = job.id in jobIdsWithBids,
-                                    myBid = myBid,
-                                    onOpenHistory = { historyBid = myBid },
-                                    onAcceptBidCounter = {
-                                        myBid?.let { bid -> viewModel.acceptBid(bid.id) }
-                                    },
-                                    onProposeBidCounter = { counterVal ->
-                                        myBid?.let { bid -> viewModel.proposeCounterOffer(bid.id, counterVal) }
-                                    },
-                                    onRejectBidCounter = {
-                                        myBid?.let { bid -> viewModel.rejectBid(bid.id) }
-                                    },
-                                    onAccept = {
-                                        viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
-                                    },
-                                    onContraofertar = { proposedRate ->
-                                        selectedJobForBid = job
-                                        showBidDialog = true
-                                    },
-                                    onIgnore = {
-                                        dismissedJobIds = dismissedJobIds + job.id
-                                        viewModel.showAlert("Aviso", "Servicio archivado")
-                                    },
-                                    onNavigateToChat = {
-                                        viewModel.selectJob(job.id)
-                                        onNavigateToChat(job.id)
-                                    },
                                     onClientClick = { clickedId ->
                                         selectedClientIdForProfile = clickedId
                                         selectedJobForProfileDetails = job
-                                    },
-                                    onFinalize = {
-                                        val realJob = allJobs.find { it.id == job.id }
-                                        viewModel.payAndCompleteJob(job.id, "Transferencia / Nequi") {
-                                            selectedJobForRating = realJob
-                                            viewModel.showAlert("Aviso", "¡Servicio finalizado con éxito! Califica al cliente.")
-                                        }
                                     }
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
@@ -954,47 +848,11 @@ fun ProfessionalDashboardScreen(
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp)
                             )
                             otherJobs.forEach { job ->
-                                val myBid = remember(proBids, job.id) { proBids.find { it.jobId == job.id } }
                                 JobRequestItem(
                                     job = job,
-                                    balance = currentUser?.balance ?: 0.0,
-                                    hasBid = job.id in jobIdsWithBids,
-                                    myBid = myBid,
-                                    onOpenHistory = { historyBid = myBid },
-                                    onAcceptBidCounter = {
-                                        myBid?.let { bid -> viewModel.acceptBid(bid.id) }
-                                    },
-                                    onProposeBidCounter = { counterVal ->
-                                        myBid?.let { bid -> viewModel.proposeCounterOffer(bid.id, counterVal) }
-                                    },
-                                    onRejectBidCounter = {
-                                        myBid?.let { bid -> viewModel.rejectBid(bid.id) }
-                                    },
-                                    onAccept = {
-                                        viewModel.submitBid(job.id, job.budgetMin, "Acepto tus condiciones sugeridas.", job.duration)
-                                    },
-                                    onContraofertar = { proposedRate ->
-                                        selectedJobForBid = job
-                                        showBidDialog = true
-                                    },
-                                    onIgnore = {
-                                        dismissedJobIds = dismissedJobIds + job.id
-                                        viewModel.showAlert("Aviso", "Servicio archivado")
-                                    },
-                                    onNavigateToChat = {
-                                        viewModel.selectJob(job.id)
-                                        onNavigateToChat(job.id)
-                                    },
                                     onClientClick = { clickedId ->
                                         selectedClientIdForProfile = clickedId
                                         selectedJobForProfileDetails = job
-                                    },
-                                    onFinalize = {
-                                        val realJob = allJobs.find { it.id == job.id }
-                                        viewModel.payAndCompleteJob(job.id, "Transferencia / Nequi") {
-                                            selectedJobForRating = realJob
-                                            viewModel.showAlert("Aviso", "¡Servicio finalizado con éxito! Califica al cliente.")
-                                        }
                                     }
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
@@ -2325,10 +2183,6 @@ fun ProfessionalDashboardScreen(
                         val detailStatus = realJob?.status ?: detail.status
                         // Igual con los campos de negociación: la copia se queda vieja
                         // cuando el cliente responde o cuando yo contraoferto.
-                        val liveBudgetMin = realJob?.budgetMin ?: detail.budgetMin
-                        val liveSuggestedPrice = realJob?.suggestedPrice ?: detail.suggestedPrice
-                        val liveCounterAmount = realJob?.counterOfferAmount ?: detail.counterOfferAmount
-                        val liveCounterSender = realJob?.counterOfferSender ?: detail.counterOfferSender
                         if (detailStatus == "ACCEPTED" && assignedToMe) {
                             // Aceptado por el cliente: ya no se oferta, se inicia el servicio.
                             Card(
@@ -2482,6 +2336,7 @@ fun ProfessionalDashboardScreen(
                                 }
                             }
                         } else {
+                        // Sin ofertas: el precio y los detalles se acuerdan por el chat.
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFE9F7EF)),
                             shape = RoundedCornerShape(16.dp),
@@ -2492,342 +2347,73 @@ fun ProfessionalDashboardScreen(
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
-                                val receivedBid = remember(proBids, detail.id) {
-                                    proBids.filter { it.jobId == detail.id }.maxByOrNull { it.createdAt }
-                                }
-                                // The client only puts a price on the table via counter-offer
-                                // (direct counter touches the job, per-bid counter stamps the bid).
-                                // Without it, the professional defines the price with "Enviar oferta".
-                                val directClientCounter = liveCounterAmount
-                                    ?.takeIf { liveCounterSender == "CLIENT" && it > 0 }
-                                val bidClientCounter = receivedBid
-                                    ?.takeIf { it.status == "COUNTERED_BY_CLIENT" }
-                                    ?.let { (it.lastCounterOfferAmount?.takeIf { v -> v > 0 }) ?: it.amount.takeIf { v -> v > 0 } }
-                                val clientOfferAmount = directClientCounter ?: bidClientCounter
-                                if (clientOfferAmount != null) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFFD9F0DF)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.LocalOffer,
-                                                contentDescription = null,
-                                                tint = proGreenStyle,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFD9F0DF)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Chat,
+                                            contentDescription = null,
+                                            tint = proGreenStyle,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
                                         Text(
-                                            text = "Oferta recibida",
+                                            text = if (assignedToMe) "Acuerda el precio por el chat" else "Solicitud disponible",
                                             color = proGreenStyle,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold
                                         )
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "$" + com.galibu.core.ui.utils.PriceUtils.formatThousands(clientOfferAmount.toLong().toString()),
-                                        color = proTextMain,
-                                        fontSize = 30.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    // Aceptar: contratación directa asignada usa accept-direct;
-                                    // en negociación abierta se acepta la oferta (el backend ahora
-                                    // permite al profesional aceptar su contraoferta del cliente).
-                                    // Sin oferta propia no hay nada que aceptar: solo contraofertar.
-                                    val isDirectAssigned = detail.isDirectHire && assignedToMe
-                                    if (isDirectAssigned || receivedBid != null) {
-                                    Button(
-                                        onClick = {
-                                            if (isDirectAssigned) {
-                                                // Contratación directa: el profesional envía su cotización
-                                                // (no acepta "al precio del cliente" sin negociar).
-                                                selectedJobForBid = detail
-                                                showBidDialog = true
-                                            } else {
-                                                receivedBid?.let {
-                                                    viewModel.acceptBid(it.id)
-                                                    selectedClientIdForProfile = null
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = proGreenStyle),
-                                        shape = RoundedCornerShape(14.dp),
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Aceptar oferta",
-                                            color = Color.White,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
+                                            text = if (assignedToMe) {
+                                                "El precio y los detalles del servicio se definen en la conversación con el cliente."
+                                            } else {
+                                                "Toma la solicitud para conversar con el cliente y acordar el precio."
+                                            },
+                                            color = proTextSec,
+                                            fontSize = 12.sp
                                         )
-                                    }
-                                    }
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    // Inline: tap Contraofertar -> se oculta el botón y aparece input + Enviar oferta
-                                    if (!showDetailCounterInline) {
-                                        OutlinedButton(
-                                            onClick = { showDetailCounterInline = true },
-                                            border = BorderStroke(1.dp, Color(0xFFFF9800)),
-                                            shape = RoundedCornerShape(14.dp),
-                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.SwapHoriz,
-                                                contentDescription = null,
-                                                tint = Color(0xFFFF9800),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Contraofertar",
-                                                color = Color(0xFFFF9800),
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    } else {
-                                        Card(
-                                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                                            shape = RoundedCornerShape(12.dp),
-                                            border = BorderStroke(1.dp, proBorder),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                com.galibu.core.ui.components.InlineCounterOfferInput(
-                                                    initialAmount = 0.0,
-                                                    accentColor = proPrimary,
-                                                    onSend = { amount ->
-                                                        showDetailCounterInline = false
-                                                        if (receivedBid != null && receivedBid.status == "COUNTERED_BY_CLIENT") {
-                                                            viewModel.proposeCounterOffer(receivedBid.id, amount)
-                                                        } else {
-                                                            scope.launch {
-                                                                try {
-                                                                    viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration) {
-                                                                        viewModel.showAlert("Aviso", "¡Cotización enviada!")
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    viewModel.showAlert("Aviso", "Error: ${e.message}")
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                    onCancel = { showDetailCounterInline = false }
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFFD9F0DF)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.LocalOffer,
-                                                contentDescription = null,
-                                                tint = proGreenStyle,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
-                                                text = "Tu oferta",
-                                                color = proGreenStyle,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "Define el precio de tu servicio",
-                                                color = proTextSec,
-                                                fontSize = 12.sp
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    // Si ya tengo oferta en espera del cliente, no se permite otra
-                                    // hasta que acepte o contraoferte.
-                                    // En directas la negociación vive en el job (counterOfferSender):
-                                    // un bid PENDING suelto no debe bloquear los botones.
-                                    val awaitingClient = if (detail.isDirectHire) {
-                                        liveCounterSender == "PROFESSIONAL" && (liveCounterAmount ?: 0.0) > 0
-                                    } else {
-                                        receivedBid != null &&
-                                            (receivedBid.status == "PENDING" ||
-                                                receivedBid.status == "COUNTERED_BY_PROFESSIONAL")
-                                    }
-                                    if (awaitingClient) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(Color(0xFFEFF6FF))
-                                                .padding(horizontal = 14.dp, vertical = 12.dp)
-                                        ) {
-                                            Text(
-                                                text = "Oferta enviada, esperando respuesta del cliente",
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = proPrimary
-                                            )
-                                        }
-                                    } else if (!showFirstOfferInline) {
-                                        val offeredPrice = liveSuggestedPrice?.takeIf { it > 0 }
-                                        // Directa sin contraoferta aún: el budgetMin ya es la oferta
-                                        // inicial del cliente → se acepta con accept-direct.
-                                        val isDirectInitialOffer = offeredPrice == null &&
-                                            detail.isDirectHire && assignedToMe && liveBudgetMin > 0
-                                        if (offeredPrice != null) {
-                                            Button(
-                                                onClick = {
-                                                    viewModel.submitBid(detail.id, offeredPrice, "Acepto el precio ofertado.", detail.duration)
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = proGreenStyle),
-                                                shape = RoundedCornerShape(14.dp),
-                                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "Aceptar oferta",
-                                                    color = Color.White,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                        } else if (isDirectInitialOffer) {
-                                            Button(
-                                                onClick = {
-                                                    // Enviar cotización en lugar de aceptar directo.
-                                                    selectedJobForBid = detail
-                                                    showBidDialog = true
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = proGreenStyle),
-                                                shape = RoundedCornerShape(14.dp),
-                                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "Aceptar oferta",
-                                                    color = Color.White,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                        }
-                                        OutlinedButton(
-                                            onClick = { showFirstOfferInline = true },
-                                            border = BorderStroke(1.dp, Color(0xFFFF9800)),
-                                            shape = RoundedCornerShape(14.dp),
-                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.SwapHoriz,
-                                                contentDescription = null,
-                                                tint = Color(0xFFFF9800),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Contraofertar",
-                                                color = Color(0xFFFF9800),
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    } else {
-                                        Card(
-                                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                                            shape = RoundedCornerShape(12.dp),
-                                            border = BorderStroke(1.dp, proBorder),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                com.galibu.core.ui.components.InlineCounterOfferInput(
-                                                    initialAmount = 0.0,
-                                                    accentColor = proPrimary,
-                                                    sendLabel = "Enviar contraoferta",
-                                                    onSend = { amount ->
-                                                        showFirstOfferInline = false
-                                                        if (amount < 5417.0) {
-                                                            viewModel.showAlert("Aviso", "El precio es muy bajo. El mínimo es $5.417 COP.")
-                                                        } else if (detail.isDirectHire && assignedToMe) {
-                                                            // Directa: la cotización se envía como oferta del profesional.
-                                                            viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration)
-                                                        } else {
-                                                            viewModel.submitBid(detail.id, amount, "Ofrezco servicio especializado de calidad.", detail.duration)
-                                                        }
-                                                    },
-                                                    onCancel = { showFirstOfferInline = false }
-                                                )
-                                            }
-                                        }
                                     }
                                 }
-
-                                if (detail.isDirectHire && assignedToMe && detailStatus == "NEGOTIATING") {
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    HorizontalDivider(color = Color(0xFFD9F0DF))
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedButton(
-                                        onClick = {
-                                            viewModel.declineDirectJob(detail.id) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        if (assignedToMe) {
+                                            viewModel.selectJob(detail.id)
+                                            onNavigateToChat(detail.id)
+                                        } else {
+                                            viewModel.acceptJob(detail.id) {
+                                                viewModel.selectJob(detail.id)
                                                 selectedClientIdForProfile = null
                                                 selectedJobForProfileDetails = null
+                                                onNavigateToChat(detail.id)
                                             }
-                                        },
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
-                                        border = BorderStroke(1.5.dp, Color(0xFFDC2626)),
-                                        shape = RoundedCornerShape(14.dp),
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(52.dp)
-                                    ) {
-                                        Text(
-                                            text = "Rechazar solicitud",
-                                            color = Color(0xFFDC2626),
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
+                                    shape = RoundedCornerShape(14.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = if (assignedToMe) Icons.Default.Chat else Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (assignedToMe) "Ir al chat" else "Tomar solicitud",
+                                        color = Color.White,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
@@ -3024,46 +2610,13 @@ fun ProfessionalDashboardScreen(
 @Composable
 fun JobRequestItem(
     job: ProDisplayJob,
-    balance: Double,
-    onAccept: () -> Unit,
-    onContraofertar: (Double) -> Unit,
-    onIgnore: () -> Unit,
-    onNavigateToChat: () -> Unit,
-    onClientClick: (String) -> Unit,
-    onFinalize: () -> Unit,
-    onRateClient: (() -> Unit)? = null,
-    hasBid: Boolean = false,
-    myBid: com.galibu.core.data.model.Bid? = null,
-    onAcceptBidCounter: (() -> Unit)? = null,
-    onProposeBidCounter: ((Double) -> Unit)? = null,
-    onRejectBidCounter: (() -> Unit)? = null,
-    onOpenHistory: (() -> Unit)? = null
+    onClientClick: (String) -> Unit
 ) {
-    val isBidCountered = myBid != null && myBid.status == "COUNTERED_BY_CLIENT"
-    val isBidPending = myBid != null && myBid.status == "COUNTERED_BY_PROFESSIONAL"
-
-    val finalPriceVal = if (isBidCountered || isBidPending) {
-        myBid!!.amount
-    } else if (job.isDirectHire) {
+    val finalPriceVal = if (job.isDirectHire) {
         job.counterOfferAmount ?: job.budgetMin
     } else {
         job.budgetMin
     }
-
-    val offerLabel = if (isBidCountered) {
-        "Cliente Propone"
-    } else if (isBidPending) {
-        "Tú propusiste"
-    } else {
-        when (job.counterOfferSender) {
-            "CLIENT" -> "Cliente Propone"
-            "PROFESSIONAL" -> "Tú propusiste"
-            else -> "Ofrece (Cliente)"
-        }
-    }
-
-    var showCounterOfferSheet by remember { mutableStateOf(false) }
-    var inputBidVal by remember(job) { mutableStateOf(finalPriceVal.toInt().toString()) }
 
     val statusTriple = when (job.status.uppercase()) {
         "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), PolishGreen)
@@ -3084,32 +2637,6 @@ fun JobRequestItem(
     }
     val cardPrice = job.suggestedPrice?.takeIf { it > 0 }
         ?: if (job.isDirectHire || (job.source ?: "PUBLISH") == "DIRECTORY") finalPriceVal.takeIf { it > 0 } else null
-
-    if (myBid != null && myBid.counterRound > 0 && onOpenHistory != null) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            TextButton(
-                onClick = onOpenHistory,
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Ver historial de rondas (${myBid.counterRound})",
-                        fontSize = 11.sp,
-                        color = Color(0xFF7E22CE)
-                    )
-                }
-            }
-        }
-    }
 
     RequestSummaryCard(
         timeAgo = formatTimeAgo(job.createdAt),

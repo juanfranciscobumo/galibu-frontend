@@ -24,93 +24,12 @@ class GalibuRepositoryTest : BaseRepositoryTest() {
     }
 
     @Test
-    fun `submitBid stores backend bid and refreshes job`() = runTest {
-        val user = createUser(id = "pro_1", name = "Carlos Garcia")
-        val negJob = createJob(id = "job_1", status = "NEGOTIATING", clientId = "client_1")
-        coEvery { mockApi.jobs(any(), any(), any()) } returns listOf(negJob)
-        fakeUserDao.insertUser(user)
-        setCurrentUser(user)
-        fakeJobDao.insertJob(createJob(id = "job_1", status = "OPEN", clientId = "client_1"))
-
-        val apiBid = createBid(id = "bid_job_1_pro_1", jobId = "job_1", professionalId = "pro_1", status = "PENDING")
-        coEvery { mockApi.submitBid(any(), any()) } returns apiBid
-        coEvery { mockApi.getJob("job_1") } returns negJob
-        coEvery { mockApi.jobBids("job_1") } returns listOf(apiBid)
-
-        repository.submitBid("job_1", 75000.0, "Lo hago en 2 horas", 2)
-
-        val bidList = fakeBidDao.getBidsForJobFlow("job_1").first()
-        assertEquals(1, bidList.size)
-        assertEquals("bid_job_1_pro_1", bidList[0].id)
-        assertEquals("PENDING", bidList[0].status)
-
-        val updatedJob = fakeJobDao.getJobByIdSync("job_1")
-        assertNotNull(updatedJob)
-        assertEquals("NEGOTIATING", updatedJob?.status)
-        // Firebase ya no es fuente de verdad para bids; la oferta queda en backend/Room.
-    }
-
-    @Test
-    fun `submitBid propagates backend failure without local writes`() = runTest {
-        val user = createUser(id = "pro_1")
-        setCurrentUser(user)
-
-        coEvery { mockApi.submitBid(any(), any()) } throws RuntimeException("500")
-
-        var failed = false
-        try {
-            repository.submitBid("job_1", 75000.0, "Comentario", 2)
-        } catch (e: Exception) {
-            failed = true
-        }
-        assertTrue(failed)
-        assertTrue(fakeBidDao.getBidsForJobFlow("job_1").first().isEmpty())
-    }
-
-    @Test
-    fun `proposePrice stores backend bid and refreshes job`() = runTest {
-        val user = createUser(id = "client_1", name = "Ana Client")
-        setCurrentUser(user)
-        fakeJobDao.insertJob(
-            createJob(
-                id = "job_1",
-                status = "NEGOTIATING",
-                professionalId = "pro_1",
-                clientId = "client_1"
-            )
-        )
-        val apiBid = createBid(
-            id = "bid_job_1_client_1",
-            jobId = "job_1",
-            professionalId = "client_1",
-            professionalName = "Ana Client",
-            amount = 90000.0,
-            status = "PENDING"
-        )
-        coEvery { mockApi.proposePrice(any(), any()) } returns apiBid
-        coEvery { mockApi.getJob("job_1") } returns
-            createJob(id = "job_1", status = "NEGOTIATING", clientId = "client_1")
-
-        repository.proposePrice("job_1", 90000.0)
-
-        val bidList = fakeBidDao.getBidsForJobFlow("job_1").first()
-        assertEquals(1, bidList.size)
-        assertEquals("bid_job_1_client_1", bidList[0].id)
-        assertEquals(90000.0, bidList[0].amount, 0.01)
-
-        val updatedJob = fakeJobDao.getJobByIdSync("job_1")
-        assertNotNull(updatedJob)
-    }
-
-    @Test
-    fun `cancelJobRequest deletes local job and bids`() = runTest {
+    fun `cancelJobRequest deletes local job`() = runTest {
         fakeJobDao.insertJob(createJob(id = "job_1"))
-        fakeBidDao.insertBid(createBid(id = "bid_1", jobId = "job_1"))
 
         repository.cancelJobRequest("job_1")
 
         assertNull(fakeJobDao.getJobByIdSync("job_1"))
-        assertNull(fakeBidDao.getBidByIdSync("bid_1"))
         coVerify { mockApi.deleteJob("job_1") }
     }
 

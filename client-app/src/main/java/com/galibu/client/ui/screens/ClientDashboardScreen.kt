@@ -416,7 +416,6 @@ private fun getRatingDistribution(reviews: List<Pair<Float, String>>): Map<Int, 
 @Composable
 fun ClientDashboardScreen(
     viewModel: ClientViewModel,
-    onNavigateToJobBids: (String) -> Unit,
     onNavigateToChat: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onSwitchRole: () -> Unit,
@@ -574,45 +573,6 @@ fun ClientDashboardScreen(
         }
     }
 
-    val bidsByJob by viewModel.clientBidsByJob.collectAsState()
-
-    // Sincroniza las ofertas de mis solicitudes abiertas para el contador,
-    // con re-chequeo periódico para avisar ofertas nuevas (campanita + push).
-    val openBidJobIds = remember(clientJobs) {
-        clientJobs
-            .filter { it.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO") }
-            .map { it.id }
-    }
-    LaunchedEffect(openBidJobIds) {
-        if (openBidJobIds.isNotEmpty()) {
-            viewModel.refreshClientBids(openBidJobIds)
-        }
-        viewModel.refreshMyJobs()
-        while (true) {
-            kotlinx.coroutines.delay(15_000)
-            if (openBidJobIds.isNotEmpty()) {
-                viewModel.refreshClientBids(openBidJobIds)
-            }
-            // Detecta aceptar/iniciar/finalizar/calificar del otro extremo.
-            viewModel.refreshMyJobs()
-        }
-    }
-
-    // Carga inicial de datos solo al entrar a la pantalla (no en cada onResume).
-    LaunchedEffect(Unit) {
-        viewModel.refreshAll()
-        if (openBidJobIds.isNotEmpty()) {
-            viewModel.refreshClientBids(openBidJobIds)
-        }
-    }
-
-    // Al volver desde la app profesional, solo se refrescan las bids (no todos los jobs).
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (openBidJobIds.isNotEmpty()) {
-            viewModel.refreshClientBids(openBidJobIds)
-        }
-    }
-
     // Permiso de notificaciones del sistema (Android 13+) para las push de ofertas.
     val pushPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -664,10 +624,9 @@ fun ClientDashboardScreen(
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     clientJobs = clientJobs,
-                    bidsByJob = bidsByJob,
                     onJobClick = { job ->
                         viewModel.selectJob(job.id)
-                        onNavigateToJobBids(job.id)
+                        onNavigateToChat(job.id)
                     },
                     onNotificationsClick = { onNavigateToNotifications() },
                     unreadNotifications = notifications.count { !it.isRead },
@@ -689,7 +648,6 @@ fun ClientDashboardScreen(
                     currentUserId = currentUser?.id,
                     onChatClick = { job ->
                         viewModel.selectJob(job.id)
-                        viewModel.refreshClientBids(listOf(job.id))
                         onNavigateToChat(job.id)
                     }
                 )
@@ -1401,7 +1359,6 @@ fun InicioTab(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     clientJobs: List<JobRequest>,
-    bidsByJob: Map<String, Int> = emptyMap(),
     onJobClick: (JobRequest) -> Unit,
     onNotificationsClick: () -> Unit,
     unreadNotifications: Int = 0,
@@ -1616,7 +1573,6 @@ fun InicioTab(
             filteredJobs.forEach { job ->
                 HomeJobRequestCard(
                     job = job,
-                    bidsCount = bidsByJob[job.id] ?: 0,
                     onClick = { onJobClick(job) }
                 )
             }
@@ -1680,7 +1636,6 @@ fun HomeStatCard(
 @Composable
 fun HomeJobRequestCard(
     job: JobRequest,
-    bidsCount: Int = 0,
     onClick: () -> Unit
 ) {
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
@@ -1729,13 +1684,6 @@ fun HomeJobRequestCard(
                     contentDescription = null,
                     tint = Color(0xFFDB2777),
                     modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (bidsCount == 1) "1 oferta" else "$bidsCount ofertas",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (bidsCount > 0) Color(0xFFDB2777) else PolishGrayText
                 )
             }
         }

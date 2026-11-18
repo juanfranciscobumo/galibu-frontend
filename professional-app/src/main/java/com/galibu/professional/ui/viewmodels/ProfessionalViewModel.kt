@@ -143,39 +143,27 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun submitBid(
-        jobId: String,
-        amount: Double,
-        comment: String,
-        durationHours: Int,
-        quoteType: String = "ESTIMATED",
-        visitRequired: Boolean = false,
-        visitFee: Double? = null,
-        materialsIncluded: Boolean = false,
-        materialsCost: Double? = null,
-        visitScheduledAt: Long? = null,
-        onComplete: () -> Unit = {}
-    ) {
-        // Modelo de ofertas eliminado: el precio se acuerda por el chat.
-        onComplete()
-    }
-
-    /** El profesional cotiza (envía su oferta) en una contratación directa (job NEGOTIATING asignado). */
-    fun submitBidForDirectJob(
-        jobId: String,
-        amount: Double,
-        comment: String,
-        durationHours: Int,
-        quoteType: String = "ESTIMATED",
-        visitRequired: Boolean = false,
-        visitFee: Double? = null,
-        materialsIncluded: Boolean = false,
-        materialsCost: Double? = null,
-        visitScheduledAt: Long? = null,
-        onResult: () -> Unit = {}
-    ) {
-        // Modelo de ofertas eliminado: el precio se acuerda por el chat.
-        onResult()
+    /**
+     * Tomar una solicitud abierta. El backend asigna el trabajo y lo pasa a
+     * NEGOTIATING; desde ese momento todo se acuerda por el chat.
+     */
+    fun acceptJob(jobId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Tomando la solicitud...")
+                repository.acceptJob(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("ProfessionalViewModel", "Error al tomar la solicitud: ${e.localizedMessage}")
+                handleProError(
+                    e.localizedMessage ?: "",
+                    "No se pudo tomar la solicitud. Puede que ya tenga un profesional asignado."
+                )
+            }
+        }
     }
 
     /** El profesional declina una invitación de contratación directa (cancela el job). */
@@ -241,17 +229,5 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 hideLoading()
             }
         }
-    }
-
-    fun acceptBid(bidId: String) {
-        // Modelo de ofertas eliminado: la contratación se define por el chat.
-    }
-
-    fun rejectBid(bidId: String) {
-        // Modelo de ofertas eliminado: la contratación se define por el chat.
-    }
-
-    fun proposeCounterOffer(bidId: String, amount: Double) {
-        // Modelo de ofertas eliminado.
     }
 }

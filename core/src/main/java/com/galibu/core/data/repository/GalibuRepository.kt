@@ -12,16 +12,13 @@ import com.galibu.core.data.remote.AmountDto
 import com.galibu.core.data.remote.ApiService
 import com.galibu.core.data.remote.BoldCheckoutResponse
 import com.galibu.core.data.remote.BoldOrderStatusResponse
-import com.galibu.core.data.remote.BidEventDto
 import com.galibu.core.data.remote.CreateJobDto
 import com.galibu.core.data.remote.GoogleLoginRequestDto
 import com.galibu.core.data.remote.LoginRequestDto
 import com.galibu.core.data.remote.DeviceTokenRequestDto
 import com.galibu.core.data.remote.PasswordChangeDto
-import com.galibu.core.data.remote.PriceProposalRequest
 import com.galibu.core.data.remote.RefreshRequestDto
 import com.galibu.core.data.remote.RegisterRequestDto
-import com.galibu.core.data.remote.SubmitBidDto
 import com.galibu.core.data.remote.SubscriptionCheckoutRequest
 import com.galibu.core.data.remote.SubscriptionDto
 import com.galibu.core.data.remote.TokenStore
@@ -53,7 +50,6 @@ import java.util.UUID
 class GalibuRepository(
     private val userProfileDao: UserProfileDao,
     private val jobRequestDao: JobRequestDao,
-    private val bidDao: BidDao,
     private val chatMessageDao: ChatMessageDao,
     private val notificationDao: AppNotificationDao,
     private val firebaseService: FirebaseService,
@@ -62,10 +58,6 @@ class GalibuRepository(
 ) {
     private val _currentUser = MutableStateFlow<UserProfile?>(null)
     val currentUser = _currentUser.asStateFlow()
-
-    suspend fun insertBidDirectly(bid: Bid) = withContext(Dispatchers.IO) {
-        bidDao.insertBid(bid)
-    }
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO)
 
@@ -267,29 +259,6 @@ class GalibuRepository(
         refreshJobs()
     }
 
-    /**
-     * Pulls bids from the backend into Room: own bids for professionals,
-     * plus every bid of the given job (the backend already scopes by caller).
-     */
-    suspend fun refreshBids() {
-        val user = _currentUser.value ?: return
-        if (!user.role.equals("PROFESSIONAL", ignoreCase = true) && !user.role.equals("BOTH", ignoreCase = true)) return
-        try {
-            apiService.myBids().forEach { bidDao.insertBid(it) }
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error refrescando bids: ${e.localizedMessage}")
-            throw e
-        }
-    }
-
-    suspend fun refreshBidsForJob(jobId: String) {
-        try {
-            apiService.jobBids(jobId).forEach { bidDao.insertBid(it) }
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error refrescando bids del job $jobId: ${e.localizedMessage}")
-        }
-    }
-
     suspend fun refreshJobDetails(jobId: String) {
         RequestTrace.withTransaction {
             try {
@@ -298,7 +267,6 @@ class GalibuRepository(
             } catch (e: Exception) {
                 Log.e("GalibuRepository", "Error refrescando job $jobId: ${e.localizedMessage}")
             }
-            refreshBidsForJob(jobId)
         }
     }
 
@@ -327,9 +295,6 @@ class GalibuRepository(
             }
             try { forceRefreshJobs() } catch (e: Exception) {
                 Log.e("GalibuRepository", "refreshAll jobs falló: ${e.localizedMessage}")
-            }
-            try { refreshBids() } catch (e: Exception) {
-                Log.e("GalibuRepository", "refreshAll bids falló: ${e.localizedMessage}")
             }
         }
     }
@@ -1044,7 +1009,6 @@ class GalibuRepository(
                 // Completely purge local Room database to prevent caching or stale state issues for the next user session
                 jobRequestDao.deleteAllJobs()
                 userProfileDao.deleteAllUserProfiles()
-                bidDao.deleteAllBids()
                 chatMessageDao.deleteAllChatMessages()
                 notificationDao.deleteAllNotifications()
             } catch (e: Exception) {
@@ -1164,13 +1128,10 @@ class GalibuRepository(
             if (userId.isEmpty()) {
                 jobRequestDao.getOpenJobsFlow()
             } else {
-                combine(
-                    jobRequestDao.getAllJobsFlow(),
-                    bidDao.getJobIdsWithBidsFlow(userId)
-                ) { allJobs, bidJobIds ->
+                jobRequestDao.getAllJobsFlow().map { allJobs ->
                     allJobs.filter { job ->
                         val isOpen = job.status == "OPEN"
-                        val isNegotiatingWithMe = job.status == "NEGOTIATING" && (job.id in bidJobIds || job.professionalId == userId)
+                        val isNegotiatingWithMe = job.status == "NEGOTIATING" && job.professionalId == userId
                         val isAcceptedByMe = job.status == "ACCEPTED" && job.professionalId == userId
                         val isInProgressByMe = job.status == "IN_PROGRESS" && job.professionalId == userId
 
@@ -1239,15 +1200,6 @@ class GalibuRepository(
                 if (job != null) {
                     if (job.professionalId == proId) {
                         return@withTransaction job.id
-                    }
-                    val hasActiveOffer = try {
-                        bidDao.getBidsForJobAndProfessionalSync(job.id, proId)
-                            .any { !it.status.equals("REJECTED", ignoreCase = true) }
-                    } catch (e: Exception) {
-                        false
-                    }
-                    if (hasActiveOffer) {
-                        return@withTransaction openNegotiationChat(job, proId, proName, proSpecialty)
                     }
                     return@withTransaction job.id
                 }
@@ -1465,201 +1417,16 @@ class GalibuRepository(
 
     // --- Price Bids & Negotiations ---
 
-    /**
-     * Ofertas visibles de un job. Las rechazadas se conservan en la base local
-     * para auditoría, pero no deben aparecer en la negociación.
-     */
-    private fun List<Bid>.withoutRejectedOffers(): List<Bid> =
-        filterNot { it.status.equals("REJECTED", ignoreCase = true) }
-
-    fun getBidsForJob(jobId: String): Flow<List<Bid>> =
-        bidDao.getBidsForJobFlow(jobId).map { it.withoutRejectedOffers() }
-
-    suspend fun getBidsForJobSync(jobId: String): List<Bid> = withContext(Dispatchers.IO) {
-        try {
-            bidDao.getBidsForJobSync(jobId).withoutRejectedOffers()
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error leyendo bids locales de $jobId: ${e.localizedMessage}")
-            emptyList()
-        }
-    }
-
-    /**
-     * Crea la notificación in-app de una nueva oferta recibida en una
-     * solicitud del cliente. Devuelve la notificación creada.
-     */
-    suspend fun notifyNewBidOffer(
-        clientId: String,
-        job: JobRequest,
-        bid: Bid,
-        amountText: String
-    ): AppNotification = withContext(Dispatchers.IO) {
-        val title = job.title.takeIf { it.isNotBlank() } ?: job.category.ifBlank { "tu solicitud" }
-        val comment = bid.comment.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: ""
-        val notification = AppNotification(
-            userId = clientId,
-            title = "¡Nueva oferta recibida! 💰",
-            body = "${bid.professionalName} ofertó $amountText COP en '$title'.$comment",
-            timestamp = System.currentTimeMillis(),
-            isRead = false,
-            jobId = job.id
-        )
-        try {
-            notificationDao.insertNotification(notification)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error guardando notificación de oferta: ${e.localizedMessage}")
-        }
-        notification
-    }
-
-    suspend fun markJobNotificationsAsRead(userId: String, jobId: String) = withContext(Dispatchers.IO) {
-        try {
-            notificationDao.markJobAsRead(userId, jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error marcando notificaciones del job: ${e.localizedMessage}")
-        }
-    }
-
-    suspend fun getUserRatings(userId: String): List<com.galibu.core.data.remote.RatingDto> =
-        withContext(Dispatchers.IO) {
-            try {
-                apiService.userRatings(userId)
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "getUserRatings falló: ${e.localizedMessage}")
-                emptyList()
-            }
-        }
-
-    suspend fun submitBid(
-        jobId: String,
-        amount: Double,
-        comment: String,
-        durationHours: Int,
-        quoteType: String = "ESTIMATED",
-        visitRequired: Boolean = false,
-        visitFee: Double? = null,
-        materialsIncluded: Boolean = false,
-        materialsCost: Double? = null,
-        visitScheduledAt: Long? = null
-    ) = withContext(Dispatchers.IO) {
-        RequestTrace.withTransaction {
-            _currentUser.value ?: return@withTransaction
-            val saved = try {
-                apiService.submitBid(
-                    jobId,
-                    SubmitBidDto(
-                        amount = amount,
-                        comment = comment,
-                        durationHours = durationHours,
-                        quoteType = quoteType,
-                        visitRequired = visitRequired,
-                        visitFee = visitFee,
-                        materialsIncluded = materialsIncluded,
-                        materialsCost = materialsCost,
-                        visitScheduledAt = visitScheduledAt
-                    )
-                )
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "submitBid falló en backend: ${e.localizedMessage}")
-                AppTelemetry.error("bids", "No se pudo enviar la oferta", e)
-                throw e
-            }
-            bidDao.insertBid(saved)
-            // Oferta persistida en backend; Firestore ya no es fuente de verdad para bids.
-
-            // Refresh the job (the server flips OPEN -> NEGOTIATING on first bid).
-            refreshJobDetails(jobId)
-            AppTelemetry.event(
-                "bid.submit",
-                mapOf(
-                    "jobId" to jobId,
-                    "bidId" to saved.id,
-                    "amount" to amount.toString(),
-                    "quoteType" to quoteType
-                )
-            )
-        }
-    }
-
-    /** Historial de rondas de una oferta (backend). */
-    suspend fun getBidHistory(bidId: String): List<BidEventDto> = withContext(Dispatchers.IO) {
-        apiService.bidHistory(bidId)
-    }
-
-    /**
-     * Counter offer negotiation in real-time
-     */
-    suspend fun proposeCounterOffer(bidId: String, counterAmount: Double) = withContext(Dispatchers.IO) {        RequestTrace.withTransaction {
-            val updated = try {
-                apiService.counterBid(bidId, AmountDto(counterAmount))
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "proposeCounterOffer falló en backend: ${e.localizedMessage}")
-                AppTelemetry.error("bids", "No se pudo enviar la contraoferta", e)
-                throw e
-            }
-            bidDao.insertBid(updated)
-            refreshJobDetails(updated.jobId)
-            AppTelemetry.event(
-                "bid.counter",
-                mapOf("bidId" to bidId, "jobId" to updated.jobId, "amount" to counterAmount.toString())
-            )
-        }
-    }
-
-    suspend fun acceptBid(bidId: String) = withContext(Dispatchers.IO) {
-        RequestTrace.withTransaction {
-            val bid = bidDao.getBidByIdSync(bidId) ?: return@withTransaction
-            acceptBidInternal(bidId, bid.professionalName, isBot = bid.professionalId.startsWith("bot_"))
-            AppTelemetry.event("bid.accept", mapOf("bidId" to bidId, "jobId" to bid.jobId))
-        }
-    }
-
-    private suspend fun acceptBidInternal(bidId: String, professionalName: String, isBot: Boolean) {
-        val localBid = bidDao.getBidByIdSync(bidId) ?: return
+    suspend fun acceptJob(jobId: String) = withContext(Dispatchers.IO) {
         val accepted = try {
-            apiService.acceptBid(bidId)
+            apiService.acceptJob(jobId)
         } catch (e: Exception) {
-            Log.e("GalibuRepository", "acceptBid falló en backend: ${e.localizedMessage}")
+            Log.e("GalibuRepository", "acceptJob falló en backend: " + e.localizedMessage)
             throw e
         }
-        bidDao.insertBid(accepted)
-        refreshJobDetails(accepted.jobId)
-        refreshBidsForJob(accepted.jobId)
-        // El mensaje de sistema "Chat seguro iniciado" lo crea el backend y llega
-        // a ambos participantes por el polling del chat.
-    }
-
-    suspend fun rejectBid(bidId: String) = withContext(Dispatchers.IO) {
-        val rejected = try {
-            apiService.rejectBid(bidId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "rejectBid falló en backend: ${e.localizedMessage}")
-            AppTelemetry.error("bids", "No se pudo rechazar la oferta", e)
-            throw e
-        }
-        bidDao.insertBid(rejected)
-        AppTelemetry.event("bid.reject", mapOf("bidId" to bidId, "jobId" to rejected.jobId))
-    }
-
-    suspend fun cancelJob(jobId: String, reason: String = "") = withContext(Dispatchers.IO) {
-        val localJob = jobRequestDao.getJobByIdSync(jobId)
-        val wasAccepted = localJob?.status in listOf("ACCEPTED", "IN_PROGRESS", "PENDING_RATING")
-        val cancelled = try {
-            apiService.cancelJob(jobId, reason.ifBlank { null })
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "cancelJob falló en backend: ${e.localizedMessage}")
-            throw e
-        }
-        jobRequestDao.insertJob(cancelled)
-
-        // Delete local bids for this job
-        try {
-            bidDao.deleteBidsForJob(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error limpiando bids locales de $jobId: ${e.localizedMessage}")
-        }
-        // El aviso de cancelación en el chat lo crea el backend.
-        AppTelemetry.event("job.cancel", mapOf("jobId" to jobId, "wasAccepted" to wasAccepted.toString()))
+        jobRequestDao.insertJob(accepted)
+        AppTelemetry.event("job.accept", mapOf("jobId" to jobId))
+        accepted
     }
 
     // --- Chat and Messages ---
@@ -1669,9 +1436,37 @@ class GalibuRepository(
     /** Todos los mensajes locales (para listas de conversaciones y conteo de no leídos). */
     fun getAllChatMessages(): Flow<List<ChatMessage>> = chatMessageDao.getAllMessagesFlow()
 
-    fun getJobIdsWithBids(professionalId: String): Flow<List<String>> = bidDao.getJobIdsWithBidsFlow(professionalId)
+    suspend fun markJobNotificationsAsRead(userId: String, jobId: String) = withContext(Dispatchers.IO) {
+        try {
+            notificationDao.markJobAsRead(userId, jobId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "Error marcando notificaciones del job: " + e.localizedMessage)
+        }
+    }
 
-    fun getBidsByProfessional(professionalId: String): Flow<List<Bid>> = bidDao.getBidsForProfessionalFlow(professionalId)
+    suspend fun cancelJob(jobId: String, reason: String = "") = withContext(Dispatchers.IO) {
+        val localJob = jobRequestDao.getJobByIdSync(jobId)
+        val wasAccepted = localJob?.status in listOf("ACCEPTED", "IN_PROGRESS", "PENDING_RATING")
+        val cancelled = try {
+            apiService.cancelJob(jobId, reason.ifBlank { null })
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "cancelJob falló en backend: " + e.localizedMessage)
+            throw e
+        }
+        jobRequestDao.insertJob(cancelled)
+        AppTelemetry.event("job.cancel", mapOf("jobId" to jobId, "wasAccepted" to wasAccepted.toString()))
+        cancelled
+    }
+
+    suspend fun getUserRatings(userId: String): List<com.galibu.core.data.remote.RatingDto> =
+        withContext(Dispatchers.IO) {
+            try {
+                apiService.userRatings(userId)
+            } catch (e: Exception) {
+                Log.e("GalibuRepository", "getUserRatings falló: " + e.localizedMessage)
+                emptyList()
+            }
+        }
 
     suspend fun sendMessage(jobId: String, message: ChatMessage) = withContext(Dispatchers.IO) {
         val saved = apiService.sendChat(jobId, com.galibu.core.data.remote.CreateChatMessageRequest(
@@ -2011,42 +1806,7 @@ class GalibuRepository(
         }
         // Delete from local DB
         jobRequestDao.deleteJobById(jobId)
-        try {
-            bidDao.deleteBidsForJob(jobId)
-        } catch (e: Exception) {
-            Log.e("GalibuRepository", "Error limpiando bids locales de $jobId: ${e.localizedMessage}")
-        }
         AppTelemetry.event("job.delete", mapOf("jobId" to jobId))
-    }
-
-    /**
-     * Propone (o actualiza) un precio para un trabajo desde la tarjeta
-     * "Acordar precio" del chat. Crea una oferta del usuario actual si no
-     * existe, o contraoferta la vigente.
-     */
-    suspend fun proposePrice(jobId: String, amount: Double) = withContext(Dispatchers.IO) {
-        RequestTrace.withTransaction {
-            _currentUser.value ?: return@withTransaction
-            val updated = try {
-                apiService.proposePrice(
-                    jobId,
-                    PriceProposalRequest(amount = amount)
-                )
-            } catch (e: Exception) {
-                Log.e("GalibuRepository", "proposePrice falló en backend: ${e.localizedMessage}")
-                AppTelemetry.error("jobs", "No se pudo proponer el precio", e)
-                throw e
-            }
-            // updated es una Bid; sincronizar el job y las bids locales.
-            refreshJobDetails(jobId)
-            try { bidDao.insertBid(updated) } catch (e: Exception) {
-                Log.e("GalibuRepository", "Error guardando propuesta de precio: ${e.localizedMessage}")
-            }
-            AppTelemetry.event(
-                "job.propose_price",
-                mapOf("jobId" to jobId, "amount" to amount.toString())
-            )
-        }
     }
 
     private suspend fun processProfilePhotoToBase64(context: Context, photoUrl: String?, defaultPhoto: String): String {

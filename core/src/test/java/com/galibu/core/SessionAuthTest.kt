@@ -70,19 +70,5 @@ class SessionAuthTest : BaseRepositoryTest() {
         assertEquals(listOf("pro_1"), visible.map { it.id })
     }
 
-    @Test
-    fun `refreshBids stores professional bids from backend`() = runTest {
-        tokenStore.saveTokens("access-1", "refresh-1")
-        val user = createUser(id = "pro_1", email = "pro@test.com", role = "PROFESSIONAL")
-        coEvery { mockApi.getMe() } returns user
-        repository.restoreSession()
 
-        coEvery { mockApi.myBids() } returns listOf(
-            createBid(id = "bid_1", jobId = "job_1", professionalId = "pro_1")
-        )
-
-        repository.refreshBids()
-
-        assertEquals("bid_1", fakeBidDao.getBidByIdSync("bid_1")?.id)
-    }
 }

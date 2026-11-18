@@ -261,10 +261,6 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "CLIENT_DASHBOARD" -> ClientDashboardScreen(
                                                 viewModel = viewModel,
-                                                onNavigateToJobBids = { jobId ->
-                                                    viewModel.selectJob(jobId)
-                                                    currentRoute = "CHAT"
-                                                },
                                                 onNavigateToChat = { jobId ->
                                                     viewModel.selectJob(jobId)
                                                     currentRoute = "CHAT"
