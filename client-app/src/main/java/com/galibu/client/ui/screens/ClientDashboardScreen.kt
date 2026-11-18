@@ -628,6 +628,10 @@ fun ClientDashboardScreen(
                         viewModel.selectJob(job.id)
                         onNavigateToChat(job.id)
                     },
+                    onRateClick = { jobId ->
+                        ratingJobId = jobId
+                        showRatingDialog = true
+                    },
                     onNotificationsClick = { onNavigateToNotifications() },
                     unreadNotifications = notifications.count { !it.isRead },
                     onPostJob = { showJobPostForm = true }
@@ -1360,6 +1364,7 @@ fun InicioTab(
     onSearchQueryChange: (String) -> Unit,
     clientJobs: List<JobRequest>,
     onJobClick: (JobRequest) -> Unit,
+    onRateClick: (String) -> Unit = {},
     onNotificationsClick: () -> Unit,
     unreadNotifications: Int = 0,
     onPostJob: () -> Unit = {}
@@ -1573,7 +1578,8 @@ fun InicioTab(
             filteredJobs.forEach { job ->
                 HomeJobRequestCard(
                     job = job,
-                    onClick = { onJobClick(job) }
+                    onClick = { onJobClick(job) },
+                    onRateClick = { onRateClick(job.id) }
                 )
             }
         }
@@ -1636,7 +1642,8 @@ fun HomeStatCard(
 @Composable
 fun HomeJobRequestCard(
     job: JobRequest,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onRateClick: (String) -> Unit = {}
 ) {
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
@@ -1663,31 +1670,46 @@ fun HomeJobRequestCard(
         it.isNotBlank() && !job.title.equals(it, ignoreCase = true)
     }
 
-    RequestSummaryCard(
-        timeAgo = timeAgo,
-        category = badgeCategory,
-        statusLabel = statusLabel,
-        statusBackground = statusBg,
-        statusContentColor = statusTint,
-        isDirect = isDirect,
-        title = job.title.ifEmpty { job.category },
-        description = job.description,
-        priceText = cardPrice?.let {
-            "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(it.toLong())} COP"
-        } ?: "Precio a convenir",
-        address = job.address.ifEmpty { "${job.municipality ?: ""}, ${job.department ?: ""}" },
-        onClick = onClick,
-        infoContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.LocalOffer,
-                    contentDescription = null,
-                    tint = Color(0xFFDB2777),
-                    modifier = Modifier.size(15.dp)
-                )
+    Column {
+        RequestSummaryCard(
+            timeAgo = timeAgo,
+            category = badgeCategory,
+            statusLabel = statusLabel,
+            statusBackground = statusBg,
+            statusContentColor = statusTint,
+            isDirect = isDirect,
+            title = job.title.ifEmpty { job.category },
+            description = job.description,
+            priceText = cardPrice?.let {
+                "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(it.toLong())} COP"
+            } ?: "Precio a convenir",
+            address = job.address.ifEmpty { "${job.municipality ?: ""}, ${job.department ?: ""}" },
+            onClick = onClick,
+            infoContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.LocalOffer,
+                        contentDescription = null,
+                        tint = Color(0xFFDB2777),
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+        )
+        if (job.status.uppercase() in listOf("PENDING_RATING", "PENDIENTE_CALIFICACION") && job.clientRatingOfPro == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onRateClick(job.id) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Calificar profesional", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
-    )
+    }
 }
 
 @Composable
