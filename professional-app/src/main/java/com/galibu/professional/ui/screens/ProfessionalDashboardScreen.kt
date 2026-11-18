@@ -323,8 +323,9 @@ fun ProfessionalDashboardScreen(
     val availableJobsForPro = remember(openJobs, currentUser) {
         openJobs.filter { job ->
             val notCreatedByMe = job.clientId != (currentUser?.id ?: "")
-            val notAssignedToMe = (job.professionalId ?: "") != (currentUser?.id ?: "")
-            notCreatedByMe && notAssignedToMe
+            // Excluir solicitudes ya tomadas por otro profesional.
+            val notTaken = job.professionalId.isNullOrBlank()
+            notCreatedByMe && notTaken
         }
     }
 
@@ -2183,8 +2184,8 @@ fun ProfessionalDashboardScreen(
                         val detailStatus = realJob?.status ?: detail.status
                         // Igual con los campos de negociación: la copia se queda vieja
                         // cuando el cliente responde o cuando yo contraoferto.
-                        if (detailStatus == "ACCEPTED" && assignedToMe) {
-                            // Aceptado por el cliente: ya no se oferta, se inicia el servicio.
+                        if ((detailStatus == "ACCEPTED" || detailStatus == "NEGOTIATING") && assignedToMe) {
+                            // Negociación acordada: el profesional puede iniciar el servicio.
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE9F7EF)),
                                 shape = RoundedCornerShape(16.dp),
@@ -2196,14 +2197,14 @@ fun ProfessionalDashboardScreen(
                                         .padding(16.dp)
                                 ) {
                                     Text(
-                                        text = "Servicio aceptado",
+                                        text = if (detailStatus == "NEGOTIATING") "Servicio en negociación" else "Servicio aceptado",
                                         color = proGreenStyle,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "El cliente aceptó tu oferta. Inicia el servicio cuando llegues.",
+                                        text = if (detailStatus == "NEGOTIATING") "Acordaron el precio por el chat. Inicia el servicio cuando llegues." else "El cliente aceptó tu oferta. Inicia el servicio cuando llegues.",
                                         color = proTextSec,
                                         fontSize = 12.sp
                                     )
