@@ -215,7 +215,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun cancelJob(jobId: String, reason: String = "", onComplete: () -> Unit = {}) {
+    override fun cancelJob(jobId: String, reason: String, onComplete: () -> Unit) {
         viewModelScope.launch {
             try {
                 showLoading("Cancelando solicitud...")

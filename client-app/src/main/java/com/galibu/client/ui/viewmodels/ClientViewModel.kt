@@ -122,7 +122,24 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
         }
     }
 
-    fun cancelJob(jobId: String, reason: String = "", onComplete: () -> Unit = {}) {
+    override fun clientAcceptJob(jobId: String, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                showLoading("Aceptando al profesional...")
+                repository.clientAcceptJob(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                showSuccess("Profesional aceptado. Pueden iniciar el servicio.")
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("ClientViewModel", "Error al aceptar profesional: ${e.localizedMessage}")
+                showError("No se pudo aceptar al profesional. Inténtalo de nuevo.")
+            }
+        }
+    }
+
+    override fun cancelJob(jobId: String, reason: String, onComplete: () -> Unit) {
         viewModelScope.launch {
             try {
                 showLoading("Cancelando solicitud...")

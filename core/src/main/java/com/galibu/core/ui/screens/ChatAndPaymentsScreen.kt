@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -628,6 +629,49 @@ fun ChatAndPaymentsScreen(
                         color = Color(0xFF475569),
                         fontSize = 11.sp
                     )
+                }
+            }
+        }
+
+        // Botones de aceptar/rechazar dentro del chat: solo el cliente ve estos
+        // botones cuando un profesional ya tomó la solicitud y aún no la acepta.
+        val isClientUser = currentUser?.role?.equals("CLIENT", ignoreCase = true) == true ||
+            currentUser?.role?.equals("BOTH", ignoreCase = true) == true
+        val isNegotiatingWithPro = job?.status?.uppercase() == "NEGOTIATING" &&
+            job?.professionalId?.isNotBlank() == true
+        if (isClientUser && isNegotiatingWithPro && jobId != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        viewModel.clientAcceptJob(jobId!!) { }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Aceptar profesional", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = {
+                        viewModel.cancelJob(jobId!!, "El cliente rechazó la propuesta")
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                    border = BorderStroke(1.5.dp, Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Rechazar", color = Color(0xFFDC2626), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -81,6 +81,9 @@ interface ApiService {
     @POST("jobs/{id}/accept")
     suspend fun acceptJob(@Path("id") id: String): JobRequest
 
+    @POST("jobs/{id}/client-accept")
+    suspend fun clientAcceptJob(@Path("id") id: String): JobRequest
+
     @POST("jobs/{id}/start")
     suspend fun startService(@Path("id") id: String): JobRequest
 

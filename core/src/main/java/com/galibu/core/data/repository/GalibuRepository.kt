@@ -1429,6 +1429,18 @@ class GalibuRepository(
         accepted
     }
 
+    suspend fun clientAcceptJob(jobId: String) = withContext(Dispatchers.IO) {
+        val accepted = try {
+            apiService.clientAcceptJob(jobId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "clientAcceptJob falló en backend: " + e.localizedMessage)
+            throw e
+        }
+        jobRequestDao.insertJob(accepted)
+        AppTelemetry.event("job.client_accept", mapOf("jobId" to jobId))
+        accepted
+    }
+
     // --- Chat and Messages ---
 
     fun getChatMessagesForJob(jobId: String): Flow<List<ChatMessage>> = chatMessageDao.getMessagesForJobFlow(jobId)

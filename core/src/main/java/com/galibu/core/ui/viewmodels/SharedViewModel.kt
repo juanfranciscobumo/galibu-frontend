@@ -1119,6 +1119,35 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    open fun cancelJob(jobId: String, reason: String = "", onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.cancelJob(jobId, reason)
+                onComplete()
+            } catch (e: Exception) {
+                Log.e("SharedViewModel", "Falla cancelar solicitud: ${e.localizedMessage}")
+                showError("No se pudo cancelar la solicitud. Verifica tu conexión e inténtalo nuevamente.")
+            }
+        }
+    }
+
+    open fun clientAcceptJob(jobId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Aceptando al profesional...")
+                repository.clientAcceptJob(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                showSuccess("Profesional aceptado. Pueden iniciar el servicio.")
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("SharedViewModel", "Error al aceptar profesional: ${e.localizedMessage}")
+                showError("No se pudo aceptar al profesional. Inténtalo de nuevo.")
+            }
+        }
+    }
+
     /** Marca como leídas todas las notificaciones de una solicitud (al abrir su detalle). */
     fun markJobNotificationsAsRead(jobId: String) {
         viewModelScope.launch {
