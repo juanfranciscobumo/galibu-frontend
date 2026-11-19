@@ -778,6 +778,11 @@ fun ClientDashboardScreen(
                 viewModel.selectJob(target.id)
                 onNavigateToChat(target.id)
                 showJobDetail = false
+            },
+            onCancel = {
+                viewModel.cancelJob(job.id, "Cancelada por el cliente") {
+                    showJobDetail = false
+                }
             }
         )
     }
@@ -7423,7 +7428,8 @@ fun ClientJobDetailScreen(
     job: JobRequest,
     applications: List<JobRequest>,
     onBack: () -> Unit,
-    onChat: (JobRequest) -> Unit
+    onChat: (JobRequest) -> Unit,
+    onCancel: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -7500,6 +7506,39 @@ fun ClientJobDetailScreen(
                     fontSize = 12.sp,
                     color = PolishGrayText
                 )
+            }
+        }
+
+        val jobPhotos = job.photos
+            ?.split("|")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+        if (jobPhotos.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Fotos de la solicitud",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = PolishDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                jobPhotos.forEach { photo ->
+                    AsyncImage(
+                        model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                        contentDescription = "Foto de la solicitud",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                }
             }
         }
 
@@ -7597,6 +7636,20 @@ fun ClientJobDetailScreen(
                     }
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = onCancel,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+            border = BorderStroke(1.5.dp, Color(0xFFDC2626)),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Cancelar solicitud", color = Color(0xFFDC2626), fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
