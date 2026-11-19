@@ -444,6 +444,8 @@ fun ClientDashboardScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showProfessionalDetail by remember { mutableStateOf(false) }
     var selectedProfessional by remember { mutableStateOf<ProfessionalModel?>(null) }
+    var showJobDetail by remember { mutableStateOf(false) }
+    var selectedJobDetail by remember { mutableStateOf<JobRequest?>(null) }
     var showJobPostForm by remember { mutableStateOf(false) }
     var customCategories by remember { mutableStateOf<List<String>>(emptyList()) }
     var showRatingDialog by remember { mutableStateOf(false) }
@@ -652,6 +654,10 @@ fun ClientDashboardScreen(
                         viewModel.selectJob(job.id)
                         onNavigateToChat(job.id)
                     },
+                    onViewJobDetail = { job ->
+                        selectedJobDetail = job
+                        showJobDetail = true
+                    },
                     onRateClick = { jobId ->
                         ratingJobId = jobId
                         showRatingDialog = true
@@ -748,6 +754,30 @@ fun ClientDashboardScreen(
                     }
                 )
                 showProfessionalDetail = false
+            }
+        )
+    }
+
+    if (showJobDetail && selectedJobDetail != null) {
+        val job = selectedJobDetail!!
+        val applications = remember(selectedJobDetail, allJobs) {
+            if (job.parentJobId == null) {
+                allJobs.filter {
+                    it.parentJobId == job.id &&
+                        it.status.uppercase() in listOf("NEGOTIATING", "NEGOCIANDO")
+                }
+            } else {
+                emptyList()
+            }
+        }
+        ClientJobDetailScreen(
+            job = job,
+            applications = applications,
+            onBack = { showJobDetail = false },
+            onChat = { target ->
+                viewModel.selectJob(target.id)
+                onNavigateToChat(target.id)
+                showJobDetail = false
             }
         )
     }
@@ -1400,6 +1430,7 @@ fun InicioTab(
     onSearchQueryChange: (String) -> Unit,
     clientJobs: List<JobRequest>,
     onJobClick: (JobRequest) -> Unit,
+    onViewJobDetail: (JobRequest) -> Unit = {},
     onRateClick: (String) -> Unit = {},
     onNotificationsClick: () -> Unit,
     unreadNotifications: Int = 0,
@@ -1408,8 +1439,6 @@ fun InicioTab(
     val greeting = remember { getGreeting() }
     val firstName = currentUser?.name?.split(" ")?.firstOrNull() ?: "Usuario"
 
-    // Solicitud cuyo detalle se está mostrando (incluye sus postulaciones).
-    var detailJob by remember { mutableStateOf<JobRequest?>(null) }
     val applicationsByParent = remember(clientJobs) {
         clientJobs
             .filter {
@@ -1626,10 +1655,10 @@ fun InicioTab(
                 val applications = applicationsByParent[job.id].orEmpty()
                 HomeJobRequestCard(
                     job = job,
-                    onClick = { detailJob = job },
+                    onClick = { onViewJobDetail(job) },
                     onRateClick = { onRateClick(job.id) },
                     applicationsCount = applications.size,
-                    onShowApplications = { detailJob = job }
+                    onShowApplications = { onViewJobDetail(job) }
                 )
             }
         }
@@ -1637,192 +1666,8 @@ fun InicioTab(
         Spacer(modifier = Modifier.height(80.dp))
     }
 
-    // Hoja con los profesionales postulados a una publicación. Desde aquí se
-    // abre el chat de cada uno; aceptar o rechazar se hace dentro del chat.
-    detailJob?.let { job ->
-        val applications = if (job.parentJobId == null) applicationsByParent[job.id].orEmpty() else emptyList()
-        ModalBottomSheet(
-            onDismissRequest = { detailJob = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = Color.White
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp)
-            ) {
-                Text(
-                    text = "Detalle de la solicitud",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PolishDark
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = PolishBg),
-                    border = BorderStroke(1.dp, PolishBorder)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = job.title.ifEmpty { job.category },
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PolishDark
-                        )
-                        if (job.description.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = job.description,
-                                fontSize = 13.sp,
-                                color = PolishGrayText
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(
-                                text = job.category,
-                                fontSize = 12.sp,
-                                color = PolishBlue,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            if (job.budgetMin > 0) {
-                                Text(
-                                    text = "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(job.budgetMin)}",
-                                    fontSize = 12.sp,
-                                    color = PolishGrayText
-                                )
-                            }
-                        }
-                        if (job.address.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = job.address,
-                                fontSize = 12.sp,
-                                color = PolishGrayText
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Estado: ${job.status}",
-                            fontSize = 12.sp,
-                            color = PolishGrayText
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = if (applications.isEmpty()) "Profesionales interesados"
-                    else if (applications.size == 1) "1 profesional postulado"
-                    else "${applications.size} profesionales postulados",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PolishDark
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Habla con cada profesional y acepta al que prefieras desde el chat.",
-                    fontSize = 12.sp,
-                    color = PolishGrayText
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (applications.isEmpty() && job.parentJobId == null) {
-                    Text(
-                        text = "Aún no hay profesionales postulados.",
-                        fontSize = 14.sp,
-                        color = PolishGrayText,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
-                } else if (job.parentJobId != null) {
-                    Button(
-                        onClick = {
-                            detailJob = null
-                            onJobClick(job)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Ir al chat", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    applications.forEach { application ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 10.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = PolishBg),
-                            border = BorderStroke(1.dp, PolishBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        detailJob = null
-                                        onJobClick(application)
-                                    }
-                                    .padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(PolishBlue.copy(alpha = 0.12f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = (application.professionalName ?: "P")
-                                            .trim().take(1).uppercase(),
-                                        color = PolishBlue,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = application.professionalName ?: "Profesional",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PolishDark
-                                    )
-                                    Text(
-                                        text = formatTimestamp(application.createdAt),
-                                        fontSize = 12.sp,
-                                        color = PolishGrayText
-                                    )
-                                }
-                                Button(
-                                    onClick = {
-                                        detailJob = null
-                                        onJobClick(application)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                                ) {
-                                    Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Chat", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
+
 
 @Composable
 fun HomeStatCard(
@@ -7571,5 +7416,189 @@ fun ProfessionalBottomActions(
                 )
             }
         }
+    }
+}
+@Composable
+fun ClientJobDetailScreen(
+    job: JobRequest,
+    applications: List<JobRequest>,
+    onBack: () -> Unit,
+    onChat: (JobRequest) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = PolishDark)
+            }
+            Text(
+                text = "Detalle de la solicitud",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = PolishDark
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = PolishBg),
+            border = BorderStroke(1.dp, PolishBorder)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = job.title.ifEmpty { job.category },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PolishDark
+                )
+                if (job.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = job.description,
+                        fontSize = 14.sp,
+                        color = PolishGrayText
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = job.category,
+                        fontSize = 12.sp,
+                        color = PolishBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (job.budgetMin > 0) {
+                        Text(
+                            text = "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(job.budgetMin)}",
+                            fontSize = 12.sp,
+                            color = PolishGrayText
+                        )
+                    }
+                }
+                if (job.address.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = job.address,
+                        fontSize = 12.sp,
+                        color = PolishGrayText
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Estado: ${job.status}",
+                    fontSize = 12.sp,
+                    color = PolishGrayText
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = if (applications.isEmpty()) "Profesionales interesados"
+            else if (applications.size == 1) "1 profesional postulado"
+            else "${applications.size} profesionales postulados",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = PolishDark
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Habla con cada profesional y acepta al que prefieras desde el chat.",
+            fontSize = 12.sp,
+            color = PolishGrayText
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (applications.isEmpty() && job.parentJobId == null) {
+            Text(
+                text = "Aun no hay profesionales postulados.",
+                fontSize = 14.sp,
+                color = PolishGrayText,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        } else if (job.parentJobId != null) {
+            Button(
+                onClick = { onChat(job) },
+                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Ir al chat", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            applications.forEach { application ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = PolishBg),
+                    border = BorderStroke(1.dp, PolishBorder)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onChat(application) }
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(PolishBlue.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = (application.professionalName ?: "P").trim().take(1).uppercase(),
+                                color = PolishBlue,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = application.professionalName ?: "Profesional",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PolishDark
+                            )
+                            Text(
+                                text = formatTimestamp(application.createdAt),
+                                fontSize = 12.sp,
+                                color = PolishGrayText
+                            )
+                        }
+                        Button(
+                            onClick = { onChat(application) },
+                            colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Chat", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
