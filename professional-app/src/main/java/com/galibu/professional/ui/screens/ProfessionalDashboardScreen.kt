@@ -2206,13 +2206,6 @@ fun ProfessionalDashboardScreen(
                                     fontSize = 14.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            PrimaryContactButton(
-                                onClick = {
-                                    viewModel.selectJob(detailPrice.id)
-                                    onNavigateToChat(detailPrice.id)
-                                }
-                            )
                         }
                     }
 
@@ -2772,38 +2765,6 @@ fun JobRequestItem(
         // Acción principal siempre visible en la tarjeta: el profesional no
         // tiene que adivinar que debe abrir el detalle para postularse.
         when {
-            isOpenAvailable -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { onClientClick(job.clientId) },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Ver detalle", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    Button(
-                        onClick = { onSendRequest(job.id) },
-                        colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1.3f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Enviar solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
             isAssignedToMe -> {
                 Button(
                     onClick = { onOpenChat(job.id) },
