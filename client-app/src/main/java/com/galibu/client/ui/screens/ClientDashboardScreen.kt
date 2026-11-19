@@ -1820,29 +1820,6 @@ fun HomeJobRequestCard(
                 )
             }
         }
-        // Publicación con varios profesionales postulados: el cliente entra a
-        // verlos y decide con quién hablar; la elección se confirma en el chat.
-        if (job.parentJobId == null && job.status.uppercase() in listOf("OPEN", "ABIERTA") &&
-            applicationsCount > 0
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onShowApplications,
-                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.People, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (applicationsCount == 1) "Ver postulación (1)"
-                        else "Ver postulaciones ($applicationsCount)",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-        }
         // El backend cierra el servicio como COMPLETED (no PENDING_RATING): se
         // cubren ambos alias para que el cliente siempre encuentre la acción.
         if (job.status.uppercase() in listOf(
