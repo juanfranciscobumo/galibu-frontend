@@ -308,7 +308,7 @@ fun ChatAndPaymentsScreen(
                 }
 
                 // Online Dot Badge (for active chat)
-                if (job?.status == "ACCEPTED") {
+                if (job?.status?.uppercase() == "ACCEPTED") {
                     Box(
                         modifier = Modifier
                             .size(13.dp)
@@ -345,14 +345,15 @@ fun ChatAndPaymentsScreen(
                     val (statusText, statusColor) = if (job == null) {
                         Pair("Cargando...", Color(0xFF94A3B8))
                     } else {
-                        when (job?.status) {
-                            "ACCEPTED" -> Pair("Servicio activo", Color(0xFF22C55E))
-                            "IN_PROGRESS" -> Pair("En progreso", PolishGreen)
-                            "PENDING_RATING" -> Pair("Por calificar", Color(0xFFD97706))
-                            "COMPLETED" -> Pair("Finalizado", Color(0xFF94A3B8))
-                            "OPEN", "NEGOTIATING", "PENDING", "COUNTERED_BY_CLIENT", "COUNTERED_BY_PROFESSIONAL" -> Pair("En negociación", Color(0xFF3B82F6))
-                            "CANCELLED" -> Pair("Cancelado", Color(0xFFEF4444))
-                            else -> Pair("Finalizado", Color(0xFF94A3B8))
+                        when (job?.status?.uppercase()) {
+                            "ACCEPTED", "ACEPTADO" -> Pair("Servicio activo", Color(0xFF22C55E))
+                            "IN_PROGRESS", "EN_PROGRESO" -> Pair("En progreso", PolishGreen)
+                            "PENDING_RATING", "PENDIENTE_CALIFICACION" -> Pair("Por calificar", Color(0xFFD97706))
+                            "COMPLETED", "COMPLETADO" -> Pair("Finalizado", Color(0xFF94A3B8))
+                            "OPEN", "ABIERTA", "NEGOTIATING", "NEGOCIANDO", "PENDING", "COUNTERED_BY_CLIENT", "COUNTERED_BY_PROFESSIONAL", "ASSIGNED" -> Pair("En negociación", Color(0xFF3B82F6))
+                            "CANCELLED", "CANCELADO" -> Pair("Cancelado", Color(0xFFEF4444))
+                            "CLOSED", "CERRADO" -> Pair("Cerrado", Color(0xFF94A3B8))
+                            else -> Pair(job?.status ?: "Desconocido", Color(0xFF94A3B8))
                         }
                     }
                     Box(
