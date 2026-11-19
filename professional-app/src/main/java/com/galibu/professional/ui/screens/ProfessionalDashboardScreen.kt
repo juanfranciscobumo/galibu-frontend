@@ -447,6 +447,25 @@ fun ProfessionalDashboardScreen(
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
     var showClientRatingsHistory by remember { mutableStateOf(false) }
 
+    // Acciones directas desde la tarjeta del marketplace, sin abrir el detalle.
+    // "Enviar solicitud" toma la solicitud (OPEN -> NEGOTIATING) y abre el chat
+    // para acordar el precio, igual que el botón del detalle.
+    val sendJobRequest: (String) -> Unit = { jobId ->
+        viewModel.acceptJob(jobId) {
+            viewModel.selectJob(jobId)
+            selectedClientIdForProfile = null
+            selectedJobForProfileDetails = null
+            onNavigateToChat(jobId)
+        }
+    }
+    val openJobChat: (String) -> Unit = { jobId ->
+        viewModel.selectJob(jobId)
+        onNavigateToChat(jobId)
+    }
+    val rateClientFromCard: (String) -> Unit = { jobId ->
+        allJobs.find { it.id == jobId }?.let { real -> selectedJobForRating = real }
+    }
+
     // Al abrir el detalle se consulta el estado fresco del backend (una sola
     // petición) para no finalizar sobre datos viejos cuando el cliente ya cerró.
     LaunchedEffect(selectedJobForProfileDetails?.id) {
@@ -788,7 +807,10 @@ fun ProfessionalDashboardScreen(
                                 onClientClick = { clickedId ->
                                     selectedClientIdForProfile = clickedId
                                     selectedJobForProfileDetails = job
-                                }
+                                },
+                                onSendRequest = sendJobRequest,
+                                onOpenChat = openJobChat,
+                                onRateClient = rateClientFromCard
                             )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
@@ -834,7 +856,10 @@ fun ProfessionalDashboardScreen(
                                     onClientClick = { clickedId ->
                                         selectedClientIdForProfile = clickedId
                                         selectedJobForProfileDetails = job
-                                    }
+                                    },
+                                    onSendRequest = sendJobRequest,
+                                    onOpenChat = openJobChat,
+                                    onRateClient = rateClientFromCard
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                             }
@@ -854,7 +879,10 @@ fun ProfessionalDashboardScreen(
                                     onClientClick = { clickedId ->
                                         selectedClientIdForProfile = clickedId
                                         selectedJobForProfileDetails = job
-                                    }
+                                    },
+                                    onSendRequest = sendJobRequest,
+                                    onOpenChat = openJobChat,
+                                    onRateClient = rateClientFromCard
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                             }
@@ -2375,7 +2403,7 @@ fun ProfessionalDashboardScreen(
                                             text = if (assignedToMe) {
                                                 "El precio y los detalles del servicio se definen en la conversación con el cliente."
                                             } else {
-                                                "Toma la solicitud para conversar con el cliente y acordar el precio."
+                                                "Envía tu solicitud para conversar con el cliente y acordar el precio por el chat."
                                             },
                                             color = proTextSec,
                                             fontSize = 12.sp
@@ -2410,7 +2438,7 @@ fun ProfessionalDashboardScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = if (assignedToMe) "Ir al chat" else "Tomar solicitud",
+                                        text = if (assignedToMe) "Ir al chat" else "Enviar solicitud",
                                         color = Color.White,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
@@ -2611,7 +2639,10 @@ fun ProfessionalDashboardScreen(
 @Composable
 fun JobRequestItem(
     job: ProDisplayJob,
-    onClientClick: (String) -> Unit
+    onClientClick: (String) -> Unit,
+    onSendRequest: (String) -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
+    onRateClient: (String) -> Unit = {}
 ) {
     val finalPriceVal = if (job.isDirectHire) {
         job.counterOfferAmount ?: job.budgetMin
@@ -2639,37 +2670,115 @@ fun JobRequestItem(
     val cardPrice = job.suggestedPrice?.takeIf { it > 0 }
         ?: if (job.isDirectHire || (job.source ?: "PUBLISH") == "DIRECTORY") finalPriceVal.takeIf { it > 0 } else null
 
-    RequestSummaryCard(
-        timeAgo = formatTimeAgo(job.createdAt),
-        category = job.category,
-        statusLabel = statusTriple.first,
-        statusBackground = statusTriple.second,
-        statusContentColor = statusTriple.third,
-        isDirect = (job.source ?: "PUBLISH") == "DIRECTORY",
-        title = job.title.ifEmpty { "Servicio de ${job.category}" },
-        description = job.description,
-        priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP" }
-            ?: "Precio a convenir",
-        address = job.address.ifEmpty { "Sin dirección" },
-        onClick = { onClientClick(job.clientId) },
-        infoContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = proOrangeStyle, modifier = Modifier.size(15.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = job.clientRating, color = proTextMain, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "•", color = proTextSec, fontSize = 13.sp)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = job.clientName,
-                    color = proTextSec,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+    val normalized = job.status.uppercase()
+    val isOpenAvailable = normalized == "OPEN"
+    val isAssignedToMe = normalized in listOf(
+        "NEGOTIATING", "NEGOCIANDO", "ACCEPTED", "ACEPTADO", "IN_PROGRESS", "EN_PROGRESO"
+    )
+    val isPendingMyRating = normalized in listOf(
+        "PENDING_RATING", "PENDIENTE_CALIFICACION", "COMPLETED", "COMPLETADO"
+    ) && job.proRatingOfClient == null
+
+    Column {
+        RequestSummaryCard(
+            timeAgo = formatTimeAgo(job.createdAt),
+            category = job.category,
+            statusLabel = statusTriple.first,
+            statusBackground = statusTriple.second,
+            statusContentColor = statusTriple.third,
+            isDirect = (job.source ?: "PUBLISH") == "DIRECTORY",
+            title = job.title.ifEmpty { "Servicio de ${job.category}" },
+            description = job.description,
+            priceText = cardPrice?.let { "$ ${com.galibu.core.ui.utils.PriceUtils.formatThousands(it.toLong().toString())} COP" }
+                ?: "Precio a convenir",
+            address = job.address.ifEmpty { "Sin dirección" },
+            onClick = { onClientClick(job.clientId) },
+            infoContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = proOrangeStyle, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = job.clientRating, color = proTextMain, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "•", color = proTextSec, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = job.clientName,
+                        color = proTextSec,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        )
+
+        // Acción principal siempre visible en la tarjeta: el profesional no
+        // tiene que adivinar que debe abrir el detalle para postularse.
+        when {
+            isOpenAvailable -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { onClientClick(job.clientId) },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Ver detalle", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = { onSendRequest(job.id) },
+                        colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.3f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Enviar solicitud", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            isAssignedToMe -> {
+                Button(
+                    onClick = { onOpenChat(job.id) },
+                    colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 4.dp)
+                ) {
+                    Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Ir al chat", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            isPendingMyRating -> {
+                Button(
+                    onClick = { onRateClient(job.id) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 4.dp)
+                ) {
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Calificar al cliente", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
-    )
+    }
 }
 
 @Composable

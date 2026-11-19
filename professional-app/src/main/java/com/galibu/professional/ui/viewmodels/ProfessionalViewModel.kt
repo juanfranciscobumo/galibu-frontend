@@ -150,7 +150,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
     fun acceptJob(jobId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                showLoading("Tomando la solicitud...")
+                showLoading("Enviando solicitud...")
                 repository.acceptJob(jobId)
                 repository.refreshJobDetails(jobId)
                 hideLoading()
@@ -160,7 +160,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 Log.e("ProfessionalViewModel", "Error al tomar la solicitud: ${e.localizedMessage}")
                 handleProError(
                     e.localizedMessage ?: "",
-                    "No se pudo tomar la solicitud. Puede que ya tenga un profesional asignado."
+                    "No se pudo enviar la solicitud. Puede que ya tenga un profesional asignado."
                 )
             }
         }

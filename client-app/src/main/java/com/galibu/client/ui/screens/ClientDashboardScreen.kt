@@ -1682,6 +1682,11 @@ fun HomeJobRequestCard(
             Triple("Esperando cierre", Color(0xFFEFF6FF), Color(0xFF2563EB))
         }
         "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), PolishGrayText)
+        "NEGOTIATING", "NEGOCIANDO" -> Triple(
+            if (!job.professionalName.isNullOrBlank()) "Profesional interesado" else "En espera",
+            Color(0xFFFFFBEB),
+            Color(0xFFD97706)
+        )
         else -> Triple("En espera", Color(0xFFFFFBEB), Color(0xFFD97706))
     }
     val timeAgo = formatTimestamp(job.createdAt)
@@ -1719,6 +1724,28 @@ fun HomeJobRequestCard(
                 }
             }
         )
+        // Un profesional tomó la solicitud: el cliente debe entrar al chat para
+        // conversar y decidir si acepta o rechaza la propuesta.
+        if (job.status.uppercase() in listOf("NEGOTIATING", "NEGOCIANDO") &&
+            !job.professionalName.isNullOrBlank()
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Revisar propuesta de ${job.professionalName}",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
         // El backend cierra el servicio como COMPLETED (no PENDING_RATING): se
         // cubren ambos alias para que el cliente siempre encuentre la acción.
         if (job.status.uppercase() in listOf(
