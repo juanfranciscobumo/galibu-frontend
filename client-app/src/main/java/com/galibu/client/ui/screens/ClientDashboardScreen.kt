@@ -99,6 +99,7 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -1369,7 +1370,19 @@ private fun HistorialStarsRow(stars: Float) {
  */
 private fun JobRequest.isVisibleOnClientHome(): Boolean {
     val normalized = status.uppercase()
-    if (normalized in listOf("CANCELLED", "CANCELADO")) return false
+    if (parentJobId != null) {
+        // Postulaciones: solo la elegida se comporta como trabajo activo. Las
+        // que siguen en negociación se ven dentro de "Ver postulaciones".
+        return when (normalized) {
+            "ACCEPTED", "ACEPTADO", "IN_PROGRESS", "EN_PROGRESO",
+            "PENDING_RATING", "PENDIENTE_CALIFICACION" -> true
+            "COMPLETED", "COMPLETADO" ->
+                clientRatingOfPro == null || proRatingOfClient == null
+            else -> false
+        }
+    }
+    // La publicación padre desaparece cuando ya se eligió profesional o cerró.
+    if (normalized in listOf("ASSIGNED", "CLOSED", "CANCELLED", "CANCELADO")) return false
     if (normalized in listOf("COMPLETED", "COMPLETADO")) {
         return clientRatingOfPro == null || proRatingOfClient == null
     }
@@ -1394,6 +1407,17 @@ fun InicioTab(
 ) {
     val greeting = remember { getGreeting() }
     val firstName = currentUser?.name?.split(" ")?.firstOrNull() ?: "Usuario"
+
+    // Publicación cuyas postulaciones se están revisando.
+    var applicationsParent by remember { mutableStateOf<JobRequest?>(null) }
+    val applicationsByParent = remember(clientJobs) {
+        clientJobs
+            .filter {
+                !it.parentJobId.isNullOrBlank() &&
+                    it.status.uppercase() in listOf("NEGOTIATING", "NEGOCIANDO")
+            }
+            .groupBy { it.parentJobId!! }
+    }
 
     val activeJobs = clientJobs.filter { it.isVisibleOnClientHome() }
     val totalJobs = activeJobs.size
@@ -1579,7 +1603,7 @@ fun InicioTab(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Cuando solicites una cotización aparecerá aquí con sus ofertas",
+                    text = "Cuando publiques una solicitud verás aquí las postulaciones de los profesionales",
                     color = PolishGrayText,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
@@ -1599,15 +1623,130 @@ fun InicioTab(
             }
         } else {
             filteredJobs.forEach { job ->
+                val applications = applicationsByParent[job.id].orEmpty()
                 HomeJobRequestCard(
                     job = job,
                     onClick = { onJobClick(job) },
-                    onRateClick = { onRateClick(job.id) }
+                    onRateClick = { onRateClick(job.id) },
+                    applicationsCount = applications.size,
+                    onShowApplications = { applicationsParent = job }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(80.dp))
+    }
+
+    // Hoja con los profesionales postulados a una publicación. Desde aquí se
+    // abre el chat de cada uno; aceptar o rechazar se hace dentro del chat.
+    applicationsParent?.let { parent ->
+        val applications = applicationsByParent[parent.id].orEmpty()
+        ModalBottomSheet(
+            onDismissRequest = { applicationsParent = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = if (applications.size == 1) "Postulación recibida" else "Postulaciones recibidas",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PolishDark
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = parent.title.ifEmpty { parent.category },
+                    fontSize = 14.sp,
+                    color = PolishGrayText
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Habla con cada profesional y acepta al que prefieras desde el chat.",
+                    fontSize = 12.sp,
+                    color = PolishGrayText
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (applications.isEmpty()) {
+                    Text(
+                        text = "Aún no hay profesionales postulados.",
+                        fontSize = 14.sp,
+                        color = PolishGrayText,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                } else {
+                    applications.forEach { application ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = PolishBg),
+                            border = BorderStroke(1.dp, PolishBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        applicationsParent = null
+                                        onJobClick(application)
+                                    }
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(PolishBlue.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = (application.professionalName ?: "P")
+                                            .trim().take(1).uppercase(),
+                                        color = PolishBlue,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = application.professionalName ?: "Profesional",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PolishDark
+                                    )
+                                    Text(
+                                        text = formatTimestamp(application.createdAt),
+                                        fontSize = 12.sp,
+                                        color = PolishGrayText
+                                    )
+                                }
+                                Button(
+                                    onClick = {
+                                        applicationsParent = null
+                                        onJobClick(application)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                ) {
+                                    Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Chat", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1666,7 +1805,9 @@ fun HomeStatCard(
 fun HomeJobRequestCard(
     job: JobRequest,
     onClick: () -> Unit,
-    onRateClick: (String) -> Unit = {}
+    onRateClick: (String) -> Unit = {},
+    applicationsCount: Int = 0,
+    onShowApplications: () -> Unit = {}
 ) {
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
@@ -1684,6 +1825,15 @@ fun HomeJobRequestCard(
         "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), PolishGrayText)
         "NEGOTIATING", "NEGOCIANDO" -> Triple(
             if (!job.professionalName.isNullOrBlank()) "Profesional interesado" else "En espera",
+            Color(0xFFFFFBEB),
+            Color(0xFFD97706)
+        )
+        "OPEN", "ABIERTA" -> Triple(
+            when {
+                applicationsCount > 1 -> "$applicationsCount postulaciones"
+                applicationsCount == 1 -> "1 postulación"
+                else -> "En espera"
+            },
             Color(0xFFFFFBEB),
             Color(0xFFD97706)
         )
@@ -1740,6 +1890,29 @@ fun HomeJobRequestCard(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Revisar propuesta de ${job.professionalName}",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+        // Publicación con varios profesionales postulados: el cliente entra a
+        // verlos y decide con quién hablar; la elección se confirma en el chat.
+        if (job.parentJobId == null && job.status.uppercase() in listOf("OPEN", "ABIERTA") &&
+            applicationsCount > 0
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onShowApplications,
+                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.People, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (applicationsCount == 1) "Ver postulación (1)"
+                        else "Ver postulaciones ($applicationsCount)",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp

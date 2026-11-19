@@ -16,7 +16,7 @@ import com.galibu.core.data.model.*
         ChatMessage::class,
         AppNotification::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -169,6 +169,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v21 -> v22: solicitud padre de una postulación (nullable, sin pérdida).
+         */
+        private val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE job_requests ADD COLUMN parentJobId TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -185,7 +194,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    MIGRATION_21_22
                 )
                 .fallbackToDestructiveMigration(true)
                 .build()

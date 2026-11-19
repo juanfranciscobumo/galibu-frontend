@@ -141,6 +141,11 @@ data class JobRequest(
     val counterOfferSender: String? = null,
     /** Origen de la solicitud: PUBLISH (publicada) o DIRECTORY (contratación directa). */
     val source: String? = null,
+    /**
+     * Solicitud padre cuando este registro es una postulación de un profesional.
+     * Cada postulación tiene su propio hilo de chat.
+     */
+    val parentJobId: String? = null,
   /** Fotos adjuntas a la solicitud (pipe-separated CSV de URLs/data URIs). */
     val photos: String? = null
 ) : Serializable

@@ -121,7 +121,9 @@ data class ProDisplayJob(
     val municipality: String = "",
     val department: String = "",
     val source: String? = null,
-    val photos: String? = null
+    val photos: String? = null,
+    /** Padre de la publicación cuando esta tarjeta es una postulación. */
+    val parentJobId: String? = null
 )
 
 fun formatDate(timestamp: Long): String {
@@ -319,13 +321,23 @@ fun ProfessionalDashboardScreen(
     val proMuni = currentUser?.municipality ?: ""
     val proDept = currentUser?.department ?: ""
 
-    // Solicitudes abiertas que este profesional todavía no ha tomado.
-    val availableJobsForPro = remember(openJobs, currentUser) {
+    // Publicaciones a las que ya me postulé: se retiran del marketplace y
+    // viven en "Mis trabajos activos" con su propio chat.
+    val myAppliedParentIds = remember(allJobs, currentUser) {
+        allJobs.filter { job ->
+            !job.parentJobId.isNullOrBlank() &&
+                job.professionalId == currentUser?.id &&
+                job.status.uppercase() !in listOf("CANCELLED", "CANCELADO")
+        }.mapNotNull { it.parentJobId }.toSet()
+    }
+
+    // Solicitudes abiertas en las que aún no me he postulado.
+    val availableJobsForPro = remember(openJobs, currentUser, myAppliedParentIds) {
         openJobs.filter { job ->
             val notCreatedByMe = job.clientId != (currentUser?.id ?: "")
             // Excluir solicitudes ya tomadas por otro profesional.
             val notTaken = job.professionalId.isNullOrBlank()
-            notCreatedByMe && notTaken
+            notCreatedByMe && notTaken && job.id !in myAppliedParentIds
         }
     }
 
@@ -362,6 +374,7 @@ fun ProfessionalDashboardScreen(
                 department = job.department.orEmpty(),
                 source = job.source,
                 photos = job.photos,
+                parentJobId = job.parentJobId,
                 proHourlyRate = job.proHourlyRate ?: currentUser?.hourlyRate
             )
         }
@@ -418,10 +431,11 @@ fun ProfessionalDashboardScreen(
                 clientId = job.clientId,
                 isDemo = false,
                 isHighPriority = isHigh,
-                timeAgo = "Contratación Directa 🎯",
+                timeAgo = if ((job.source ?: "") == "APPLICATION") "Postulación enviada"
+                    else "Contratación Directa 🎯",
                 distance = distText,
                 clientRating = crText,
-                isDirectHire = true,
+                isDirectHire = (job.source ?: "") == "DIRECTORY",
                 counterOfferAmount = job.counterOfferAmount,
                 counterOfferSender = job.counterOfferSender,
                 proHourlyRate = job.proHourlyRate ?: currentUser?.hourlyRate,
@@ -433,7 +447,8 @@ fun ProfessionalDashboardScreen(
                 proReviewOfClient = job.proReviewOfClient,
                 clientReviewOfPro = job.clientReviewOfPro,
                 source = job.source,
-                photos = job.photos
+                photos = job.photos,
+                parentJobId = job.parentJobId
             )
         }
     }
@@ -451,11 +466,11 @@ fun ProfessionalDashboardScreen(
     // "Enviar solicitud" toma la solicitud (OPEN -> NEGOTIATING) y abre el chat
     // para acordar el precio, igual que el botón del detalle.
     val sendJobRequest: (String) -> Unit = { jobId ->
-        viewModel.acceptJob(jobId) {
-            viewModel.selectJob(jobId)
+        viewModel.applyToJob(jobId) { applicationId ->
+            viewModel.selectJob(applicationId)
             selectedClientIdForProfile = null
             selectedJobForProfileDetails = null
-            onNavigateToChat(jobId)
+            onNavigateToChat(applicationId)
         }
     }
     val openJobChat: (String) -> Unit = { jobId ->
@@ -794,7 +809,7 @@ fun ProfessionalDashboardScreen(
                     // --- DIRECT HIRING REQUESTS ---
                     if (directMappedJobs.isNotEmpty()) {
                         Text(
-                            text = "SOLICITUDES DIRECTAS",
+                            text = "MIS TRABAJOS ACTIVOS",
                             color = proPrimary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -2212,7 +2227,49 @@ fun ProfessionalDashboardScreen(
                         val detailStatus = realJob?.status ?: detail.status
                         // Igual con los campos de negociación: la copia se queda vieja
                         // cuando el cliente responde o cuando yo contraoferto.
-                        if ((detailStatus == "ACCEPTED" || detailStatus == "NEGOTIATING") && assignedToMe) {
+                        val isApplication = !(realJob?.parentJobId ?: detail.parentJobId).isNullOrBlank()
+                        if (detailStatus == "NEGOTIATING" && assignedToMe && isApplication) {
+                            // Postulación enviada: el cliente aún no la elige.
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Postulación enviada",
+                                        color = Color(0xFFB45309),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Acuerda el precio y los detalles por el chat. El cliente elegirá al profesional y podrás iniciar el servicio cuando te acepte.",
+                                        color = proTextSec,
+                                        fontSize = 12.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            viewModel.selectJob(detail.id)
+                                            onNavigateToChat(detail.id)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
+                                        shape = RoundedCornerShape(14.dp),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Ir al chat", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        } else if ((detailStatus == "ACCEPTED" || detailStatus == "NEGOTIATING") && assignedToMe) {
                             // Negociación acordada: el profesional puede iniciar el servicio.
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE9F7EF)),
@@ -2417,11 +2474,11 @@ fun ProfessionalDashboardScreen(
                                             viewModel.selectJob(detail.id)
                                             onNavigateToChat(detail.id)
                                         } else {
-                                            viewModel.acceptJob(detail.id) {
-                                                viewModel.selectJob(detail.id)
+                                            viewModel.applyToJob(detail.id) { applicationId ->
+                                                viewModel.selectJob(applicationId)
                                                 selectedClientIdForProfile = null
                                                 selectedJobForProfileDetails = null
-                                                onNavigateToChat(detail.id)
+                                                onNavigateToChat(applicationId)
                                             }
                                         }
                                     },

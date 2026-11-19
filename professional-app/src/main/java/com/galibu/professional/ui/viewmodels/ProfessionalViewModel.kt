@@ -147,23 +147,32 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
      * Tomar una solicitud abierta. El backend asigna el trabajo y lo pasa a
      * NEGOTIATING; desde ese momento todo se acuerda por el chat.
      */
-    fun acceptJob(jobId: String, onComplete: () -> Unit = {}) {
+    /**
+     * Envía una postulación. Devuelve el id del job hijo (postulación) que
+     * tiene su propio chat, no el id de la solicitud publicada.
+     */
+    fun applyToJob(jobId: String, onApplied: (String) -> Unit = {}) {
         viewModelScope.launch {
             try {
                 showLoading("Enviando solicitud...")
-                repository.acceptJob(jobId)
-                repository.refreshJobDetails(jobId)
+                val application = repository.applyToJob(jobId)
+                repository.refreshJobDetails(application.id)
                 hideLoading()
-                onComplete()
+                onApplied(application.id)
             } catch (e: Exception) {
                 hideLoading()
-                Log.e("ProfessionalViewModel", "Error al tomar la solicitud: ${e.localizedMessage}")
+                Log.e("ProfessionalViewModel", "Error al enviar la postulación: ${e.localizedMessage}")
                 handleProError(
                     e.localizedMessage ?: "",
-                    "No se pudo enviar la solicitud. Puede que ya tenga un profesional asignado."
+                    "No se pudo enviar la solicitud. Puede que la publicación ya esté cerrada."
                 )
             }
         }
+    }
+
+    /** Compatibilidad con llamadas antiguas. */
+    fun acceptJob(jobId: String, onComplete: () -> Unit = {}) {
+        applyToJob(jobId) { onComplete() }
     }
 
     /** El profesional declina una invitación de contratación directa (cancela el job). */

@@ -1417,17 +1417,25 @@ class GalibuRepository(
 
     // --- Price Bids & Negotiations ---
 
-    suspend fun acceptJob(jobId: String) = withContext(Dispatchers.IO) {
-        val accepted = try {
-            apiService.acceptJob(jobId)
+    /**
+     * Envía una postulación a una solicitud publicada. El backend devuelve el
+     * job hijo (postulación) con su propio hilo de chat; ese es el id que debe
+     * usarse para abrir la conversación.
+     */
+    suspend fun applyToJob(jobId: String) = withContext(Dispatchers.IO) {
+        val application = try {
+            apiService.applyToJob(jobId)
         } catch (e: Exception) {
-            Log.e("GalibuRepository", "acceptJob falló en backend: " + e.localizedMessage)
+            Log.e("GalibuRepository", "applyToJob falló en backend: " + e.localizedMessage)
             throw e
         }
-        jobRequestDao.insertJob(accepted)
-        AppTelemetry.event("job.accept", mapOf("jobId" to jobId))
-        accepted
+        jobRequestDao.insertJob(application)
+        AppTelemetry.event("job.apply", mapOf("jobId" to jobId, "applicationId" to application.id))
+        application
     }
+
+    /** Compatibilidad: postularse reemplaza el antiguo "tomar solicitud". */
+    suspend fun acceptJob(jobId: String) = applyToJob(jobId)
 
     suspend fun clientAcceptJob(jobId: String) = withContext(Dispatchers.IO) {
         val accepted = try {
