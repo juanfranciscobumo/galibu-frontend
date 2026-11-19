@@ -636,8 +636,10 @@ fun ChatAndPaymentsScreen(
 
         // Botones de aceptar/rechazar dentro del chat: solo el cliente ve estos
         // botones cuando un profesional ya tomó la solicitud y aún no la acepta.
-        val isClientUser = currentUser?.role?.equals("CLIENT", ignoreCase = true) == true ||
+        val isClientUser = activeRole.equals("CLIENT", ignoreCase = true) && (
+            currentUser?.role?.equals("CLIENT", ignoreCase = true) == true ||
             currentUser?.role?.equals("BOTH", ignoreCase = true) == true
+        )
         val isNegotiatingWithPro = job?.status?.uppercase() == "NEGOTIATING" &&
             job?.professionalId?.isNotBlank() == true
         if (isClientUser && isNegotiatingWithPro && jobId != null) {
