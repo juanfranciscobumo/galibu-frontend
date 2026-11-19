@@ -316,28 +316,14 @@ fun CategorySingleSelectField(
 
                 options.forEach { option ->
                     val isCustomOption = customOptionLabel != null && option == customOptionLabel
-                    val visual = categoryVisual(option)
                     DropdownMenuItem(
                         text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (isCustomOption) {
-                                        Icons.Default.AddCircleOutline
-                                    } else {
-                                        visual.icon
-                                    },
-                                    contentDescription = null,
-                                    tint = if (isCustomOption) accentColor else visual.color,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = option,
-                                    color = if (isCustomOption) accentColor else textColor,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isCustomOption) FontWeight.SemiBold else FontWeight.Normal
-                                )
-                            }
+                            Text(
+                                text = option,
+                                color = if (isCustomOption) accentColor else textColor,
+                                fontSize = 14.sp,
+                                fontWeight = if (isCustomOption) FontWeight.SemiBold else FontWeight.Normal
+                            )
                         },
                         trailingIcon = {
                             if (!isCustomOption && selected == option) {
@@ -447,7 +433,6 @@ fun CategoryMultiSelectField(
                 options.forEach { option ->
                     val isCustomOption = customOptionLabel != null && option == customOptionLabel
                     val isChecked = selected.contains(option)
-                    val visual = categoryVisual(option)
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -465,13 +450,6 @@ fun CategoryMultiSelectField(
                                         colors = CheckboxDefaults.colors(checkedColor = accentColor)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = visual.icon,
-                                    contentDescription = null,
-                                    tint = visual.color,
-                                    modifier = Modifier.size(18.dp)
-                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = option,

@@ -1863,8 +1863,6 @@ fun QuickServiceCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            CategoryIconCircle(category = category, size = 48.dp, iconSize = 24.dp)
-            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = category,
                 fontSize = 11.sp,

@@ -239,4 +239,5 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
             }
         }
     }
+    
 }
