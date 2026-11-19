@@ -1408,8 +1408,8 @@ fun InicioTab(
     val greeting = remember { getGreeting() }
     val firstName = currentUser?.name?.split(" ")?.firstOrNull() ?: "Usuario"
 
-    // Publicación cuyas postulaciones se están revisando.
-    var applicationsParent by remember { mutableStateOf<JobRequest?>(null) }
+    // Solicitud cuyo detalle se está mostrando (incluye sus postulaciones).
+    var detailJob by remember { mutableStateOf<JobRequest?>(null) }
     val applicationsByParent = remember(clientJobs) {
         clientJobs
             .filter {
@@ -1626,10 +1626,10 @@ fun InicioTab(
                 val applications = applicationsByParent[job.id].orEmpty()
                 HomeJobRequestCard(
                     job = job,
-                    onClick = { onJobClick(job) },
+                    onClick = { detailJob = job },
                     onRateClick = { onRateClick(job.id) },
                     applicationsCount = applications.size,
-                    onShowApplications = { applicationsParent = job }
+                    onShowApplications = { detailJob = job }
                 )
             }
         }
@@ -1639,10 +1639,10 @@ fun InicioTab(
 
     // Hoja con los profesionales postulados a una publicación. Desde aquí se
     // abre el chat de cada uno; aceptar o rechazar se hace dentro del chat.
-    applicationsParent?.let { parent ->
-        val applications = applicationsByParent[parent.id].orEmpty()
+    detailJob?.let { job ->
+        val applications = if (job.parentJobId == null) applicationsByParent[job.id].orEmpty() else emptyList()
         ModalBottomSheet(
-            onDismissRequest = { applicationsParent = null },
+            onDismissRequest = { detailJob = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = Color.White
         ) {
@@ -1653,16 +1653,76 @@ fun InicioTab(
                     .padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = if (applications.size == 1) "Postulación recibida" else "Postulaciones recibidas",
+                    text = "Detalle de la solicitud",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = PolishDark
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = PolishBg),
+                    border = BorderStroke(1.dp, PolishBorder)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = job.title.ifEmpty { job.category },
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PolishDark
+                        )
+                        if (job.description.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = job.description,
+                                fontSize = 13.sp,
+                                color = PolishGrayText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = job.category,
+                                fontSize = 12.sp,
+                                color = PolishBlue,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (job.budgetMin > 0) {
+                                Text(
+                                    text = "Presupuesto: $${java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(job.budgetMin)}",
+                                    fontSize = 12.sp,
+                                    color = PolishGrayText
+                                )
+                            }
+                        }
+                        if (job.address.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = job.address,
+                                fontSize = 12.sp,
+                                color = PolishGrayText
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Estado: ${job.status}",
+                            fontSize = 12.sp,
+                            color = PolishGrayText
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = parent.title.ifEmpty { parent.category },
-                    fontSize = 14.sp,
-                    color = PolishGrayText
+                    text = if (applications.isEmpty()) "Profesionales interesados"
+                    else if (applications.size == 1) "1 profesional postulado"
+                    else "${applications.size} profesionales postulados",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PolishDark
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -1670,15 +1730,29 @@ fun InicioTab(
                     fontSize = 12.sp,
                     color = PolishGrayText
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                if (applications.isEmpty()) {
+                if (applications.isEmpty() && job.parentJobId == null) {
                     Text(
                         text = "Aún no hay profesionales postulados.",
                         fontSize = 14.sp,
                         color = PolishGrayText,
-                        modifier = Modifier.padding(vertical = 24.dp)
+                        modifier = Modifier.padding(vertical = 12.dp)
                     )
+                } else if (job.parentJobId != null) {
+                    Button(
+                        onClick = {
+                            detailJob = null
+                            onJobClick(job)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Ir al chat", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 } else {
                     applications.forEach { application ->
                         Card(
@@ -1693,7 +1767,7 @@ fun InicioTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        applicationsParent = null
+                                        detailJob = null
                                         onJobClick(application)
                                     }
                                     .padding(14.dp),
@@ -1730,7 +1804,7 @@ fun InicioTab(
                                 }
                                 Button(
                                     onClick = {
-                                        applicationsParent = null
+                                        detailJob = null
                                         onJobClick(application)
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
