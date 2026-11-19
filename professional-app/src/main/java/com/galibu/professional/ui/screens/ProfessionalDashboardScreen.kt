@@ -2765,21 +2765,6 @@ fun JobRequestItem(
         // Acción principal siempre visible en la tarjeta: el profesional no
         // tiene que adivinar que debe abrir el detalle para postularse.
         when {
-            isAssignedToMe -> {
-                Button(
-                    onClick = { onOpenChat(job.id) },
-                    colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 4.dp)
-                ) {
-                    Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Ir al chat", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
             isPendingMyRating -> {
                 Button(
                     onClick = { onRateClient(job.id) },
