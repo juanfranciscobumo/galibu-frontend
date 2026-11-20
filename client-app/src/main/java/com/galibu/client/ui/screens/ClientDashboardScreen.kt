@@ -783,6 +783,10 @@ fun ClientDashboardScreen(
                 viewModel.cancelJob(job.id, "Cancelada por el cliente") {
                     showJobDetail = false
                 }
+            },
+            onRate = {
+                ratingJobId = job.id
+                showRatingDialog = true
             }
         )
     }
@@ -1818,24 +1822,6 @@ fun HomeJobRequestCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
-            }
-        }
-        // El backend cierra el servicio como COMPLETED (no PENDING_RATING): se
-        // cubren ambos alias para que el cliente siempre encuentre la acción.
-        if (job.status.uppercase() in listOf(
-                "PENDING_RATING", "PENDIENTE_CALIFICACION", "COMPLETED", "COMPLETADO"
-            ) && job.clientRatingOfPro == null
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = { onRateClick(job.id) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Calificar profesional", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
@@ -7404,7 +7390,8 @@ fun ClientJobDetailScreen(
     applications: List<JobRequest>,
     onBack: () -> Unit,
     onChat: (JobRequest) -> Unit,
-    onCancel: () -> Unit = {}
+    onCancel: () -> Unit = {},
+    onRate: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -7614,6 +7601,22 @@ fun ClientJobDetailScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        if (job.status.uppercase() in listOf("PENDING_RATING", "PENDIENTE_CALIFICACION", "COMPLETED", "COMPLETADO") &&
+            job.clientRatingOfPro == null
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onRate,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Calificar profesional", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+        }
+
 
         OutlinedButton(
             onClick = onCancel,
