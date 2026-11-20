@@ -2151,6 +2151,8 @@ fun ProfessionalDashboardScreen(
 
 
 
+                    var expandedPhoto by remember { mutableStateOf<String?>(null) }
+
                     // Fotos adjuntas por el cliente (opcionales).
                     val jobPhotos = selectedJobForProfileDetails?.photos
                         ?.split("|")
@@ -2179,10 +2181,30 @@ fun ProfessionalDashboardScreen(
                                     modifier = Modifier
                                         .size(120.dp)
                                         .clip(RoundedCornerShape(12.dp))
+                                        .clickable { expandedPhoto = photo }
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    expandedPhoto?.let { photo ->
+                        Dialog(onDismissRequest = { expandedPhoto = null }) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black)
+                                    .clickable { expandedPhoto = null },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AsyncImage(
+                                    model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                                    contentDescription = "Foto ampliada",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
 
                     // Precio de mi oferta + Contactar (homologado sheet cliente)

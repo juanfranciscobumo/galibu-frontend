@@ -183,6 +183,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -3199,12 +3200,14 @@ fun JobPostForm(
     val context = LocalContext.current
     var showJobPhotoSourceDialog by remember { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            if (jobPhotos.size >= 6) {
-                onShowError("Puedes agregar hasta 6 fotos.")
-            } else {
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            for (uri in uris) {
+                if (jobPhotos.size >= 6) {
+                    onShowError("Puedes agregar hasta 6 fotos.")
+                    break
+                }
                 val base64 = com.galibu.core.ui.utils.ImageUtils.uriToBase64(
                     context = context,
                     uri = uri,
@@ -7496,6 +7499,8 @@ fun ClientJobDetailScreen(
             }
         }
 
+        var expandedPhoto by remember { mutableStateOf<String?>(null) }
+
         val jobPhotos = job.photos
             ?.split("|")
             ?.map { it.trim() }
@@ -7524,6 +7529,26 @@ fun ClientJobDetailScreen(
                         modifier = Modifier
                             .size(120.dp)
                             .clip(RoundedCornerShape(12.dp))
+                            .clickable { expandedPhoto = photo }
+                    )
+                }
+            }
+        }
+
+        expandedPhoto?.let { photo ->
+            Dialog(onDismissRequest = { expandedPhoto = null }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .clickable { expandedPhoto = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                        contentDescription = "Foto ampliada",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
