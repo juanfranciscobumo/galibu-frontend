@@ -427,9 +427,12 @@ fun ClientDashboardScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val professionals by viewModel.professionals.collectAsState()
     var historyRatings by remember { mutableStateOf<List<com.galibu.core.data.remote.RatingDto>>(emptyList()) }
+    var historyLoading by remember { mutableStateOf(false) }
     LaunchedEffect(currentUser?.id) {
         val uid = currentUser?.id ?: return@LaunchedEffect
+        historyLoading = true
         try { historyRatings = viewModel.repository.getUserRatings(uid) } catch (e: Exception) { historyRatings = emptyList() }
+        historyLoading = false
     }
     val allJobs by viewModel.allJobs.collectAsState()
     val openJobs by viewModel.openJobs.collectAsState()
@@ -686,7 +689,8 @@ fun ClientDashboardScreen(
                     }
                 )
                 3 -> HistorialTab(
-                    ratings = historyRatings
+                    ratings = historyRatings,
+                    isLoading = historyLoading
                 )
                 4 -> PerfilTab(
                     currentUser = currentUser,
@@ -1246,7 +1250,8 @@ fun MensajesTab(
 
 @Composable
 fun HistorialTab(
-    ratings: List<RatingDto>
+    ratings: List<RatingDto>,
+    isLoading: Boolean = false
 ) {
     val total = ratings.size
     val avg = if (ratings.isNotEmpty()) ratings.map { it.stars }.average() else 0.0
@@ -1313,6 +1318,16 @@ fun HistorialTab(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = PolishBlue)
+            }
+        } else {
         Text(
             text = "ÚLTIMAS CALIFICACIONES",
             fontSize = 12.sp,
@@ -1383,6 +1398,7 @@ fun HistorialTab(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
+        }
         }
         Spacer(modifier = Modifier.height(80.dp))
     }
