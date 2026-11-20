@@ -453,8 +453,8 @@ fun ClientDashboardScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showProfessionalDetail by remember { mutableStateOf(false) }
     var selectedProfessional by remember { mutableStateOf<ProfessionalModel?>(null) }
-    var showJobDetail by remember { mutableStateOf(false) }
-    var selectedJobDetail by remember { mutableStateOf<JobRequest?>(null) }
+    var showJobDetail by remember { mutableStateOf(pendingDetailJobId != null) }
+    var selectedJobDetail by remember { mutableStateOf<JobRequest?>(allJobs.find { it.id == pendingDetailJobId }) }
 
     LaunchedEffect(pendingDetailJobId, allJobs) {
         val id = pendingDetailJobId ?: return@LaunchedEffect
@@ -776,6 +776,15 @@ fun ClientDashboardScreen(
                 showProfessionalDetail = false
             }
         )
+    }
+
+    if (pendingDetailJobId != null && selectedJobDetail == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PolishBlue)
+        }
     }
 
     if (showJobDetail && selectedJobDetail != null) {

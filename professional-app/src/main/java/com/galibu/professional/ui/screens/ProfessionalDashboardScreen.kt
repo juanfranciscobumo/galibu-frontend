@@ -465,7 +465,9 @@ fun ProfessionalDashboardScreen(
     // Client Profile popup/dialog states
     var selectedClientIdForProfile by remember { mutableStateOf<String?>(null) }
     var selectedClientProfile by remember { mutableStateOf<UserProfile?>(null) }
-    var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
+    var selectedJobForProfileDetails by remember(pendingDetailJobId, combinedJobs, directMappedJobs) {
+        mutableStateOf((directMappedJobs + combinedJobs).firstOrNull { it.id == pendingDetailJobId })
+    }
 
     LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs) {
         val id = pendingDetailJobId ?: return@LaunchedEffect
