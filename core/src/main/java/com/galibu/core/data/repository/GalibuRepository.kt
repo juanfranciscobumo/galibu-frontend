@@ -1311,16 +1311,11 @@ class GalibuRepository(
                         uploaded.add(value)
                         return@forEachIndexed
                     }
-                    val stored = try {
-                        firebaseService.uploadWorkPhoto(
-                            userId = user.id,
-                            photoId = "job_${index}_${System.currentTimeMillis()}",
-                            photoBytes = bytes
-                        )
-                    } catch (e: Exception) {
-                        value
-                    }
-                    uploaded.add(stored)
+                    // Las fotos se guardan como data URIs base64 directamente en el
+                    // backend (columna LONGTEXT), evitando la dependencia de
+                    // Firebase Storage (que puede no estar disponible) y el ruido
+                    // de errores 404. No se sube a Firebase.
+                    uploaded.add(value)
                 }
                 uploaded
             }
