@@ -168,7 +168,10 @@ sealed class ProfessionalScreenState {
 @Composable
 fun ProfessionalDashboardScreen(
     viewModel: ProfessionalViewModel,
+    pendingDetailJobId: String? = null,
+    onPendingDetailConsumed: () -> Unit = {},
     onNavigateToChat: (String) -> Unit,
+    onOpenChatFromDetail: (String, String) -> Unit = { _, chatId -> onNavigateToChat(chatId) },
     onNavigateToNegotiation: (String) -> Unit,
     onSwitchRole: () -> Unit,
     modifier: Modifier = Modifier
@@ -463,6 +466,15 @@ fun ProfessionalDashboardScreen(
     var selectedClientIdForProfile by remember { mutableStateOf<String?>(null) }
     var selectedClientProfile by remember { mutableStateOf<UserProfile?>(null) }
     var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
+
+    LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs) {
+        val id = pendingDetailJobId ?: return@LaunchedEffect
+        val found = (directMappedJobs + combinedJobs).firstOrNull { it.id == id }
+        if (found != null) {
+            selectedJobForProfileDetails = found
+            onPendingDetailConsumed()
+        }
+    }
     var isLoadingClientProfile by remember { mutableStateOf(false) }
     var showProRatingSheet by remember { mutableStateOf(false) }
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
@@ -2282,8 +2294,7 @@ fun ProfessionalDashboardScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(
                                         onClick = {
-                                            viewModel.selectJob(detail.id)
-                                            onNavigateToChat(detail.id)
+                                            onOpenChatFromDetail(detail.id, detail.id)
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
                                         shape = RoundedCornerShape(14.dp),
@@ -2323,8 +2334,7 @@ fun ProfessionalDashboardScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     OutlinedButton(
                                         onClick = {
-                                            viewModel.selectJob(detail.id)
-                                            onNavigateToChat(detail.id)
+                                            onOpenChatFromDetail(detail.id, detail.id)
                                         },
                                         shape = RoundedCornerShape(14.dp),
                                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
@@ -2511,16 +2521,14 @@ fun ProfessionalDashboardScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
                                     onClick = {
-                                        if (assignedToMe) {
-                                            viewModel.selectJob(detail.id)
-                                            onNavigateToChat(detail.id)
-                                        } else {
-                                            viewModel.applyToJob(detail.id) { applicationId ->
-                                                viewModel.selectJob(applicationId)
-                                                selectedClientIdForProfile = null
-                                                selectedJobForProfileDetails = null
-                                                onNavigateToChat(applicationId)
-                                            }
+                                         if (assignedToMe) {
+                                             onOpenChatFromDetail(detail.id, detail.id)
+                                         } else {
+                                             viewModel.applyToJob(detail.id) { applicationId ->
+                                                 selectedClientIdForProfile = null
+                                                 selectedJobForProfileDetails = null
+                                                 onOpenChatFromDetail(detail.id, applicationId)
+                                             }
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = proPrimary),

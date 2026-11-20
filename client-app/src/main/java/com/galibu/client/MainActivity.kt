@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
                 val globalLoadingMessage by viewModel.globalLoadingMessage.collectAsState()
                 val globalAlert by viewModel.globalAlert.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
+                var pendingDetailJobId by remember { mutableStateOf<String?>(null) }
                 LaunchedEffect(Unit) {
                     viewModel.snackbarMessages.collect { msg ->
                         snackbarHostState.showSnackbar(msg)
@@ -232,8 +233,15 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "PROFESSIONAL_DASHBOARD" -> ProfessionalDashboardScreen(
                                                 viewModel = proViewModel,
+                                                pendingDetailJobId = pendingDetailJobId,
+                                                onPendingDetailConsumed = { pendingDetailJobId = null },
                                                 onNavigateToChat = { jobId ->
                                                     proViewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onOpenChatFromDetail = { detailJobId, chatJobId ->
+                                                    pendingDetailJobId = detailJobId
+                                                    proViewModel.selectJob(chatJobId)
                                                     currentRoute = "CHAT"
                                                 },
                                                 onNavigateToNegotiation = { jobId ->
@@ -267,8 +275,15 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "CLIENT_DASHBOARD" -> ClientDashboardScreen(
                                                 viewModel = viewModel,
+                                                pendingDetailJobId = pendingDetailJobId,
+                                                onPendingDetailConsumed = { pendingDetailJobId = null },
                                                 onNavigateToChat = { jobId ->
                                                     viewModel.selectJob(jobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onOpenChatFromDetail = { detailJob, chatJobId ->
+                                                    pendingDetailJobId = detailJob.id
+                                                    viewModel.selectJob(chatJobId)
                                                     currentRoute = "CHAT"
                                                 },
                                                 onNavigateToNotifications = {

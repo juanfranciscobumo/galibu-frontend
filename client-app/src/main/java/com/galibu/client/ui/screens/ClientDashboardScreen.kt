@@ -420,7 +420,10 @@ private fun getRatingDistribution(reviews: List<Pair<Float, String>>): Map<Int, 
 @Composable
 fun ClientDashboardScreen(
     viewModel: ClientViewModel,
+    pendingDetailJobId: String? = null,
+    onPendingDetailConsumed: () -> Unit = {},
     onNavigateToChat: (String) -> Unit,
+    onOpenChatFromDetail: (JobRequest, String) -> Unit = { _, chatId -> onNavigateToChat(chatId) },
     onNavigateToNotifications: () -> Unit,
     onSwitchRole: () -> Unit,
     modifier: Modifier = Modifier
@@ -452,6 +455,16 @@ fun ClientDashboardScreen(
     var selectedProfessional by remember { mutableStateOf<ProfessionalModel?>(null) }
     var showJobDetail by remember { mutableStateOf(false) }
     var selectedJobDetail by remember { mutableStateOf<JobRequest?>(null) }
+
+    LaunchedEffect(pendingDetailJobId, allJobs) {
+        val id = pendingDetailJobId ?: return@LaunchedEffect
+        val job = allJobs.find { it.id == id }
+        if (job != null) {
+            selectedJobDetail = job
+            showJobDetail = true
+            onPendingDetailConsumed()
+        }
+    }
     var showJobPostForm by remember { mutableStateOf(false) }
     var customCategories by remember { mutableStateOf<List<String>>(emptyList()) }
     var showRatingDialog by remember { mutableStateOf(false) }
@@ -782,8 +795,13 @@ fun ClientDashboardScreen(
             applications = applications,
             onBack = { showJobDetail = false },
             onChat = { target ->
-                viewModel.selectJob(target.id)
-                onNavigateToChat(target.id)
+                val detail = selectedJobDetail
+                if (detail != null) {
+                    onOpenChatFromDetail(detail, target.id)
+                } else {
+                    viewModel.selectJob(target.id)
+                    onNavigateToChat(target.id)
+                }
                 showJobDetail = false
             },
             onCancel = {
