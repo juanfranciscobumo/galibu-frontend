@@ -2287,6 +2287,20 @@ fun ProfessionalDashboardScreen(
                                         fontSize = 12.sp
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            viewModel.selectJob(detail.id)
+                                            onNavigateToChat(detail.id)
+                                        },
+                                        shape = RoundedCornerShape(14.dp),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.Chat, contentDescription = null, tint = proPrimary, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Ir al chat", color = proPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Button(
                                         onClick = { viewModel.startService(detail.id) },
                                         colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
