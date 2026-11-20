@@ -2340,6 +2340,7 @@ fun BilleteraTab(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilTab(
     currentUser: UserProfile?,
@@ -2375,60 +2376,68 @@ fun PerfilTab(
 
     // Ayuda y soporte
     if (showSupportDialog) {
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { showSupportDialog = false },
-            containerColor = PolishCard,
-            shape = RoundedCornerShape(16.dp),
-            title = {
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = "Ayuda y soporte técnico",
                     color = PolishDark,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.",
-                        color = PolishGrayText,
-                        fontSize = 12.sp
-                    )
-                    OutlinedTextField(
-                        value = supportMessage,
-                        onValueChange = { supportMessage = it.capitalizeFirstLetter() },
-                        label = { Text("Detalle de tu reporte") },
-                        placeholder = { Text("Ej: El profesional no llegó a la hora de la cita...") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PolishBlue,
-                            focusedLabelColor = PolishBlue
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (supportMessage.isNotBlank()) {
-                            supportMessage = ""
-                            showSupportDialog = false
-                            onSupport()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue)
+                Text(
+                    text = "¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.",
+                    color = PolishGrayText,
+                    fontSize = 12.sp
+                )
+                OutlinedTextField(
+                    value = supportMessage,
+                    onValueChange = { supportMessage = it.capitalizeFirstLetter() },
+                    label = { Text("Detalle de tu reporte") },
+                    placeholder = { Text("Ej: El profesional no llegó a la hora de la cita...") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PolishBlue,
+                        focusedLabelColor = PolishBlue
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Enviar reporte", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSupportDialog = false }) {
-                    Text("Cancelar", color = PolishGrayText)
+                    TextButton(
+                        onClick = { showSupportDialog = false },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar", color = PolishGrayText)
+                    }
+                    Button(
+                        onClick = {
+                            if (supportMessage.isNotBlank()) {
+                                supportMessage = ""
+                                showSupportDialog = false
+                                onSupport()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Enviar reporte", color = Color.White)
+                    }
                 }
             }
-        )
+        }
     }
 }
 

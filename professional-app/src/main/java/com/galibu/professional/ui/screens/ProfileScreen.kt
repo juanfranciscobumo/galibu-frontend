@@ -804,19 +804,25 @@ fun ProfileScreen(
                     }
 
                     if (showEditCategoryDialog) {
-                        AlertDialog(
+                        ModalBottomSheet(
                             onDismissRequest = {
                                 showEditCategoryDialog = false
                                 customCategoryInput = ""
-                            },
-                            title = {
+                            }
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp)
+                                    .padding(bottom = 32.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                                 Text(
                                     text = "Agregar categoría",
                                     color = PolishDark,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
                                 )
-                            },
-                            text = {
                                 OutlinedTextField(
                                     value = customCategoryInput,
                                     onValueChange = { customCategoryInput = it.capitalizeFirstLetter() },
@@ -826,36 +832,39 @@ fun ProfileScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = PolishBlue,
                                         unfocusedBorderColor = PolishBorder
-                                    )
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        val trimmed = customCategoryInput.trim()
-                                        if (trimmed.isNotEmpty() && editCategories.none { it.equals(trimmed, ignoreCase = true) }) {
-                                            editCategories.add(trimmed)
-                                        }
-                                        customCategoryInput = ""
-                                        showEditCategoryDialog = false
-                                    }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("Agregar", color = PolishBlue, fontWeight = FontWeight.SemiBold)
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
-                                        customCategoryInput = ""
-                                        showEditCategoryDialog = false
+                                    TextButton(
+                                        onClick = {
+                                            customCategoryInput = ""
+                                            showEditCategoryDialog = false
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Cancelar", color = PolishGrayText)
                                     }
-                                ) {
-                                    Text("Cancelar", color = PolishGrayText)
+                                    Button(
+                                        onClick = {
+                                            val trimmed = customCategoryInput.trim()
+                                            if (trimmed.isNotEmpty() && editCategories.none { it.equals(trimmed, ignoreCase = true) }) {
+                                                editCategories.add(trimmed)
+                                            }
+                                            customCategoryInput = ""
+                                            showEditCategoryDialog = false
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Agregar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
-                            },
-                            containerColor = Color.White,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                            }
+                        }
                     }
 
                     // Portafolio: descripción y fotos de trabajos anteriores.
