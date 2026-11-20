@@ -1587,13 +1587,13 @@ fun InicioTab(
                     Text("Solicitar cotización")
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // (Stat cards removidos por solicitud del usuario)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         val visibleJobs = remember(clientJobs) {
             clientJobs.filter { it.isVisibleOnClientHome() }
