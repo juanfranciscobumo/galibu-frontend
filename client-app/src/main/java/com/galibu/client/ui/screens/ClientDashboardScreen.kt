@@ -7618,6 +7618,9 @@ fun ClientJobDetailScreen(
         }
 
 
+        val canCancel = job.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO", "CLOSED", "CERRADO")
+        if (canCancel) {
+            Spacer(modifier = Modifier.height(16.dp))
         OutlinedButton(
             onClick = onCancel,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
@@ -7628,6 +7631,7 @@ fun ClientJobDetailScreen(
             Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text("Cancelar solicitud", color = Color(0xFFDC2626), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
