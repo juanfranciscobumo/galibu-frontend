@@ -95,6 +95,12 @@ class MainActivity : ComponentActivity() {
                 val isGlobalLoading by viewModel.isGlobalLoading.collectAsState()
                 val globalLoadingMessage by viewModel.globalLoadingMessage.collectAsState()
                 val globalAlert by viewModel.globalAlert.collectAsState()
+                val snackbarHostState = remember { SnackbarHostState() }
+                LaunchedEffect(Unit) {
+                    viewModel.snackbarMessages.collect { msg ->
+                        snackbarHostState.showSnackbar(msg)
+                    }
+                }
 
                 var currentRoute by rememberSaveable { mutableStateOf("AUTH") }
                 var selectedTab by rememberSaveable { mutableStateOf("HOME") }
@@ -306,6 +312,8 @@ class MainActivity : ComponentActivity() {
                                     onDismissRequest = { viewModel.dismissAlert() }
                                 )
                             }
+
+                            SnackbarHost(hostState = snackbarHostState)
                         }
                     }
                 }

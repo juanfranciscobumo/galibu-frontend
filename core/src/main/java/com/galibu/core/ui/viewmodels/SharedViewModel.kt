@@ -105,6 +105,13 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     private val _globalAlert = MutableStateFlow<GlobalAlert?>(null)
     val globalAlert = _globalAlert.asStateFlow()
 
+    private val _snackbarMessage = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbarMessages: SharedFlow<String> = _snackbarMessage.asSharedFlow()
+
+    fun showSnackbar(message: String) {
+        _snackbarMessage.tryEmit(message)
+    }
+
     /**
      * Muestra una alerta con el diseño único de Galibu.
      *

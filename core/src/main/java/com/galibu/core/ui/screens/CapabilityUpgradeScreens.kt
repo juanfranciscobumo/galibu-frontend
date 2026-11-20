@@ -363,66 +363,67 @@ fun ActivateProfessionalScreen(
         }
     }
 
-    // Diálogo para agregar categoría personalizada
     if (showAddCategoryDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showAddCategoryDialog = false },
-            title = {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showAddCategoryDialog = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = "Nueva categoría",
                     fontWeight = FontWeight.Bold,
                     color = TextMain,
                     fontSize = 20.sp
                 )
-            },
-            text = {
-                var customInput by remember { mutableStateOf("") }
-                Column(
+                Text(
+                    text = "Escribe el nombre de tu categoría",
+                    fontSize = 14.sp,
+                    color = TextSec
+                )
+                OutlinedTextField(
+                    value = newCategoryInput,
+                    onValueChange = { newCategoryInput = it },
+                    placeholder = { Text("Ej: Domótica") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Escribe el nombre de tu categoría",
-                        fontSize = 14.sp,
-                        color = TextSec
-                    )
-                    OutlinedTextField(
-                        value = customInput,
-                        onValueChange = { newCategoryInput = it },
-                        placeholder = { Text("Ej: Domótica") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim())) {
-                            selectedCategories.add(newCategoryInput.trim())
-                        }
-                        showAddCategoryDialog = false
-                    },
-                    enabled = newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim()),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
-                ) {
-                    Text(
-                        text = "Agregar",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showAddCategoryDialog = false }
-                ) {
-                    Text("Cancelar", color = TextSec)
+                    TextButton(
+                        onClick = { showAddCategoryDialog = false },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar", color = TextSec)
+                    }
+                    Button(
+                        onClick = {
+                            if (newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim())) {
+                                selectedCategories.add(newCategoryInput.trim())
+                            }
+                            showAddCategoryDialog = false
+                        },
+                        enabled = newCategoryInput.isNotBlank() && !selectedCategories.contains(newCategoryInput.trim()),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Agregar",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     if (showPhotoSource) {

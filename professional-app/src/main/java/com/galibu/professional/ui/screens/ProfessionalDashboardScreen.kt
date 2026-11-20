@@ -180,6 +180,12 @@ fun ProfessionalDashboardScreen(
     val notifications by viewModel.notifications.collectAsState(initial = emptyList())
     val allMessages by viewModel.allChatMessages.collectAsState()
     val boldCheckout by viewModel.boldCheckout.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessages.collect { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
 
     // Escucha en tiempo real de mis chats activos (vistas previas y no leídos del tab Mensajes).
     // Incluye abiertas donde escribí antes de ofertar/aceptar y los hilos de
@@ -1872,7 +1878,7 @@ fun ProfessionalDashboardScreen(
                     review = comment,
                     isClientRating = false,
                     onSuccess = {
-                        viewModel.showAlert("Aviso", "Calificaste a $clientName con $rating estrellas. ¡Gracias!")
+                        viewModel.showSnackbar("Calificaste a $clientName con $rating estrellas. ¡Gracias!")
                     }
                 )
                 selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(
@@ -1899,6 +1905,8 @@ fun ProfessionalDashboardScreen(
             onDismissRequest = { showDeleteDialog = false }
         )
     }
+
+    SnackbarHost(hostState = snackbarHostState)
 
     if (selectedClientProfile != null) {
         val client = selectedClientProfile!!
@@ -2572,7 +2580,7 @@ fun ProfessionalDashboardScreen(
                             selectedJobForProfileDetails = null
                             selectedClientIdForProfile = null
                             selectedTab = "Inicio"
-                            viewModel.showAlert("Aviso", "¡Servicio completado! Gracias por calificar.")
+                            viewModel.showSnackbar("¡Servicio completado! Gracias por calificar.")
                         }
                     )
                 } else {
@@ -2588,7 +2596,7 @@ fun ProfessionalDashboardScreen(
                                 selectedJobForProfileDetails = null
                                 selectedClientIdForProfile = null
                                 selectedTab = "Inicio"
-                                viewModel.showAlert("Aviso", "¡Servicio completado! Gracias por calificar.")
+                                viewModel.showSnackbar("¡Servicio completado! Gracias por calificar.")
                             } else {
                                 // Reflejar el nuevo estado en pantalla sin salir de ella.
                                 selectedJobForProfileDetails = selectedJobForProfileDetails?.copy(

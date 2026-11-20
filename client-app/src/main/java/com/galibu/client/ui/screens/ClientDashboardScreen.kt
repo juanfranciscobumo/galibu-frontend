@@ -707,7 +707,7 @@ fun ClientDashboardScreen(
                     },
                     onDeleteAccount = { showDeleteAccountDialog = true },
                     onLogout = { showLogoutDialog = true },
-                    onSupport = { viewModel.showAlert("Aviso", "Reporte enviado con éxito") },
+                    onSupport = { viewModel.showSnackbar("Reporte enviado con éxito") },
                     onSwitchRole = onSwitchRole,
                     onActivateProfessional = { showActivateProfessional = true },
                     successMessage = passwordSuccessMessage,

@@ -1298,62 +1298,69 @@ fun ProfileScreen(
 
     // Modal support dialogs
 
-    // HELP SUPPORT DIALOG
     if (showSupportDialog) {
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { showSupportDialog = false },
-            containerColor = PolishCard,
-            shape = RoundedCornerShape(16.dp),
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (supportMessage.isNotBlank()) {
-                            viewModel.showAlert("Aviso", "Reporte enviado con éxito")
-                            supportMessage = ""
-                            showSupportDialog = false
-                        } else {
-                            viewModel.showAlert("Aviso", "Escribe un mensaje o detalle de tu reporte")
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue)
-                ) {
-                    Text("Enviar reporte", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSupportDialog = false }) {
-                    Text("Cancelar", color = PolishGrayText)
-                }
-            },
-            title = {
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = "Ayuda y soporte técnico",
                     color = PolishDark,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.",
-                        color = PolishGrayText,
-                        fontSize = 12.sp
-                    )
-                    OutlinedTextField(
-                        value = supportMessage,
-                        onValueChange = { supportMessage = it.capitalizeFirstLetter() },
-                        label = { Text("Detalle de tu reporte") },
-                        placeholder = { Text("Ej: El profesional no llegó a la hora de la cita...") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PolishBlue,
-                            focusedLabelColor = PolishBlue
-                        ),
-                        modifier = Modifier.fillMaxWidth().height(100.dp)
-                    )
+                Text(
+                    text = "¿Tienes inconvenientes con un servicio? Envía un reporte seguro al canal de soporte oficial de Galibu.",
+                    color = PolishGrayText,
+                    fontSize = 12.sp
+                )
+                OutlinedTextField(
+                    value = supportMessage,
+                    onValueChange = { supportMessage = it.capitalizeFirstLetter() },
+                    label = { Text("Detalle de tu reporte") },
+                    placeholder = { Text("Ej: El profesional no llegó a la hora de la cita...") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PolishBlue,
+                        focusedLabelColor = PolishBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(
+                        onClick = { showSupportDialog = false },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar", color = PolishGrayText)
+                    }
+                    Button(
+                        onClick = {
+                            if (supportMessage.isNotBlank()) {
+                                viewModel.showSnackbar("Reporte enviado con éxito")
+                                supportMessage = ""
+                                showSupportDialog = false
+                            } else {
+                                viewModel.showAlert("Aviso", "Escribe un mensaje o detalle de tu reporte")
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Enviar reporte", color = Color.White)
+                    }
                 }
             }
-        )
+        }
     }
 
     // DELETE ACCOUNT CONFIRMATION DIALOG (homologado con la app de clientes)
