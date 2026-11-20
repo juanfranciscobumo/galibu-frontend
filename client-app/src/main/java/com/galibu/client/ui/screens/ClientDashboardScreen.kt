@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -7539,17 +7540,21 @@ fun ClientJobDetailScreen(
             Dialog(onDismissRequest = { expandedPhoto = null }) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                        .clickable { expandedPhoto = null },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .wrapContentHeight()
                 ) {
                     AsyncImage(
                         model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
                         contentDescription = "Foto ampliada",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxWidth().wrapContentHeight()
                     )
+                    IconButton(
+                        onClick = { expandedPhoto = null },
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                    }
                 }
             }
         }

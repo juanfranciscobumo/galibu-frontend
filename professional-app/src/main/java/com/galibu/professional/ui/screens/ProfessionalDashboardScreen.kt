@@ -2192,17 +2192,21 @@ fun ProfessionalDashboardScreen(
                         Dialog(onDismissRequest = { expandedPhoto = null }) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black)
-                                    .clickable { expandedPhoto = null },
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
                             ) {
                                 AsyncImage(
                                     model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
                                     contentDescription = "Foto ampliada",
                                     contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxWidth().wrapContentHeight()
                                 )
+                                IconButton(
+                                    onClick = { expandedPhoto = null },
+                                    modifier = Modifier.align(Alignment.TopEnd)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                                }
                             }
                         }
                     }
