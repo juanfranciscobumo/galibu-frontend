@@ -1,5 +1,8 @@
 package com.galibu.core.ui.screens
 
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,10 +61,13 @@ import com.galibu.core.ui.theme.PolishGreen
 fun ChatAndPaymentsScreen(
     viewModel: SharedViewModel,
     onBack: () -> Unit,
+    onHireProfessional: (String, Double) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showImageSourceDialog by remember { mutableStateOf(false) }
+    var showHireDialog by remember { mutableStateOf(false) }
+    var hirePriceInput by remember { mutableStateOf("") }
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
@@ -752,6 +758,25 @@ fun ChatAndPaymentsScreen(
                 )
             }
         } else {
+        Column(modifier = Modifier.fillMaxWidth().background(Color.White)) {
+            // Botón Contratar: solo en chats de consulta directa (chat_*) y modo cliente.
+            val isConsultationChat = job?.id?.startsWith("chat_") == true &&
+                !job?.professionalId.isNullOrBlank() &&
+                activeRole.equals("CLIENT", ignoreCase = true)
+            if (isConsultationChat) {
+                Button(
+                    onClick = { showHireDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Contratar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
         // Chat input bar matching Image 2 exactly
         Row(
             modifier = Modifier
@@ -1025,4 +1050,40 @@ fun ChatAndPaymentsScreen(
             }
         )
     }
+
+    if (showHireDialog) {
+        AlertDialog(
+            onDismissRequest = { showHireDialog = false },
+            title = { Text("Contratar profesional") },
+            text = {
+                Column {
+                    Text("Presupuesto propuesto (opcional). Déjalo vacío si prefieres que el profesional cotice.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = hirePriceInput,
+                        onValueChange = { hirePriceInput = it.filter { c -> c.isDigit() } },
+                        placeholder = { Text("Ej: 80000") },
+                        prefix = { Text("$ ") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val price = hirePriceInput.toDoubleOrNull() ?: 0.0
+                    val j = job
+                    if (j != null) {
+                        onHireProfessional(j.id, price)
+                    }
+                    showHireDialog = false
+                    hirePriceInput = ""
+                }) { Text("Contratar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHireDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+}
 }

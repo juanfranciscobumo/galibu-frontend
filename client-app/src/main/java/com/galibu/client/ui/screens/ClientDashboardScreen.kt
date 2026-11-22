@@ -2825,33 +2825,9 @@ fun ProfessionalDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Button(
-                    onClick = {
-                        offerPriceInput = ""
-                        offerError = null
-                        showOfferSheet = true
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Contratar",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
                 OutlinedButton(
                     onClick = { onChat(professional) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
                         brush = androidx.compose.ui.graphics.SolidColor(PolishBlue)

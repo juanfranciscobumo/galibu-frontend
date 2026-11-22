@@ -294,7 +294,17 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "CHAT" -> ChatAndPaymentsScreen(
                                                 viewModel = viewModel,
-                                                onBack = { currentRoute = "CLIENT_DASHBOARD" }
+                                                onBack = { currentRoute = "CLIENT_DASHBOARD" },
+                                                onHireProfessional = { jobId, price ->
+                                                    val j = viewModel.selectedJob.value
+                                                    if (j != null) {
+                                                        viewModel.hireProfessional(j.professionalId ?: "", j.professionalName ?: "", j.category, price, j.proHourlyRate) { newJobId ->
+                                                            if (newJobId != null) {
+                                                                viewModel.selectJob(newJobId)
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             )
                                             "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
                                                 viewModel = viewModel,
