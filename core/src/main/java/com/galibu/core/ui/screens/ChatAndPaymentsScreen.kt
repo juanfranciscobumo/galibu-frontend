@@ -719,11 +719,13 @@ fun ChatAndPaymentsScreen(
             // postulación recibida, la acepta (y se cierran las demás); si es una
             // consulta directa, crea la solicitud con el presupuesto propuesto.
             val isClientMode = activeRole.equals("CLIENT", ignoreCase = true)
+            val isApplication = !job?.parentJobId.isNullOrBlank()
+            val isConsultationChat = job?.id?.startsWith("chat_") == true
             val canHireInChat = isClientMode &&
                 !job?.professionalId.isNullOrBlank() &&
+                (isApplication || isConsultationChat) &&
                 (job?.status?.uppercase() ?: "") in listOf("OPEN", "NEGOTIATING", "NEGOCIANDO")
             if (canHireInChat) {
-                val isApplication = !job?.parentJobId.isNullOrBlank()
                 Button(
                     onClick = {
                         if (isApplication) {
