@@ -31,4 +31,4 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.apk
-*.aab
+*.aab.kotlin/
