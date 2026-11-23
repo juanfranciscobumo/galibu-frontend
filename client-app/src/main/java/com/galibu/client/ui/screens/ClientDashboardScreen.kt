@@ -2825,23 +2825,24 @@ fun ProfessionalDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                Button(
                     onClick = { onChat(professional) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(PolishBlue)
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PolishBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
-                        Icons.Default.Chat,
+                        imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Contactar",
+                        text = "Enviar solicitud",
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
