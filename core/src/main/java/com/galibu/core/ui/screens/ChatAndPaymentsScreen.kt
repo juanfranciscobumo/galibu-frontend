@@ -67,6 +67,7 @@ fun ChatAndPaymentsScreen(
     val context = LocalContext.current
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showHireDialog by remember { mutableStateOf(false) }
+    var showHireConfirm by remember { mutableStateOf(false) }
     var hirePriceInput by remember { mutableStateOf("") }
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
@@ -640,51 +641,6 @@ fun ChatAndPaymentsScreen(
             }
         }
 
-        // Botones de aceptar/rechazar dentro del chat: solo el cliente ve estos
-        // botones cuando un profesional ya tomó la solicitud y aún no la acepta.
-        val isClientUser = activeRole.equals("CLIENT", ignoreCase = true) && (
-            currentUser?.role?.equals("CLIENT", ignoreCase = true) == true ||
-            currentUser?.role?.equals("BOTH", ignoreCase = true) == true
-        )
-        val isNegotiatingWithPro = job?.status?.uppercase() == "NEGOTIATING" &&
-            job?.professionalId?.isNotBlank() == true
-        if (isClientUser && isNegotiatingWithPro && jobId != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        viewModel.clientAcceptJob(jobId!!) { }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Aceptar profesional", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                OutlinedButton(
-                    onClick = {
-                        viewModel.cancelJob(jobId!!, "El cliente rechazó la propuesta")
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
-                    border = BorderStroke(1.5.dp, Color(0xFFDC2626)),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Rechazar", color = Color(0xFFDC2626), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
         // Quick dialogue buttons for rapid response
         if (job?.status == "ACCEPTED") {
             Row(
@@ -759,13 +715,24 @@ fun ChatAndPaymentsScreen(
             }
         } else {
         Column(modifier = Modifier.fillMaxWidth().background(Color.White)) {
-            // Botón Contratar: solo en chats de consulta directa (chat_*) y modo cliente.
-            val isConsultationChat = job?.id?.startsWith("chat_") == true &&
+            // Contratar profesional: el cliente contrata desde el chat. Si es una
+            // postulación recibida, la acepta (y se cierran las demás); si es una
+            // consulta directa, crea la solicitud con el presupuesto propuesto.
+            val isClientMode = activeRole.equals("CLIENT", ignoreCase = true)
+            val canHireInChat = isClientMode &&
                 !job?.professionalId.isNullOrBlank() &&
-                activeRole.equals("CLIENT", ignoreCase = true)
-            if (isConsultationChat) {
+                (job?.status?.uppercase() ?: "") in listOf("OPEN", "NEGOTIATING", "NEGOCIANDO")
+            if (canHireInChat) {
+                val isApplication = !job?.parentJobId.isNullOrBlank()
                 Button(
-                    onClick = { showHireDialog = true },
+                    onClick = {
+                        if (isApplication) {
+                            showHireConfirm = true
+                        } else {
+                            hirePriceInput = ""
+                            showHireDialog = true
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -774,7 +741,7 @@ fun ChatAndPaymentsScreen(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Contratar", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Contratar profesional", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         // Chat input bar matching Image 2 exactly
@@ -1078,10 +1045,35 @@ fun ChatAndPaymentsScreen(
                     }
                     showHireDialog = false
                     hirePriceInput = ""
-                }) { Text("Contratar") }
+                }) { Text("Contratar profesional") }
             },
             dismissButton = {
                 TextButton(onClick = { showHireDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showHireConfirm) {
+        val proName = job?.professionalName?.takeIf { it.isNotBlank() } ?: "este profesional"
+        AlertDialog(
+            onDismissRequest = { showHireConfirm = false },
+            title = { Text("Contratar profesional") },
+            text = {
+                Text(
+                    "¿Deseas contratar a $proName? Se cerrarán las demás postulaciones " +
+                        "de esta solicitud."
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showHireConfirm = false
+                    job?.id?.let { viewModel.clientAcceptJob(it) }
+                }) {
+                    Text("Contratar profesional")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHireConfirm = false }) { Text("Cancelar") }
             }
         )
     }
