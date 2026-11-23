@@ -1184,13 +1184,17 @@ class GalibuRepository(
      *    solicitud lo comparten todos los ofertantes y no sirve para negociar.
      * 3. Si no hay job explícito, reutiliza el trabajo activo más reciente con ese pro.
      * 4. Si no existe, crea un hilo de consulta directo (oculto de "solicitudes").
+     * Con [direct] = true (chat abierto desde el directorio de profesionales) se
+     * omite el paso 3 y siempre se usa/crea un hilo `chat_...` sin `parentJobId`,
+     * para que el chat de consulta no muestre acciones de contratación.
      * Devuelve el id del job o null si hace falta crear uno y no hay sesión.
      */
     suspend fun resolveChatJobId(
         proId: String,
         proName: String,
         proSpecialty: String,
-        jobId: String? = null
+        jobId: String? = null,
+        direct: Boolean = false
     ): String? = withContext(Dispatchers.IO) {
         RequestTrace.withTransaction {
             if (!jobId.isNullOrBlank()) {
@@ -1212,7 +1216,17 @@ class GalibuRepository(
                     return@withTransaction job.id
                 }
             }
-            findActiveJobWithProfessional(proId)?.let { return@withTransaction it.id }
+            if (direct) {
+                val existingDirect = try {
+                    jobRequestDao.getDirectChatWithProfessionalSync(proId)
+                } catch (e: Exception) {
+                    Log.e("GalibuRepository", "Error buscando chat directo con $proId: ${e.localizedMessage}")
+                    null
+                }
+                if (existingDirect != null) return@withTransaction existingDirect.id
+            } else {
+                findActiveJobWithProfessional(proId)?.let { return@withTransaction it.id }
+            }
             val user = _currentUser.value ?: return@withTransaction null
             val newJobId = "chat_${proId}_${System.currentTimeMillis()}"
             val created = try {

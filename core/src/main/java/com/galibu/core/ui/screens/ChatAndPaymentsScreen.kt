@@ -62,6 +62,8 @@ fun ChatAndPaymentsScreen(
     viewModel: SharedViewModel,
     onBack: () -> Unit,
     onHireProfessional: (String, Double) -> Unit = { _, _ -> },
+    /** Chat de consulta abierto desde el directorio: sin acciones de contratación. */
+    isDirectConsult: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -599,7 +601,7 @@ fun ChatAndPaymentsScreen(
         // actualizar el precio sin salir del chat. El backend crea/actualiza la
         // oferta y publica el mensaje de sistema.
         val chatJobStatus = job?.status?.uppercase()
-        val canAgreePrice = !isChatLocked && jobId != null &&
+        val canAgreePrice = !isDirectConsult && !isChatLocked && jobId != null &&
             job?.professionalId?.isNotBlank() == true &&
             (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING") &&
              !job?.parentJobId.isNullOrBlank()
@@ -721,7 +723,7 @@ fun ChatAndPaymentsScreen(
             // consulta directa, crea la solicitud con el presupuesto propuesto.
             val isClientMode = activeRole.equals("CLIENT", ignoreCase = true)
             val isApplication = !job?.parentJobId.isNullOrBlank()
-            val canHireInChat = isClientMode &&
+            val canHireInChat = !isDirectConsult && isClientMode &&
                 !job?.professionalId.isNullOrBlank() &&
                 isApplication &&
                 (job?.status?.uppercase() ?: "") in listOf("OPEN", "NEGOTIATING", "NEGOCIANDO")

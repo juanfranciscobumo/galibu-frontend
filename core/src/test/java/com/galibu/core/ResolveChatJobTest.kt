@@ -84,4 +84,49 @@ class ResolveChatJobTest : BaseRepositoryTest() {
 
         assertNull(result)
     }
+
+    @Test
+    fun `resolveChatJobId direct reutiliza el hilo de consulta existente`() = runTest {
+        setCurrentUserDirect(createUser(id = "client_1", email = "c@test.com", role = "CLIENT"))
+        fakeJobDao.insertJob(
+            createJob(
+                id = "chat_pro_1_123",
+                status = "NEGOTIATING",
+                clientId = "client_1",
+                professionalId = "pro_1"
+            )
+        )
+
+        val result = repository.resolveChatJobId("pro_1", "Pro", "Plomería", direct = true)
+
+        assertEquals("chat_pro_1_123", result)
+    }
+
+    @Test
+    fun `resolveChatJobId direct ignora postulaciones y crea un hilo de consulta`() = runTest {
+        setCurrentUserDirect(createUser(id = "client_1", email = "c@test.com", role = "CLIENT"))
+        // Postulación (parentJobId) activa: no debe reutilizarse en una consulta
+        // directa, porque mostraría acciones de contratación en el chat.
+        fakeJobDao.insertJob(
+            createJob(
+                id = "app_1",
+                status = "NEGOTIATING",
+                clientId = "client_1",
+                professionalId = "pro_1"
+            ).copy(parentJobId = "job_parent")
+        )
+        val slot = slot<CreateJobDto>()
+        coEvery { mockApi.createJob(capture(slot)) } answers {
+            createJob(
+                id = slot.captured.id ?: "chat_x",
+                status = "NEGOTIATING",
+                clientId = "client_1",
+                professionalId = "pro_1"
+            )
+        }
+
+        val result = repository.resolveChatJobId("pro_1", "Pro", "Plomería", direct = true)
+
+        assertTrue(result != null && result.startsWith("chat_pro_1_"))
+    }
 }

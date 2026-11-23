@@ -97,6 +97,11 @@ class MainActivity : ComponentActivity() {
                 val globalAlert by viewModel.globalAlert.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
                 var pendingDetailJobId by remember { mutableStateOf<String?>(null) }
+                // Profesional cuyo detalle debe reabrirse al volver del chat.
+                var pendingProfessionalId by rememberSaveable { mutableStateOf<String?>(null) }
+                // El chat abierto desde el detalle del profesional es una consulta
+                // directa: no muestra "Acordar precio" ni "Contratar profesional".
+                var chatIsDirectConsult by rememberSaveable { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     viewModel.snackbarMessages.collect { msg ->
                         snackbarHostState.showSnackbar(msg)
@@ -140,6 +145,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.selectJob(jobId)
                             viewModel.markJobNotificationsAsRead(jobId)
                         }
+                        chatIsDirectConsult = false
                         currentRoute = "CHAT"
                     }
                 }
@@ -277,12 +283,22 @@ class MainActivity : ComponentActivity() {
                                                 viewModel = viewModel,
                                                 pendingDetailJobId = pendingDetailJobId,
                                                 onPendingDetailConsumed = { pendingDetailJobId = null },
+                                                pendingProfessionalId = pendingProfessionalId,
+                                                onPendingProfessionalConsumed = { pendingProfessionalId = null },
                                                 onNavigateToChat = { jobId ->
+                                                    chatIsDirectConsult = false
                                                     viewModel.selectJob(jobId)
                                                     currentRoute = "CHAT"
                                                 },
                                                 onOpenChatFromDetail = { detailJob, chatJobId ->
                                                     pendingDetailJobId = detailJob.id
+                                                    chatIsDirectConsult = false
+                                                    viewModel.selectJob(chatJobId)
+                                                    currentRoute = "CHAT"
+                                                },
+                                                onOpenChatFromProfessional = { proId, chatJobId ->
+                                                    pendingProfessionalId = proId
+                                                    chatIsDirectConsult = true
                                                     viewModel.selectJob(chatJobId)
                                                     currentRoute = "CHAT"
                                                 },
@@ -294,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "CHAT" -> ChatAndPaymentsScreen(
                                                 viewModel = viewModel,
+                                                isDirectConsult = chatIsDirectConsult,
                                                 onBack = { currentRoute = "CLIENT_DASHBOARD" },
                                                 onHireProfessional = { jobId, price ->
                                                     val j = viewModel.selectedJob.value
@@ -310,6 +327,7 @@ class MainActivity : ComponentActivity() {
                                                 viewModel = viewModel,
                                                 onBack = { currentRoute = "CLIENT_DASHBOARD" },
                                                 onOpenJob = { jobId ->
+                                                    chatIsDirectConsult = false
                                                     viewModel.selectJob(jobId)
                                                     viewModel.markJobNotificationsAsRead(jobId)
                                                     currentRoute = "CHAT"

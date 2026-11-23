@@ -32,6 +32,15 @@ class FakeJobRequestDao : JobRequestDao {
             .filter { it.professionalId == proId && it.status != "COMPLETED" && it.status != "CANCELLED" }
             .maxByOrNull { it.createdAt }
 
+    override suspend fun getDirectChatWithProfessionalSync(proId: String): JobRequest? =
+        jobs.value
+            .filter {
+                it.professionalId == proId &&
+                    it.id.startsWith("chat_") &&
+                    it.status != "COMPLETED" && it.status != "CANCELLED"
+            }
+            .maxByOrNull { it.createdAt }
+
     override fun getOpenJobsFlow(): Flow<List<JobRequest>> =
         jobs.map { list -> list.filter { it.status == "OPEN" } }
 

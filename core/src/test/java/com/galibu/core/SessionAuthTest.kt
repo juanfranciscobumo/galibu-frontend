@@ -48,7 +48,15 @@ class SessionAuthTest : BaseRepositoryTest() {
         )
         repository.restoreSession()
 
-        fakeJobDao.insertJob(createJob(id = "stale_job", status = "OPEN", clientId = "u1"))
+        fakeJobDao.insertJob(
+            createJob(
+                id = "stale_job",
+                status = "OPEN",
+                clientId = "u1",
+                // Fuera de la ventana de gracia de 2 min de jobs recién creados.
+                createdAt = System.currentTimeMillis() - 10 * 60_000
+            )
+        )
 
         repository.forceRefreshJobs()
 

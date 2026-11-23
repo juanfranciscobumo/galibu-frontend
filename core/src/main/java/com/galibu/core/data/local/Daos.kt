@@ -60,6 +60,14 @@ interface JobRequestDao {
     @Query("SELECT * FROM job_requests WHERE professionalId = :proId AND status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY createdAt DESC LIMIT 1")
     suspend fun getActiveJobWithProfessionalSync(proId: String): JobRequest?
 
+    /**
+     * Hilo de consulta directa (`chat_...`) con un profesional. Se usa al abrir
+     * el chat desde el directorio para no reutilizar una postulación (que sí
+     * tiene `parentJobId` y muestra acciones de contratación).
+     */
+    @Query("SELECT * FROM job_requests WHERE professionalId = :proId AND id GLOB 'chat_*' AND status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getDirectChatWithProfessionalSync(proId: String): JobRequest?
+
     @Query("SELECT * FROM job_requests WHERE status = 'OPEN' ORDER BY createdAt DESC")
     fun getOpenJobsFlow(): Flow<List<JobRequest>>
 

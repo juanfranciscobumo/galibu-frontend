@@ -1,12 +1,10 @@
 package com.galibu.core
 
 import com.galibu.core.data.fake.FakeAppNotificationDao
-import com.galibu.core.data.fake.FakeBidDao
 import com.galibu.core.data.fake.FakeChatMessageDao
 import com.galibu.core.data.fake.FakeJobRequestDao
 import com.galibu.core.data.fake.FakeUserProfileDao
 import com.galibu.core.data.model.AppNotification
-import com.galibu.core.data.model.Bid
 import com.galibu.core.data.model.ChatMessage
 import com.galibu.core.data.model.JobRequest
 import com.galibu.core.data.model.UserProfile
@@ -31,7 +29,6 @@ abstract class BaseRepositoryTest {
     protected val testDispatcher = StandardTestDispatcher()
 
     protected lateinit var fakeJobDao: FakeJobRequestDao
-    protected lateinit var fakeBidDao: FakeBidDao
     protected lateinit var fakeUserDao: FakeUserProfileDao
     protected lateinit var fakeChatDao: FakeChatMessageDao
     protected lateinit var fakeNotificationDao: FakeAppNotificationDao
@@ -89,21 +86,6 @@ abstract class BaseRepositoryTest {
         professionalId = professionalId, professionalName = professionalName,
         budgetMin = budgetMin, counterOfferAmount = counterOfferAmount,
         counterOfferSender = counterOfferSender, address = address, createdAt = createdAt
-    )
-
-    protected fun createBid(
-        id: String = "bid_1",
-        jobId: String = "job_1",
-        professionalId: String = "pro_1",
-        professionalName: String = "Carlos García",
-        amount: Double = 60000.0,
-        comment: String = "Puedo hacerlo rápido",
-        durationHours: Int = 2,
-        status: String = "PENDING"
-    ) = Bid(
-        id = id, jobId = jobId, professionalId = professionalId,
-        professionalName = professionalName, amount = amount,
-        comment = comment, durationHours = durationHours, status = status
     )
 
     protected fun createUser(

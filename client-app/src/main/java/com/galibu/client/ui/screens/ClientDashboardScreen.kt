@@ -424,6 +424,9 @@ fun ClientDashboardScreen(
     onPendingDetailConsumed: () -> Unit = {},
     onNavigateToChat: (String) -> Unit,
     onOpenChatFromDetail: (JobRequest, String) -> Unit = { _, chatId -> onNavigateToChat(chatId) },
+    pendingProfessionalId: String? = null,
+    onPendingProfessionalConsumed: () -> Unit = {},
+    onOpenChatFromProfessional: (String, String) -> Unit = { _, chatId -> onNavigateToChat(chatId) },
     onNavigateToNotifications: () -> Unit,
     onSwitchRole: () -> Unit,
     modifier: Modifier = Modifier
@@ -557,6 +560,17 @@ fun ClientDashboardScreen(
         professionalModels.filter { pro ->
             selectedCategory == null || pro.workCategory?.lowercase() == selectedCategory?.lowercase()
         }
+    }
+
+    // Volver desde el chat abierto en el detalle del profesional: se restaura
+    // ese detalle en lugar de dejar al cliente en el Inicio.
+    LaunchedEffect(pendingProfessionalId, professionalModels) {
+        val id = pendingProfessionalId ?: return@LaunchedEffect
+        val professional = professionalModels.find { it.id == id } ?: return@LaunchedEffect
+        selectedProfessional = professional
+        selectedTab = 1
+        showProfessionalDetail = true
+        onPendingProfessionalConsumed()
     }
 
     val clientJobs = remember(allJobs, currentUser) {
@@ -768,9 +782,10 @@ fun ClientDashboardScreen(
                     proId = pro.id,
                     proName = pro.name,
                     proSpecialty = pro.workCategory ?: "",
+                    direct = true,
                     onStarted = { chatId ->
                         viewModel.selectJob(chatId)
-                        onNavigateToChat(chatId)
+                        onOpenChatFromProfessional(pro.id, chatId)
                     }
                 )
                 showProfessionalDetail = false

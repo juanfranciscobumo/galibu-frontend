@@ -85,12 +85,13 @@ class ClientViewModel(application: Application) : SharedViewModel(application) {
         proName: String,
         proSpecialty: String,
         jobId: String? = null,
+        direct: Boolean = false,
         onStarted: (String) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 showLoading("Iniciando chat...")
-                val resolved = repository.resolveChatJobId(proId, proName, proSpecialty, jobId)
+                val resolved = repository.resolveChatJobId(proId, proName, proSpecialty, jobId, direct)
                 hideLoading()
                 if (resolved != null) {
                     onStarted(resolved)
