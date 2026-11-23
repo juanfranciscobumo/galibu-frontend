@@ -398,6 +398,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                     // de la cuenta (p. ej. una cuenta Google nueva, que nace CLIENT).
                     _activeRole.value = appRole?.takeIf { currentUser.value.hasCapability(it) } ?: role
                     registerFcmToken()
+                    refreshAll()
                 }
                 onResult(error)
             } catch (e: Exception) {
@@ -423,6 +424,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 if (errorMsg == null) {
                     _activeRole.value = appRole ?: role
                     registerFcmToken()
+                    refreshAll()
                 }
                 onResult(errorMsg)
             } catch (e: Exception) {
