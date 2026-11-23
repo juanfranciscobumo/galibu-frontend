@@ -2861,16 +2861,10 @@ fun ProfessionalDetailScreen(
                             )
                         }
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
+                    Button(
                     onClick = { onChat(professional) },
                     colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
                     shape = RoundedCornerShape(14.dp),
@@ -2890,6 +2884,7 @@ fun ProfessionalDetailScreen(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
                 }
             }
 
