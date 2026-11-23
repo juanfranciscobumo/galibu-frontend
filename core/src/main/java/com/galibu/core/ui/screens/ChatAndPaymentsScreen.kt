@@ -602,7 +602,7 @@ fun ChatAndPaymentsScreen(
         val canAgreePrice = !isChatLocked && jobId != null &&
             job?.professionalId?.isNotBlank() == true &&
             (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING") &&
-             job?.id?.startsWith("chat_") != true
+             !job?.parentJobId.isNullOrBlank()
         if (canAgreePrice) {
             val referencePrice = job?.finalPrice ?: job?.budgetMin ?: 0.0
             Row(
