@@ -601,7 +601,8 @@ fun ChatAndPaymentsScreen(
         val chatJobStatus = job?.status?.uppercase()
         val canAgreePrice = !isChatLocked && jobId != null &&
             job?.professionalId?.isNotBlank() == true &&
-            (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING")
+            (chatJobStatus == "OPEN" || chatJobStatus == "NEGOTIATING") &&
+             job?.id?.startsWith("chat_") != true
         if (canAgreePrice) {
             val referencePrice = job?.finalPrice ?: job?.budgetMin ?: 0.0
             Row(
@@ -720,10 +721,9 @@ fun ChatAndPaymentsScreen(
             // consulta directa, crea la solicitud con el presupuesto propuesto.
             val isClientMode = activeRole.equals("CLIENT", ignoreCase = true)
             val isApplication = !job?.parentJobId.isNullOrBlank()
-            val isConsultationChat = job?.id?.startsWith("chat_") == true
             val canHireInChat = isClientMode &&
                 !job?.professionalId.isNullOrBlank() &&
-                (isApplication || isConsultationChat) &&
+                isApplication &&
                 (job?.status?.uppercase() ?: "") in listOf("OPEN", "NEGOTIATING", "NEGOCIANDO")
             if (canHireInChat) {
                 Button(
