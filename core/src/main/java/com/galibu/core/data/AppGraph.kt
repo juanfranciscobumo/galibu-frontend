@@ -14,8 +14,11 @@ import com.galibu.core.data.repository.GalibuRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -55,6 +58,14 @@ object AppGraph {
 
     /** Notificación que la app muestra como banner in-app. Única para todo el proceso. */
     val activeBannerNotification = MutableStateFlow<AppNotification?>(null)
+
+    /**
+     * Se emite al recibir un push FCM. Sirve para refrescar al instante la UI
+     * (antes el push solo dejaba un flag que se consumía al recomponer, así que
+     * la lista podía tardar hasta el siguiente sondeo de 60 s).
+     */
+    private val _pushSignal = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+    val pushSignal: SharedFlow<Unit> = _pushSignal.asSharedFlow()
 
     /**
      * Lo asigna la Activity (que sí conoce la clase de destino y el helper de
@@ -121,6 +132,22 @@ object AppGraph {
     /** Actualiza las categorías tras crear una nueva. */
     fun updateCategories(categories: List<FirebaseCategory>) {
         _categories.value = categories
+    }
+
+    /**
+     * Llamado desde [com.galibu.core.data.firebase.GalibuMessagingService] al
+     * recibir un push: avisa a la UI y refresca las solicitudes saltándose el
+     * throttle, para que el cambio se vea al instante.
+     */
+    fun onPushReceived(application: Application) {
+        _pushSignal.tryEmit(Unit)
+        processScope.launch {
+            try {
+                repository(application).forceRefreshJobs()
+            } catch (e: Exception) {
+                Log.e("AppGraph", "Refresco tras push falló: ${e.localizedMessage}")
+            }
+        }
     }
 
     private suspend fun loadGeoConfig(repo: GalibuRepository) {
