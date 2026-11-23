@@ -2851,7 +2851,7 @@ fun ProfessionalDetailScreen(
                             Text(
                                 text = "Profesional disponible",
                                 color = PolishGreen,
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
