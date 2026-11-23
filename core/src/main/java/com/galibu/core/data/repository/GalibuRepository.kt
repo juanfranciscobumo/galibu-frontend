@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import com.galibu.core.data.firebase.awaitTask
@@ -370,8 +371,15 @@ class GalibuRepository(
                         jobRequestDao.deleteAllJobs()
                     }
                 } else {
-                    // Merge server job IDs with locally-modified IDs to prevent race condition deletion
-                    val safeIds = (jobIds + locallyModifiedJobIds.toList()).distinct()
+                    // Merge server job IDs with locally-modified IDs to prevent race condition deletion.
+                    // Además, protegemos los jobs creados localmente en los últimos 2 minutos,
+                    // que el backend puede no haber devuelto aún (evita borrar solicitudes recién creadas).
+                    val recentLocalIds = try {
+                        jobRequestDao.getAllJobsFlow().first()
+                            .filter { System.currentTimeMillis() - it.createdAt < 120_000L }
+                            .map { it.id }
+                    } catch (e: Exception) { emptyList() }
+                    val safeIds = (jobIds + locallyModifiedJobIds.toList() + recentLocalIds).distinct()
                     jobRequestDao.deleteJobsNotIn(safeIds)
                     locallyModifiedJobIds.clear()
                 }
