@@ -38,6 +38,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 repository.refreshAll()
+                com.galibu.core.data.AppGraph.refreshGeoConfig(getApplication())
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Error en refreshAll: ${e.localizedMessage}")
             }
@@ -185,42 +186,13 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         return GalibuAlertType.INFO
     }
 
-    data class PortfolioItem(val title: String, val desc: String, val imageUrl: String)
-    
-    val portfolios = mapOf(
-        "pro_123" to listOf(
-            PortfolioItem("Remodelación Baño Principal", "Instalación completa de griferías premium, tuberías PVC reforzadas de alta presión y acabados de cerámica.", "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400"),
-            PortfolioItem("Certificado Especialista Sena", "Acreditación oficial en fontanería, instalaciones de agua domiciliarias y soldadura galvánica de cobre.", "https://images.unsplash.com/photo-1589330694653-ded6df03f754?w=400"),
-            PortfolioItem("Reparación Trampa de Grasas", "Limpieza técnica e instalación de filtros herméticos en restaurante céntrico de Bogotá.", "https://images.unsplash.com/photo-1542013936693-8848e5740a7a?w=400")
-        ),
-        "bot_luis_ferruccio" to listOf(
-            PortfolioItem("Reparación Grifo Monocontrol", "Desensamble y corrección de fuga por empaque dañado en grifería de cocina de lujo.", "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400"),
-            PortfolioItem("Instalación Calentador a Gas", "Montaje seguro de calentador de paso de 5.5 litros con ducto de evacuación homologado.", "https://images.unsplash.com/photo-1621905252507-b354bc25edac?w=400")
-        ),
-        "bot_gerson_martnez" to listOf(
-            PortfolioItem("Tableros Eléctricos Bifásicos", "Actualización completa de tacos de energía e interruptores de sobrecarga residencial.", "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400"),
-            PortfolioItem("Certificación Retie 2026", "Acreditación de normas de seguridad colombianas para instalaciones eléctricas.", "https://images.unsplash.com/photo-1510519138101-570d1dca3d66?w=400")
-        ),
-        "bot_gerson_martínez" to listOf(
-            PortfolioItem("Tableros Eléctricos Bifásicos", "Actualización completa de tacos de energía e interruptores de sobrecarga residencial.", "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400"),
-            PortfolioItem("Certificación Retie 2026", "Acreditación de normas de seguridad colombianas para instalaciones eléctricas.", "https://images.unsplash.com/photo-1510519138101-570d1dca3d66?w=400")
-        )
-    )
-
-    fun getPortfolio(proId: String): List<PortfolioItem> {
-        val cleanProId = proId.trim().lowercase()
-        return portfolios[cleanProId] ?: portfolios[proId] ?: listOf(
-            PortfolioItem("Trabajo General Galibu", "Instalaciones, reparaciones y asesorías inmediatas de calidad.", "https://images.unsplash.com/photo-1621905252507-b354bc25edac?w=400")
-        )
-    }
-
-    private val _firestoreDepartments: StateFlow<List<FirebaseDepartment>> =
+    private val _backendDepartments: StateFlow<List<FirebaseDepartment>> =
         com.galibu.core.data.AppGraph.departments
-    val firestoreDepartments: StateFlow<List<FirebaseDepartment>> = _firestoreDepartments
+    val backendDepartments: StateFlow<List<FirebaseDepartment>> = _backendDepartments
 
-    private val _firestoreCategories: StateFlow<List<FirebaseCategory>> =
+    private val _backendCategories: StateFlow<List<FirebaseCategory>> =
         com.galibu.core.data.AppGraph.categories
-    val firestoreCategories: StateFlow<List<FirebaseCategory>> = _firestoreCategories
+    val backendCategories: StateFlow<List<FirebaseCategory>> = _backendCategories
 
     init {
         // La restauración de sesión, el colector de notificaciones y la carga de
@@ -322,8 +294,8 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
      * Escucha en tiempo real los chats de varios jobs (listas de conversaciones).
      * Devuelve los registros para liberarlos con [stopListeningToChats].
      */
-    fun listenToChats(jobIds: List<String>): List<com.google.firebase.firestore.ListenerRegistration?> {
-        return jobIds.map { repository.syncChatsForJob(it) }
+    fun pullChatsForJobs(jobIds: List<String>): List<com.google.firebase.firestore.ListenerRegistration?> {
+        return jobIds.map { repository.pullChatsForJob(it) }
     }
 
     fun refreshChatsForJobs(jobIds: List<String>) {
@@ -945,7 +917,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         _selectedJobId.value = jobId
 
         if (jobId != null) {
-            activeChatsListener = repository.syncChatsForJob(jobId)
+            activeChatsListener = repository.pullChatsForJob(jobId)
             viewModelScope.launch {
                 try {
                     repository.refreshJobDetails(jobId)

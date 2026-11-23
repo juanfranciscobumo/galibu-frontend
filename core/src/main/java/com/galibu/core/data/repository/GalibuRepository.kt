@@ -227,7 +227,7 @@ class GalibuRepository(
 
     /** Timestamp de la última ejecución de refreshJobs (para throttle). */
     private var lastRefreshJobsMs = 0L
-    private val REFRESH_JOBS_THROTTLE_MS = 60_000L // respaldo del push FCM; evita saturar la API
+    private val REFRESH_JOBS_THROTTLE_MS = 60_000L // 60 s entre refrescos automáticos (respaldo del push FCM)
 
     /**
      * Pulls jobs from the backend (mine + marketplace when the role allows it)
@@ -238,7 +238,7 @@ class GalibuRepository(
         val user = _currentUser.value ?: return
         val now = System.currentTimeMillis()
         if (lastRefreshJobsMs > 0L && now - lastRefreshJobsMs < REFRESH_JOBS_THROTTLE_MS) {
-            Log.d("GalibuRepository", "refreshJobs throttled (última ejecución hace ${now - lastRefreshJobsMs}ms)")
+            Log.d("GalibuRepository", "refreshJobs throttled (última ejecución hace ${now - lastRefreshJobsMs}ms, mínimo ${REFRESH_JOBS_THROTTLE_MS}ms)")
             return
         }
         lastRefreshJobsMs = now
@@ -438,7 +438,7 @@ class GalibuRepository(
      * Sincroniza los mensajes de un chat desde el backend (fuente de verdad) hacia Room.
      * Devuelve null porque ya no usamos listeners de Firestore para el chat.
      */
-    fun syncChatsForJob(jobId: String): com.google.firebase.firestore.ListenerRegistration? {
+    fun pullChatsForJob(jobId: String): com.google.firebase.firestore.ListenerRegistration? {
         repositoryScope.launch {
             try {
                 val msgs = apiService.jobChats(jobId)

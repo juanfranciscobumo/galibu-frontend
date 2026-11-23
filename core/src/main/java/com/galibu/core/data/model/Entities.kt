@@ -156,32 +156,6 @@ data class JobRequest(
  */
 fun JobRequest.isDirectChat(): Boolean = id.startsWith("chat_")
 
-@JsonClass(generateAdapter = true)
-@Entity(tableName = "bids")
-data class Bid(
-    @PrimaryKey val id: String = "",
-    val jobId: String = "",
-    val professionalId: String = "",
-    val professionalName: String = "",
-    val professionalRating: Float = 5.0f,
-    val professionalPhoto: String = "",
-    val amount: Double = 0.0,
-    val comment: String = "",
-    val durationHours: Int = 1,
-    val status: String = "",
-    val lastCounterOfferAmount: Double? = null,
-    val suggestedPrice: Double? = null,
-    /** ESTIMATED (estimada), AFTER_VISIT (tras visita) o FIXED (cerrada). */
-    val quoteType: String = "ESTIMATED",
-    val visitRequired: Boolean = false,
-    val visitFee: Double? = null,
-    val materialsIncluded: Boolean = false,
-    val materialsCost: Double? = null,
-    val visitScheduledAt: Long? = null,
-    val counterRound: Int = 0,
-    val createdAt: Long = System.currentTimeMillis()
-) : Serializable
-
 @Entity(tableName = "chat_messages")
 data class ChatMessage(
     @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),

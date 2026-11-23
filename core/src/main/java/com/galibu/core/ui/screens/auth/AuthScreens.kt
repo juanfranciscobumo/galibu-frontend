@@ -151,8 +151,8 @@ fun AuthScreen(
     val workPhotos = remember { mutableStateListOf<String>() }
 
     // ==================== UBICACIÓN Y DEPARTAMENTOS ====================
-    val firestoreDeptList by viewModel.firestoreDepartments.collectAsStateWithLifecycle()
-    val firestoreCatList by viewModel.firestoreCategories.collectAsStateWithLifecycle()
+    val backendDeptList by viewModel.backendDepartments.collectAsStateWithLifecycle()
+    val backendCatList by viewModel.backendCategories.collectAsStateWithLifecycle()
 
     var departmentsAndMunicipalities by remember {
         mutableStateOf(
@@ -187,9 +187,9 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
 
     // ==================== LAUNCHED EFFECTS ====================
-    LaunchedEffect(firestoreDeptList) {
-        if (firestoreDeptList.isNotEmpty()) {
-            departmentsAndMunicipalities = firestoreDeptList.map { it.name to it.municipalities }
+    LaunchedEffect(backendDeptList) {
+        if (backendDeptList.isNotEmpty()) {
+            departmentsAndMunicipalities = backendDeptList.map { it.name to it.municipalities }
         }
     }
 
@@ -618,7 +618,7 @@ fun AuthScreen(
                 showMuniDropdown = showMuniDropdown,
                 onShowMuniDropdownChange = { showMuniDropdown = it },
                 isSimulatingGpsReg = isSimulatingGpsReg,
-                firestoreCatList = firestoreCatList,
+                backendCatList = backendCatList,
                 specialtiesList = specialtiesList,
                 launchCamera = launchCamera,
                 signupPhotoPickerLauncher = signupPhotoPickerLauncher,
@@ -759,7 +759,7 @@ private fun AuthContent(
     showMuniDropdown: Boolean,
     onShowMuniDropdownChange: (Boolean) -> Unit,
     isSimulatingGpsReg: Boolean,
-    firestoreCatList: List<com.galibu.core.data.model.FirebaseCategory>,
+    backendCatList: List<com.galibu.core.data.model.FirebaseCategory>,
     specialtiesList: List<String>,
     launchCamera: () -> Unit,
     signupPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
@@ -878,7 +878,7 @@ private fun AuthContent(
                 showMuniDropdown = showMuniDropdown,
                 onShowMuniDropdownChange = onShowMuniDropdownChange,
                 isSimulatingGpsReg = isSimulatingGpsReg,
-                firestoreCatList = firestoreCatList,
+                backendCatList = backendCatList,
                 specialtiesList = specialtiesList,
                 launchCamera = launchCamera,
                 signupPhotoPickerLauncher = signupPhotoPickerLauncher,
@@ -1171,7 +1171,7 @@ private fun RegistrationContent(
     showMuniDropdown: Boolean,
     onShowMuniDropdownChange: (Boolean) -> Unit,
     isSimulatingGpsReg: Boolean,
-    firestoreCatList: List<com.galibu.core.data.model.FirebaseCategory>,
+    backendCatList: List<com.galibu.core.data.model.FirebaseCategory>,
     specialtiesList: List<String>,
     launchCamera: () -> Unit,
     signupPhotoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>,
@@ -1487,8 +1487,8 @@ private fun RegistrationContent(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Selector de categorías homologado con la app profesional.
-                    val baseCategories = if (firestoreCatList.isNotEmpty()) {
-                        firestoreCatList.map { it.name }
+                    val baseCategories = if (backendCatList.isNotEmpty()) {
+                        backendCatList.map { it.name }
                     } else {
                         specialtiesList
                     }
@@ -2222,7 +2222,7 @@ private fun RegistrationContent(
                             val trimmed = customSpecialtyInput.trim()
                             if (trimmed.isNotEmpty()) {
                                 val existsInBase = specialtiesList.any { it.equals(trimmed, ignoreCase = true) } ||
-                                        firestoreCatList.any { it.name.equals(trimmed, ignoreCase = true) }
+                                        backendCatList.any { it.name.equals(trimmed, ignoreCase = true) }
                                 if (!existsInBase && !customSpecialties.contains(trimmed)) {
                                     customSpecialties.add(trimmed)
                                 }

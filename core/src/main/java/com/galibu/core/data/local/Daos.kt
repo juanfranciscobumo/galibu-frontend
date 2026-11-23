@@ -80,42 +80,6 @@ interface JobRequestDao {
 }
 
 @Dao
-interface BidDao {
-    @Query("SELECT * FROM bids WHERE jobId = :jobId ORDER BY createdAt DESC")
-    fun getBidsForJobFlow(jobId: String): Flow<List<Bid>>
-
-    @Query("SELECT DISTINCT jobId FROM bids WHERE professionalId = :professionalId")
-    fun getJobIdsWithBidsFlow(professionalId: String): Flow<List<String>>
-
-    @Query("SELECT * FROM bids WHERE professionalId = :professionalId")
-    fun getBidsForProfessionalFlow(professionalId: String): Flow<List<Bid>>
-
-    @Query("SELECT * FROM bids WHERE id = :id")
-    suspend fun getBidByIdSync(id: String): Bid?
-
-    @Query("SELECT * FROM bids WHERE jobId = :jobId")
-    suspend fun getBidsForJobSync(jobId: String): List<Bid>
-
-    @Query("SELECT * FROM bids WHERE jobId = :jobId AND professionalId = :professionalId")
-    suspend fun getBidsForJobAndProfessionalSync(jobId: String, professionalId: String): List<Bid>
-
-    @Query("DELETE FROM bids WHERE id = :bidId")
-    suspend fun deleteBidById(bidId: String)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertBid(bid: Bid)
-
-    @Update
-    suspend fun updateBid(bid: Bid)
-
-    @Query("DELETE FROM bids WHERE jobId = :jobId")
-    suspend fun deleteBidsForJob(jobId: String)
-
-    @Query("DELETE FROM bids")
-    suspend fun deleteAllBids()
-}
-
-@Dao
 interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE jobId = :jobId ORDER BY timestamp ASC")
     fun getMessagesForJobFlow(jobId: String): Flow<List<ChatMessage>>

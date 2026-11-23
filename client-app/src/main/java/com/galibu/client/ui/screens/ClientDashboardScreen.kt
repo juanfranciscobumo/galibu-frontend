@@ -444,8 +444,8 @@ fun ClientDashboardScreen(
     val openJobs by viewModel.openJobs.collectAsState()
     val notifications by viewModel.notifications.collectAsState()
     val allChatMessages by viewModel.allChatMessages.collectAsState()
-    val firestoreCatList by viewModel.firestoreCategories.collectAsState()
-    val firestoreDeptList by viewModel.firestoreDepartments.collectAsState()
+    val backendCatList by viewModel.backendCategories.collectAsState()
+    val backendDeptList by viewModel.backendDepartments.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val requireCompletion by viewModel.requireProfileCompletion.collectAsState()
@@ -493,9 +493,9 @@ fun ClientDashboardScreen(
         }
     }
 
-    val categories = remember(firestoreCatList) {
-        if (firestoreCatList.isNotEmpty()) {
-            firestoreCatList.map { it.name }
+    val categories = remember(backendCatList) {
+        if (backendCatList.isNotEmpty()) {
+            backendCatList.map { it.name }
         } else {
             listOf(
                 "Plomería", "Electricidad", "Carpintería", "Pintura",
@@ -504,9 +504,9 @@ fun ClientDashboardScreen(
         }
     }
 
-    val departmentsAndMunicipalities = remember(firestoreDeptList) {
-        if (firestoreDeptList.isNotEmpty()) {
-            firestoreDeptList.map { it.name to it.municipalities }
+    val departmentsAndMunicipalities = remember(backendDeptList) {
+        if (backendDeptList.isNotEmpty()) {
+            backendDeptList.map { it.name to it.municipalities }
         } else {
             listOf(
                 "Antioquia" to listOf("Medellín", "Envigado", "Bello", "Rionegro"),
@@ -572,7 +572,7 @@ fun ClientDashboardScreen(
         }.map { it.id }
     }
     DisposableEffect(myActiveChatIds) {
-        val regs = if (myActiveChatIds.isNotEmpty()) viewModel.listenToChats(myActiveChatIds) else emptyList()
+        val regs = if (myActiveChatIds.isNotEmpty()) viewModel.pullChatsForJobs(myActiveChatIds) else emptyList()
         onDispose { viewModel.stopListeningToChats(regs) }
     }
 

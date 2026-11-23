@@ -12,17 +12,15 @@ import com.galibu.core.data.model.*
     entities = [
         UserProfile::class,
         JobRequest::class,
-        Bid::class,
         ChatMessage::class,
         AppNotification::class
     ],
-    version = 22,
+    version = 23,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun jobRequestDao(): JobRequestDao
-    abstract fun bidDao(): BidDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun appNotificationDao(): AppNotificationDao
 
@@ -177,6 +175,16 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE job_requests ADD COLUMN parentJobId TEXT")
             }
         }
+        /**
+         * v22 -> v23: elimina la tabla `bids` (muerta desde que las postulaciones
+         * son `Job` hijos con parentJobId). Sin pérdida de datos útiles.
+         */
+        private val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `bids`")
+            }
+        }
+
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -195,7 +203,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_18_19,
                     MIGRATION_19_20,
                     MIGRATION_20_21,
-                    MIGRATION_21_22
+                    MIGRATION_21_22,
+                    MIGRATION_22_23
                 )
                 .fallbackToDestructiveMigration(true)
                 .build()

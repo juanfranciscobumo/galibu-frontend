@@ -172,7 +172,7 @@ fun ProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var supportMessage by remember { mutableStateOf("") }
 
-    val firestoreDeptList by viewModel.firestoreDepartments.collectAsState()
+    val backendDeptList by viewModel.backendDepartments.collectAsState()
     var departmentsAndMunicipalities by remember {
         mutableStateOf(
             listOf(
@@ -184,9 +184,9 @@ fun ProfileScreen(
             )
         )
     }
-    LaunchedEffect(firestoreDeptList) {
-        if (firestoreDeptList.isNotEmpty()) {
-            departmentsAndMunicipalities = firestoreDeptList.map { it.name to it.municipalities }
+    LaunchedEffect(backendDeptList) {
+        if (backendDeptList.isNotEmpty()) {
+            departmentsAndMunicipalities = backendDeptList.map { it.name to it.municipalities }
         }
     }
     var showDeptDropdown by remember { mutableStateOf(false) }
@@ -768,10 +768,10 @@ fun ProfileScreen(
                     // Categoría: mismo selector compartido del registro.
                     if (currentUser?.role != "CLIENT") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            val firestoreCatListHere by viewModel.firestoreCategories.collectAsState()
-                            val editBaseCategories = remember(firestoreCatListHere) {
-                                if (firestoreCatListHere.isNotEmpty()) {
-                                    firestoreCatListHere.map { it.name }
+                            val backendCatListHere by viewModel.backendCategories.collectAsState()
+                            val editBaseCategories = remember(backendCatListHere) {
+                                if (backendCatListHere.isNotEmpty()) {
+                                    backendCatListHere.map { it.name }
                                 } else {
                                     listOf(
                                         "Plomería", "Electricidad", "Carpintería", "Pintura", "Albañilería",

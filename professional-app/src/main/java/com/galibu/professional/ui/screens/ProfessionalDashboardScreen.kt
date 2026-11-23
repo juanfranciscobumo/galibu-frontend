@@ -201,7 +201,7 @@ fun ProfessionalDashboardScreen(
         }.map { it.id }
     }
     DisposableEffect(myChatJobIds) {
-        val regs = if (myChatJobIds.isNotEmpty()) viewModel.listenToChats(myChatJobIds) else emptyList()
+        val regs = if (myChatJobIds.isNotEmpty()) viewModel.pullChatsForJobs(myChatJobIds) else emptyList()
         onDispose { viewModel.stopListeningToChats(regs) }
     }
 
