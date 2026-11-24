@@ -1938,9 +1938,9 @@ fun ProfessionalDashboardScreen(
 
     SnackbarHost(hostState = snackbarHostState)
 
-    // Mientras se restaura el detalle al volver del chat, mostrar un spinner
-    // en vez del Inicio para evitar el "flash" del menú.
-    if (restoringDetail) {
+    // Mientras se restaura el detalle al volver del chat (o se carga el cliente),
+    // mostrar un spinner en vez del Inicio para evitar el "flash" del menú.
+    if (pendingDetailJobId != null && selectedClientProfile == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
