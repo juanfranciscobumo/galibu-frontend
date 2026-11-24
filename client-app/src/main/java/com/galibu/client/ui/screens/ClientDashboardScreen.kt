@@ -1885,28 +1885,6 @@ fun HomeJobRequestCard(
                 }
             }
         )
-        // Un profesional tomó la solicitud: el cliente debe entrar al chat para
-        // conversar y decidir si acepta o rechaza la propuesta.
-        if (job.status.uppercase() in listOf("NEGOTIATING", "NEGOCIANDO") &&
-            !job.professionalName.isNullOrBlank()
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onClick,
-                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Revisar propuesta de ${job.professionalName}",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-        }
     }
 }
 
