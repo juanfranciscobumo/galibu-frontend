@@ -2870,7 +2870,7 @@ fun ProfessionalDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Envía tu solicitud para conversar con el profesional y acordar el precio por el chat.",
+                                text = "Contacta al profesional para conversar y acordar el precio por el chat.",
                                 color = PolishGrayText,
                                 fontSize = 12.sp
                             )
@@ -2887,14 +2887,14 @@ fun ProfessionalDetailScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = Icons.Default.Chat,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Enviar solicitud",
+                        text = "Contactar profesional",
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
