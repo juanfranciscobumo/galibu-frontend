@@ -417,8 +417,7 @@ fun ProfessionalDashboardScreen(
             val completedPendingMyRating = status in listOf("COMPLETED", "COMPLETADO") &&
                 job.proRatingOfClient == null
 
-            !job.isDirectChat() &&
-                job.professionalId == currentUser?.id &&
+            job.professionalId == currentUser?.id &&
                 (activeStatus || completedPendingMyRating)
         }
     }
