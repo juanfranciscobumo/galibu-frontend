@@ -491,7 +491,6 @@ fun ProfessionalDashboardScreen(
             selectedClientIdForProfile = found.clientId
             selectedJobForProfileDetails = found
             onPendingDetailConsumed()
-            restoringDetail = false
         }
     }
     var isLoadingClientProfile by remember { mutableStateOf(false) }
@@ -1938,9 +1937,10 @@ fun ProfessionalDashboardScreen(
 
     SnackbarHost(hostState = snackbarHostState)
 
-    // Mientras se restaura el detalle al volver del chat (o se carga el cliente),
-    // mostrar un spinner en vez del Inicio para evitar el "flash" del menú.
-    if (pendingDetailJobId != null && selectedClientProfile == null) {
+    // Mientras se restaura el detalle al volver del chat, mostrar un spinner en
+    // vez del Inicio para evitar el "flash" del menú. Se mantiene hasta que el
+    // perfil del cliente termina de cargar.
+    if (restoringDetail) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
