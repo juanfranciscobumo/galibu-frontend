@@ -230,6 +230,11 @@ class GalibuRepository(
     private var lastRefreshJobsMs = 0L
     private val REFRESH_JOBS_THROTTLE_MS = 60_000L // 60 s entre refrescos automáticos (respaldo del push FCM)
 
+    /** Resetea el throttle (p. ej. al cambiar de rol) para forzar un refresh. */
+    fun resetRefreshThrottle() {
+        lastRefreshJobsMs = 0L
+    }
+
     /**
      * Pulls jobs from the backend (mine + marketplace when the role allows it)
      * and merges them into Room with the usual stale-cleanup.

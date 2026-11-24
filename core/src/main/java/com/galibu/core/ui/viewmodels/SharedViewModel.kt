@@ -73,6 +73,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         _activeRole.value = safeRole
         // Si la sesión ya estaba restaurada con el rol de la otra app, expándela.
         viewModelScope.launch {
+            repository.resetRefreshThrottle()
             if (repository.ensureRole(safeRole)) {
                 _activeRole.value = safeRole
             }
