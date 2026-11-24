@@ -469,6 +469,17 @@ fun ProfessionalDashboardScreen(
     // `remember(pendingDetailJobId, ...)`, así que al consumir el id pendiente
     // (justo al volver del chat) el detalle se cerraba solo y caía en Inicio.
     var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
+    // Evita que se vea el Inicio mientras se restaura el detalle al volver del chat.
+    var restoringDetail by remember { mutableStateOf(pendingDetailJobId != null) }
+    LaunchedEffect(pendingDetailJobId) {
+        if (pendingDetailJobId == null) {
+            restoringDetail = false
+            return@LaunchedEffect
+        }
+        restoringDetail = true
+        kotlinx.coroutines.delay(4000)
+        restoringDetail = false
+    }
 
     LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs) {
         val id = pendingDetailJobId ?: return@LaunchedEffect
@@ -480,6 +491,7 @@ fun ProfessionalDashboardScreen(
             selectedClientIdForProfile = found.clientId
             selectedJobForProfileDetails = found
             onPendingDetailConsumed()
+            restoringDetail = false
         }
     }
     var isLoadingClientProfile by remember { mutableStateOf(false) }
@@ -553,6 +565,7 @@ fun ProfessionalDashboardScreen(
             selectedClientProfile = user
             clientRatings = viewModel.repository.getUserRatings(clientId)
             isLoadingClientProfile = false
+            restoringDetail = false
         } else {
             selectedClientProfile = null
         }
@@ -1924,6 +1937,17 @@ fun ProfessionalDashboardScreen(
     }
 
     SnackbarHost(hostState = snackbarHostState)
+
+    // Mientras se restaura el detalle al volver del chat, mostrar un spinner
+    // en vez del Inicio para evitar el "flash" del menú.
+    if (restoringDetail) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = proPrimary)
+        }
+    }
 
     if (selectedClientProfile != null) {
         val client = selectedClientProfile!!
