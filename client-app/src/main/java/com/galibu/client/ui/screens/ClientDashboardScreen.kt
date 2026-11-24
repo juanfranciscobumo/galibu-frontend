@@ -819,6 +819,7 @@ fun ClientDashboardScreen(
             job = job,
             applications = applications,
             professionalPhotoUrl = professionals.find { it.id == job.professionalId }?.profilePhotoUrl,
+            professionalWorkPhotos = professionals.find { it.id == job.professionalId }?.workPhotos,
             onBack = { showJobDetail = false },
             onChat = { target ->
                 val detail = selectedJobDetail
@@ -7483,7 +7484,8 @@ fun ClientJobDetailScreen(
     onChat: (JobRequest) -> Unit,
     onCancel: () -> Unit = {},
     onRate: () -> Unit = {},
-    professionalPhotoUrl: String? = null
+    professionalPhotoUrl: String? = null,
+    professionalWorkPhotos: String? = null
 ) {
     Column(
         modifier = Modifier
@@ -7594,6 +7596,39 @@ fun ClientJobDetailScreen(
                             .size(120.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { expandedPhoto = photo }
+                    )
+                }
+            }
+        }
+
+        val proPortfolioPhotos = professionalWorkPhotos
+            ?.split("|")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+        if (proPortfolioPhotos.isNotEmpty() && job.isDirectChat()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Portafolio del profesional",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = PolishDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                proPortfolioPhotos.forEach { photo ->
+                    AsyncImage(
+                        model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                        contentDescription = "Trabajo del portafolio",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(116.dp)
+                            .clip(RoundedCornerShape(12.dp))
                     )
                 }
             }
