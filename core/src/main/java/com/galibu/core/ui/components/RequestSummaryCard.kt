@@ -170,7 +170,7 @@ fun RequestSummaryCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -182,13 +182,6 @@ fun RequestSummaryCard(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = PolishGrayText,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = address,
                             color = PolishGrayText,
