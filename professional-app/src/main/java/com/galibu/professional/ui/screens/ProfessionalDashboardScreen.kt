@@ -2255,7 +2255,15 @@ fun ProfessionalDashboardScreen(
                         val assignedToMe = realJob?.professionalId == currentUser?.id
                         // Usar el estado más reciente: el job en Room se actualiza al
                         // iniciar/finalizar el servicio y este detalle es una copia.
-                        val detailStatus = realJob?.status ?: detail.status
+                        // Si Room aún no refrescó, la copia (detail) puede estar más
+                        // adelantada (p. ej. recién finalicé), así que se prefiere
+                        // el estado terminal cuando alguna de las dos fuentes lo tiene.
+                        val terminalStatuses = setOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO")
+                        val detailStatus = when {
+                            realJob?.status in terminalStatuses -> realJob!!.status
+                            detail.status in terminalStatuses -> detail.status
+                            else -> realJob?.status ?: detail.status
+                        }
                         // Igual con los campos de negociación: la copia se queda vieja
                         // cuando el cliente responde o cuando yo contraoferto.
                         val isApplication = !(realJob?.parentJobId ?: detail.parentJobId).isNullOrBlank()

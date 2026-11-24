@@ -198,6 +198,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 showLoading("Iniciando servicio...")
                 kotlinx.coroutines.delay(800)
                 repository.startService(jobId)
+                repository.refreshJobDetails(jobId)
                 hideLoading()
                 onResult()
             } catch (e: Exception) {
@@ -214,6 +215,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
                 showLoading("Finalizando servicio...")
                 kotlinx.coroutines.delay(800)
                 repository.finishService(jobId, stars, comment)
+                repository.refreshJobDetails(jobId)
                 hideLoading()
                 onResult()
             } catch (e: Exception) {
