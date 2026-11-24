@@ -1471,6 +1471,18 @@ class GalibuRepository(
         accepted
     }
 
+    suspend fun professionalAcceptJob(jobId: String) = withContext(Dispatchers.IO) {
+        val accepted = try {
+            apiService.professionalAcceptJob(jobId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "professionalAcceptJob falló en backend: " + e.localizedMessage)
+            throw e
+        }
+        jobRequestDao.insertJob(accepted)
+        AppTelemetry.event("job.professional_accept", mapOf("jobId" to jobId))
+        accepted
+    }
+
     /**
      * Rechaza una postulación concreta. La solicitud padre sigue abierta para
      * las demás postulaciones; solo se cierra esta conversación.

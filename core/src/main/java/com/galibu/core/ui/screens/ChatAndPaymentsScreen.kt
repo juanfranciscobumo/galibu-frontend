@@ -781,7 +781,7 @@ fun ChatAndPaymentsScreen(
             (job?.status?.uppercase() ?: "") in listOf("NEGOTIATING", "NEGOCIANDO")
         if (canAcceptRejectConsult) {
             Button(
-                onClick = { job?.id?.let { viewModel.startService(it) } },
+                onClick = { job?.id?.let { viewModel.professionalAccept(it) } },
                 colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier

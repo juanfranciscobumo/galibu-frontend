@@ -87,6 +87,9 @@ interface ApiService {
     @POST("jobs/{id}/client-accept")
     suspend fun clientAcceptJob(@Path("id") id: String): JobRequest
 
+    @POST("jobs/{id}/professional-accept")
+    suspend fun professionalAcceptJob(@Path("id") id: String): JobRequest
+
     /** El cliente rechaza una postulación concreta (la solicitud sigue abierta). */
     @POST("jobs/{id}/reject")
     suspend fun rejectApplication(@Path("id") id: String): JobRequest

@@ -1202,6 +1202,23 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    open fun professionalAccept(jobId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Aceptando solicitud...")
+                repository.professionalAcceptJob(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                showSuccess("Solicitud aceptada. Puedes iniciar el servicio.")
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("SharedViewModel", "Error al aceptar solicitud: ${e.localizedMessage}")
+                showError("No se pudo aceptar la solicitud. Inténtalo de nuevo.")
+            }
+        }
+    }
+
     open fun clientAcceptJob(jobId: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
