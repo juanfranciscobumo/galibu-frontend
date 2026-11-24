@@ -1729,6 +1729,7 @@ fun InicioTab(
                 HomeJobRequestCard(
                     job = job,
                     professionalPhotoUrl = proPhotoUrl,
+                    clientPhotoUrl = currentUser?.profilePhotoUrl,
                     onClick = { onViewJobDetail(job) },
                     onRateClick = { onRateClick(job.id) },
                     applicationsCount = applications.size,
@@ -1801,7 +1802,8 @@ fun HomeJobRequestCard(
     onRateClick: (String) -> Unit = {},
     applicationsCount: Int = 0,
     onShowApplications: () -> Unit = {},
-    professionalPhotoUrl: String? = null
+    professionalPhotoUrl: String? = null,
+    clientPhotoUrl: String? = null
 ) {
     val jobPhotos = job.photos
         ?.split("|")
@@ -1809,6 +1811,7 @@ fun HomeJobRequestCard(
         ?.filter { it.isNotBlank() }
         ?: emptyList()
     val proPhotoModel = remember(professionalPhotoUrl) { decodePhotoModel(professionalPhotoUrl) }
+    val clientPhotoModel = remember(clientPhotoUrl) { decodePhotoModel(clientPhotoUrl) }
 
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
@@ -1887,22 +1890,19 @@ fun HomeJobRequestCard(
                             color = PolishDark
                         )
                     }
-                } else if (!job.isDirectChat() && jobPhotos.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        jobPhotos.take(4).forEach { photo ->
-                            AsyncImage(
-                                model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
-                                contentDescription = "Foto de la solicitud",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        }
-                    }
+                } else if (!job.isDirectChat() && clientPhotoModel != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(clientPhotoModel)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Cliente",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, PolishBlue, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             },
             infoContent = {
