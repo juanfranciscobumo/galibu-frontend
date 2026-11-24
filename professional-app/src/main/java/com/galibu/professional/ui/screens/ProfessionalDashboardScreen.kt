@@ -481,9 +481,10 @@ fun ProfessionalDashboardScreen(
         restoringDetail = false
     }
 
-    LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs) {
+    LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs, allJobs) {
         val id = pendingDetailJobId ?: return@LaunchedEffect
         val found = (directMappedJobs + combinedJobs).firstOrNull { it.id == id }
+            ?: allJobs.firstOrNull { it.id == id }?.toDetailDisplayJob(currentUser)
         if (found != null) {
             // El detalle vive dentro de la vista del cliente: hay que restaurar
             // también su id para que la pantalla se vuelva a abrir al volver
@@ -1935,26 +1936,14 @@ fun ProfessionalDashboardScreen(
         )
     }
 
-    // DIAGNOSTICO: overlay rojo para confirmar que se compone.
+    // Mientras se restaura el detalle al volver del chat, mostrar un spinner
+    // en vez del Inicio para evitar el "flash" del menú.
     if (restoringDetail) {
-        val ctx = context
-        androidx.compose.runtime.LaunchedEffect(pendingDetailJobId, selectedClientProfile?.id, restoringDetail) {
-            android.widget.Toast.makeText(
-                ctx,
-                "pending=$pendingDetailJobId restoring=$restoringDetail profile=${selectedClientProfile?.id}",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
         Box(
-            modifier = Modifier.fillMaxSize().background(Color(0xFFFF0000)),
+            modifier = Modifier.fillMaxSize().background(proBg),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "RESTAURANDO DETALLE\npending=$pendingDetailJobId\nrestoring=$restoringDetail\nprofile=${selectedClientProfile?.id}",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            CircularProgressIndicator(color = proPrimary)
         }
     }
 
@@ -3410,3 +3399,40 @@ private fun PlanOptionCard(
     }
 }
 
+
+
+// Convierte un JobRequest en ProDisplayJob para poder restaurar el detalle
+// cuando la solicitud ya no está en las listas del marketplace (por ejemplo,
+// tras postularse). Solo se usan los campos que muestra el detalle.
+private fun JobRequest.toDetailDisplayJob(currentUser: UserProfile?): ProDisplayJob {
+    return ProDisplayJob(
+        id = id,
+        title = title,
+        description = description,
+        category = category,
+        budgetMin = budgetMin,
+        duration = 2,
+        address = address,
+        clientName = clientName,
+        clientId = clientId,
+        isDemo = false,
+        isHighPriority = budgetMin >= 30000,
+        timeAgo = formatTimeAgo(createdAt),
+        distance = "",
+        clientRating = "",
+        status = status,
+        createdAt = createdAt,
+        suggestedPrice = suggestedPrice,
+        proRatingOfClient = proRatingOfClient,
+        clientRatingOfPro = clientRatingOfPro,
+        proReviewOfClient = proReviewOfClient,
+        clientReviewOfPro = clientReviewOfPro,
+        municipality = municipality.orEmpty(),
+        department = department.orEmpty(),
+        source = source,
+        photos = photos,
+        parentJobId = parentJobId,
+        proHourlyRate = proHourlyRate ?: currentUser?.hourlyRate,
+        isDirectHire = (source ?: "") == "DIRECTORY"
+    )
+}
