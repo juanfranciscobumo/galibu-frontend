@@ -1868,37 +1868,16 @@ fun HomeJobRequestCard(
             address = job.address.ifEmpty { "${job.municipality ?: ""}, ${job.department ?: ""}" },
             onClick = onClick,
             photoContent = {
-                if (job.isDirectChat() && proPhotoModel != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(proPhotoModel)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = job.professionalName ?: "Profesional",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, PolishBlue, CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = job.professionalName ?: "Profesional",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PolishDark
-                        )
-                    }
-                } else if (!job.isDirectChat() && clientPhotoModel != null) {
+                val photoModel = if (job.isDirectChat()) proPhotoModel else clientPhotoModel
+                if (photoModel != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(clientPhotoModel)
+                            .data(photoModel)
                             .crossfade(true)
                             .build(),
-                        contentDescription = "Cliente",
+                        contentDescription = if (job.isDirectChat()) (job.professionalName ?: "Profesional") else "Cliente",
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .border(2.dp, PolishBlue, CircleShape),
                         contentScale = ContentScale.Crop
