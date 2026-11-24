@@ -2094,7 +2094,7 @@ fun JobRequestCard(
 ) {
     val statusColor = getStatusColor(job.status)
     val statusText = getStatusText(job.status)
-    val isTerminal = job.status.uppercase() in listOf("CANCELLED", "CANCELADO", "COMPLETED", "COMPLETADO")
+    val isTerminal = job.status.uppercase() in listOf("CANCELLED", "CANCELADO", "COMPLETED", "COMPLETADO", "IN_PROGRESS", "EN_PROGRESO")
 
     Card(
         modifier = Modifier
