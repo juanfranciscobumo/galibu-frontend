@@ -192,7 +192,7 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    fun startService(jobId: String, onResult: () -> Unit = {}) {
+    override fun startService(jobId: String, onResult: () -> Unit) {
         viewModelScope.launch {
             try {
                 showLoading("Iniciando servicio...")

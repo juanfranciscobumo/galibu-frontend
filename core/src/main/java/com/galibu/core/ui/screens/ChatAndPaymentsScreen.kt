@@ -74,6 +74,7 @@ fun ChatAndPaymentsScreen(
     var showHireDialog by remember { mutableStateOf(false) }
     var showHireConfirm by remember { mutableStateOf(false) }
     var showRejectConfirm by remember { mutableStateOf(false) }
+    var showRejectConsultConfirm by remember { mutableStateOf(false) }
     var hirePriceInput by remember { mutableStateOf("") }
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
@@ -772,6 +773,41 @@ fun ChatAndPaymentsScreen(
                     }
                 }
             }
+        // Consulta directa del profesional: aceptar o rechazar la solicitud.
+        val isProDirectConsult = activeRole.equals("PROFESSIONAL", ignoreCase = true) &&
+            (job?.id?.startsWith("chat_") == true) &&
+            (job?.professionalId == currentUser?.id)
+        val canAcceptRejectConsult = isProDirectConsult &&
+            (job?.status?.uppercase() ?: "") in listOf("NEGOTIATING", "NEGOCIANDO")
+        if (canAcceptRejectConsult) {
+            Button(
+                onClick = { job?.id?.let { viewModel.startService(it) } },
+                colors = ButtonDefaults.buttonColors(containerColor = PolishGreen),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Aceptar solicitud", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = { showRejectConsultConfirm = true },
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFDC2626)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Rechazar solicitud", fontWeight = FontWeight.Bold)
+            }
+        }
+
         // Chat en borrador ("Contactar cliente"): aún no se envió la postulación.
         // Se avisa que el primer mensaje es el que la envía.
         val isContactDraft = pendingApplyJobId != null && pendingApplyJobId == jobId
@@ -1157,6 +1193,30 @@ fun ChatAndPaymentsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRejectConfirm = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showRejectConsultConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRejectConsultConfirm = false },
+            title = { Text("Rechazar solicitud") },
+            text = {
+                Text("¿Deseas rechazar esta consulta? La conversación se cerrará y el cliente será notificado.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRejectConsultConfirm = false
+                        job?.id?.let { viewModel.cancelJob(it, "El profesional rechazó la consulta") }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Rechazar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRejectConsultConfirm = false }) { Text("Cancelar") }
             }
         )
     }
