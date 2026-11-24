@@ -469,31 +469,6 @@ fun ProfessionalDashboardScreen(
     // `remember(pendingDetailJobId, ...)`, así que al consumir el id pendiente
     // (justo al volver del chat) el detalle se cerraba solo y caía en Inicio.
     var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
-    // Evita que se vea el Inicio mientras se restaura el detalle al volver del chat.
-    var restoringDetail by remember { mutableStateOf(pendingDetailJobId != null) }
-    LaunchedEffect(pendingDetailJobId) {
-        if (pendingDetailJobId == null) {
-            restoringDetail = false
-            return@LaunchedEffect
-        }
-        restoringDetail = true
-        kotlinx.coroutines.delay(4000)
-        restoringDetail = false
-    }
-
-    LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs, allJobs) {
-        val id = pendingDetailJobId ?: return@LaunchedEffect
-        val found = (directMappedJobs + combinedJobs).firstOrNull { it.id == id }
-            ?: allJobs.firstOrNull { it.id == id }?.toDetailDisplayJob(currentUser)
-        if (found != null) {
-            // El detalle vive dentro de la vista del cliente: hay que restaurar
-            // también su id para que la pantalla se vuelva a abrir al volver
-            // del chat.
-            selectedClientIdForProfile = found.clientId
-            selectedJobForProfileDetails = found
-            onPendingDetailConsumed()
-        }
-    }
     var isLoadingClientProfile by remember { mutableStateOf(false) }
     var showProRatingSheet by remember { mutableStateOf(false) }
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
@@ -565,7 +540,6 @@ fun ProfessionalDashboardScreen(
             selectedClientProfile = user
             clientRatings = viewModel.repository.getUserRatings(clientId)
             isLoadingClientProfile = false
-            restoringDetail = false
         } else {
             selectedClientProfile = null
         }
@@ -1936,17 +1910,6 @@ fun ProfessionalDashboardScreen(
         )
     }
 
-    // Mientras se restaura el detalle al volver del chat, mostrar un spinner
-    // en vez del Inicio para evitar el "flash" del menú.
-    if (restoringDetail) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(proBg),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = proPrimary)
-        }
-    }
-
     SnackbarHost(hostState = snackbarHostState)
 
     if (selectedClientProfile != null) {
@@ -2556,8 +2519,8 @@ fun ProfessionalDashboardScreen(
                                              // Solo abre la conversación: la postulación se
                                              // envía cuando el profesional escribe el mensaje.
                                              viewModel.prepareContactDraft(detail.id)
-                                             selectedClientIdForProfile = null
-                                             selectedJobForProfileDetails = null
+                                             // Mantener el detalle abierto detrás del chat para
+                                             // volver sin recargar (sin flash del Inicio).
                                              onOpenChatFromDetail(detail.id, detail.id)
                                         }
                                     },

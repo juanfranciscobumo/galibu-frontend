@@ -237,40 +237,40 @@ class MainActivity : ComponentActivity() {
                                                 googleIconResId = com.galibu.professional.R.drawable.ic_google,
                                                 onAuthSuccess = { currentRoute = "PROFESSIONAL_DASHBOARD" }
                                             )
-                                            "PROFESSIONAL_DASHBOARD" -> ProfessionalDashboardScreen(
-                                                viewModel = proViewModel,
-                                                pendingDetailJobId = pendingDetailJobId,
-                                                onPendingDetailConsumed = { pendingDetailJobId = null },
-                                                onNavigateToChat = { jobId ->
-                                                    proViewModel.selectJob(jobId)
-                                                    currentRoute = "CHAT"
-                                                },
-                                                onOpenChatFromDetail = { detailJobId, chatJobId ->
-                                                    pendingDetailJobId = detailJobId
-                                                    proViewModel.selectJob(chatJobId)
-                                                    currentRoute = "CHAT"
-                                                },
-                                                onNavigateToNegotiation = { jobId ->
-                                                    proViewModel.selectJob(jobId)
-                                                    currentRoute = "CHAT"
-                                                },
-                                                onSwitchRole = { switchMode("CLIENT") }
-                                            )
-                                            "CHAT" -> ChatAndPaymentsScreen(
-                                                viewModel = proViewModel,
-                                                onBack = {
-                                                    // Volver del chat debe regresar al detalle de la
-                                                    // solicitud (o de mi postulación si ya la envié),
-                                                    // no al Inicio del menú. Si el ViewModel ya limpió
-                                                    // el job seleccionado (stopListening), conservar el
-                                                    // id pendiente que se guardó al abrir el chat.
-                                                    val current = proViewModel.selectedJobId.value
-                                                    if (current != null) {
-                                                        pendingDetailJobId = current
+                                            "PROFESSIONAL_DASHBOARD", "CHAT" -> {
+                                                // Se mantiene el dashboard (y su detalle) compuesto
+                                                // mientras el chat se superpone, para que al volver
+                                                // no se pierda el estado ni haya flash del Inicio.
+                                                Box(modifier = Modifier.fillMaxSize()) {
+                                                    ProfessionalDashboardScreen(
+                                                        viewModel = proViewModel,
+                                                        pendingDetailJobId = pendingDetailJobId,
+                                                        onPendingDetailConsumed = { pendingDetailJobId = null },
+                                                        onNavigateToChat = { jobId ->
+                                                            proViewModel.selectJob(jobId)
+                                                            currentRoute = "CHAT"
+                                                        },
+                                                        onOpenChatFromDetail = { detailJobId, chatJobId ->
+                                                            pendingDetailJobId = detailJobId
+                                                            proViewModel.selectJob(chatJobId)
+                                                            currentRoute = "CHAT"
+                                                        },
+                                                        onNavigateToNegotiation = { jobId ->
+                                                            proViewModel.selectJob(jobId)
+                                                            currentRoute = "CHAT"
+                                                        },
+                                                        onSwitchRole = { switchMode("CLIENT") }
+                                                    )
+                                                    if (currentRoute == "CHAT") {
+                                                        ChatAndPaymentsScreen(
+                                                            viewModel = proViewModel,
+                                                            onBack = {
+                                                                currentRoute = "PROFESSIONAL_DASHBOARD"
+                                                            }
+                                                        )
                                                     }
-                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
                                                 }
-                                            )
+                                            }
                                             "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
                                                 viewModel = proViewModel,
                                                 onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" },
