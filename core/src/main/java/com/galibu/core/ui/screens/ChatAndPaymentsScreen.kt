@@ -66,6 +66,9 @@ fun ChatAndPaymentsScreen(
     isDirectConsult: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    // El botón atrás del sistema hace lo mismo que la flecha de la cabecera:
+    // volver a la pantalla anterior en vez de cerrar la app.
+    androidx.activity.compose.BackHandler { onBack() }
     val context = LocalContext.current
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showHireDialog by remember { mutableStateOf(false) }

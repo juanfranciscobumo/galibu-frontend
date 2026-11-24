@@ -258,7 +258,13 @@ class MainActivity : ComponentActivity() {
                                             )
                                             "CHAT" -> ChatAndPaymentsScreen(
                                                 viewModel = proViewModel,
-                                                onBack = { currentRoute = "PROFESSIONAL_DASHBOARD" }
+                                                onBack = {
+                                                    // Volver del chat debe regresar al detalle de la
+                                                    // solicitud (o de mi postulación si ya la envié),
+                                                    // no al Inicio del menú.
+                                                    pendingDetailJobId = proViewModel.selectedJobId.value
+                                                    currentRoute = "PROFESSIONAL_DASHBOARD"
+                                                }
                                             )
                                             "NOTIFICATIONS_HISTORY" -> NotificationsAndHistoryScreen(
                                                 viewModel = proViewModel,

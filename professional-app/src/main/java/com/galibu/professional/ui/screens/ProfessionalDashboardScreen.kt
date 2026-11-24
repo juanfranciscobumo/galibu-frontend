@@ -465,14 +465,19 @@ fun ProfessionalDashboardScreen(
     // Client Profile popup/dialog states
     var selectedClientIdForProfile by remember { mutableStateOf<String?>(null) }
     var selectedClientProfile by remember { mutableStateOf<UserProfile?>(null) }
-    var selectedJobForProfileDetails by remember(pendingDetailJobId, combinedJobs, directMappedJobs) {
-        mutableStateOf((directMappedJobs + combinedJobs).firstOrNull { it.id == pendingDetailJobId })
-    }
+    // Se guarda el snapshot del detalle abierto. Antes se reinicializaba con
+    // `remember(pendingDetailJobId, ...)`, así que al consumir el id pendiente
+    // (justo al volver del chat) el detalle se cerraba solo y caía en Inicio.
+    var selectedJobForProfileDetails by remember { mutableStateOf<ProDisplayJob?>(null) }
 
     LaunchedEffect(pendingDetailJobId, combinedJobs, directMappedJobs) {
         val id = pendingDetailJobId ?: return@LaunchedEffect
         val found = (directMappedJobs + combinedJobs).firstOrNull { it.id == id }
         if (found != null) {
+            // El detalle vive dentro de la vista del cliente: hay que restaurar
+            // también su id para que la pantalla se vuelva a abrir al volver
+            // del chat.
+            selectedClientIdForProfile = found.clientId
             selectedJobForProfileDetails = found
             onPendingDetailConsumed()
         }
