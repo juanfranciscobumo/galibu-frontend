@@ -574,7 +574,7 @@ fun ClientDashboardScreen(
     }
 
     val clientJobs = remember(allJobs, currentUser) {
-        allJobs.filter { it.clientId == currentUser?.id && !it.isDirectChat() }
+        allJobs.filter { it.clientId == currentUser?.id }
     }
 
     // Escucha en tiempo real de los chats de mis solicitudes activas (incluye
