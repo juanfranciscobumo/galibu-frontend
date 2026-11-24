@@ -1883,16 +1883,6 @@ fun HomeJobRequestCard(
                         contentScale = ContentScale.Crop
                     )
                 }
-            },
-            infoContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocalOffer,
-                        contentDescription = null,
-                        tint = Color(0xFFDB2777),
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
             }
         )
         // Un profesional tomó la solicitud: el cliente debe entrar al chat para
