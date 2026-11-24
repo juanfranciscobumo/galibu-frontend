@@ -1201,6 +1201,27 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    /**
+     * El cliente rechaza una postulación concreta. La solicitud sigue abierta
+     * para otras postulaciones; el chat de ese profesional queda cerrado.
+     */
+    fun rejectApplication(jobId: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                showLoading("Rechazando postulación...")
+                repository.rejectApplication(jobId)
+                repository.refreshJobDetails(jobId)
+                hideLoading()
+                showSuccess("Postulación rechazada. La solicitud sigue abierta para otros profesionales.")
+                onComplete()
+            } catch (e: Exception) {
+                hideLoading()
+                Log.e("SharedViewModel", "Error al rechazar postulación: ${e.localizedMessage}")
+                showError("No se pudo rechazar la postulación. Inténtalo de nuevo.")
+            }
+        }
+    }
+
     /** Marca como leídas todas las notificaciones de una solicitud (al abrir su detalle). */
     fun markJobNotificationsAsRead(jobId: String) {
         viewModelScope.launch {

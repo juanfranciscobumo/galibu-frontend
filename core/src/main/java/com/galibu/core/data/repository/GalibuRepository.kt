@@ -1466,6 +1466,22 @@ class GalibuRepository(
         accepted
     }
 
+    /**
+     * Rechaza una postulación concreta. La solicitud padre sigue abierta para
+     * las demás postulaciones; solo se cierra esta conversación.
+     */
+    suspend fun rejectApplication(jobId: String) = withContext(Dispatchers.IO) {
+        val rejected = try {
+            apiService.rejectApplication(jobId)
+        } catch (e: Exception) {
+            Log.e("GalibuRepository", "rejectApplication falló en backend: " + e.localizedMessage)
+            throw e
+        }
+        jobRequestDao.insertJob(rejected)
+        AppTelemetry.event("job.reject_application", mapOf("jobId" to jobId))
+        rejected
+    }
+
     // --- Chat and Messages ---
 
     fun getChatMessagesForJob(jobId: String): Flow<List<ChatMessage>> = chatMessageDao.getMessagesForJobFlow(jobId)

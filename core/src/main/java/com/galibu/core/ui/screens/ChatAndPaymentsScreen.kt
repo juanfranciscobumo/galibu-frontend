@@ -70,6 +70,7 @@ fun ChatAndPaymentsScreen(
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showHireDialog by remember { mutableStateOf(false) }
     var showHireConfirm by remember { mutableStateOf(false) }
+    var showRejectConfirm by remember { mutableStateOf(false) }
     var hirePriceInput by remember { mutableStateOf("") }
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
@@ -748,6 +749,25 @@ fun ChatAndPaymentsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Contratar profesional", color = Color.White, fontWeight = FontWeight.Bold)
                 }
+                // Rechazar solo aplica a una postulación activa (NEGOTIATING).
+                val canRejectInChat = isApplication &&
+                    (job?.status?.uppercase() ?: "") in listOf("NEGOTIATING", "NEGOCIANDO")
+                if (canRejectInChat) {
+                    OutlinedButton(
+                        onClick = { showRejectConfirm = true },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFDC2626)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Rechazar profesional", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         // Chat en borrador ("Contactar cliente"): aún no se envió la postulación.
         // Se avisa que el primer mensaje es el que la envía.
@@ -1105,6 +1125,35 @@ fun ChatAndPaymentsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showHireConfirm = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showRejectConfirm) {
+        val proName = job?.professionalName?.takeIf { it.isNotBlank() } ?: "este profesional"
+        AlertDialog(
+            onDismissRequest = { showRejectConfirm = false },
+            title = { Text("Rechazar profesional") },
+            text = {
+                Text(
+                    "¿Deseas rechazar la postulación de $proName? Su conversación se cerrará " +
+                        "(el historial queda visible) y tu solicitud seguirá abierta para otros " +
+                        "profesionales."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRejectConfirm = false
+                        job?.id?.let { viewModel.rejectApplication(it) }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Rechazar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRejectConfirm = false }) { Text("Cancelar") }
             }
         )
     }
