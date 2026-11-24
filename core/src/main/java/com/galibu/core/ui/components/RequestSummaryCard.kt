@@ -66,7 +66,8 @@ fun RequestSummaryCard(
     modifier: Modifier = Modifier,
     category: String? = null,
     priceText: String? = null,
-    infoContent: (@Composable () -> Unit)? = null
+    infoContent: (@Composable () -> Unit)? = null,
+    photoContent: (@Composable () -> Unit)? = null
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -79,6 +80,10 @@ fun RequestSummaryCard(
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            if (photoContent != null) {
+                photoContent()
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             // Fila superior: hora ... badge de categoría
             Row(
                 modifier = Modifier.fillMaxWidth(),

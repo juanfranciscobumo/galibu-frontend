@@ -1850,56 +1850,6 @@ fun HomeJobRequestCard(
     }
 
     Column {
-        // Foto: en consultas directas, la del profesional; en las demás, las
-        // fotos que el cliente adjuntó a la solicitud.
-        if (job.isDirectChat() && proPhotoModel != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(proPhotoModel)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = job.professionalName ?: "Profesional",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, PolishBlue, CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = job.professionalName ?: "Profesional",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PolishDark
-                )
-            }
-        } else if (!job.isDirectChat() && jobPhotos.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                jobPhotos.take(4).forEach { photo ->
-                    AsyncImage(
-                        model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
-                        contentDescription = "Foto de la solicitud",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                    )
-                }
-            }
-        }
-
         RequestSummaryCard(
             timeAgo = timeAgo,
             category = badgeCategory,
@@ -1914,6 +1864,47 @@ fun HomeJobRequestCard(
             } ?: "Precio a convenir",
             address = job.address.ifEmpty { "${job.municipality ?: ""}, ${job.department ?: ""}" },
             onClick = onClick,
+            photoContent = {
+                if (job.isDirectChat() && proPhotoModel != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(proPhotoModel)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = job.professionalName ?: "Profesional",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, PolishBlue, CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = job.professionalName ?: "Profesional",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PolishDark
+                        )
+                    }
+                } else if (!job.isDirectChat() && jobPhotos.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        jobPhotos.take(4).forEach { photo ->
+                            AsyncImage(
+                                model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                                contentDescription = "Foto de la solicitud",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        }
+                    }
+                }
+            },
             infoContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
