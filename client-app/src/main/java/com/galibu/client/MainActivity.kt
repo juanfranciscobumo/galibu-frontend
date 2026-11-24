@@ -261,8 +261,13 @@ class MainActivity : ComponentActivity() {
                                                 onBack = {
                                                     // Volver del chat debe regresar al detalle de la
                                                     // solicitud (o de mi postulación si ya la envié),
-                                                    // no al Inicio del menú.
-                                                    pendingDetailJobId = proViewModel.selectedJobId.value
+                                                    // no al Inicio del menú. Si el ViewModel ya limpió
+                                                    // el job seleccionado (stopListening), conservar el
+                                                    // id pendiente que se guardó al abrir el chat.
+                                                    val current = proViewModel.selectedJobId.value
+                                                    if (current != null) {
+                                                        pendingDetailJobId = current
+                                                    }
                                                     currentRoute = "PROFESSIONAL_DASHBOARD"
                                                 }
                                             )
