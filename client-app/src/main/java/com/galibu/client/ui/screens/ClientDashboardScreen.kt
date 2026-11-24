@@ -697,7 +697,8 @@ fun ClientDashboardScreen(
                     },
                     onNotificationsClick = { onNavigateToNotifications() },
                     unreadNotifications = notifications.count { !it.isRead },
-                    onPostJob = { showJobPostForm = true }
+                    onPostJob = { showJobPostForm = true },
+                    professionalPhotoMap = remember(professionals) { professionals.associate { it.id to it.profilePhotoUrl } }
                 )
                 1 -> ProfesionalesTab(
                     professionals = filteredProfessionals,
@@ -1504,7 +1505,8 @@ fun InicioTab(
     onRateClick: (String) -> Unit = {},
     onNotificationsClick: () -> Unit,
     unreadNotifications: Int = 0,
-    onPostJob: () -> Unit = {}
+    onPostJob: () -> Unit = {},
+    professionalPhotoMap: Map<String, String?> = emptyMap()
 ) {
     val greeting = remember { getGreeting() }
     val firstName = currentUser?.name?.split(" ")?.firstOrNull() ?: "Usuario"
@@ -1723,8 +1725,10 @@ fun InicioTab(
         } else {
             filteredJobs.forEach { job ->
                 val applications = applicationsByParent[job.id].orEmpty()
+                val proPhotoUrl = professionalPhotoMap[job.professionalId]
                 HomeJobRequestCard(
                     job = job,
+                    professionalPhotoUrl = proPhotoUrl,
                     onClick = { onViewJobDetail(job) },
                     onRateClick = { onRateClick(job.id) },
                     applicationsCount = applications.size,
@@ -1796,8 +1800,16 @@ fun HomeJobRequestCard(
     onClick: () -> Unit,
     onRateClick: (String) -> Unit = {},
     applicationsCount: Int = 0,
-    onShowApplications: () -> Unit = {}
+    onShowApplications: () -> Unit = {},
+    professionalPhotoUrl: String? = null
 ) {
+    val jobPhotos = job.photos
+        ?.split("|")
+        ?.map { it.trim() }
+        ?.filter { it.isNotBlank() }
+        ?: emptyList()
+    val proPhotoModel = remember(professionalPhotoUrl) { decodePhotoModel(professionalPhotoUrl) }
+
     val (statusLabel, statusBg, statusTint) = when (job.status.uppercase()) {
         "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
         "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), PolishGreen)
@@ -1838,6 +1850,56 @@ fun HomeJobRequestCard(
     }
 
     Column {
+        // Foto: en consultas directas, la del profesional; en las demás, las
+        // fotos que el cliente adjuntó a la solicitud.
+        if (job.isDirectChat() && proPhotoModel != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(proPhotoModel)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = job.professionalName ?: "Profesional",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, PolishBlue, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = job.professionalName ?: "Profesional",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PolishDark
+                )
+            }
+        } else if (!job.isDirectChat() && jobPhotos.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                jobPhotos.take(4).forEach { photo ->
+                    AsyncImage(
+                        model = com.galibu.core.ui.utils.ImageUtils.getCoilModel(photo),
+                        contentDescription = "Foto de la solicitud",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+            }
+        }
+
         RequestSummaryCard(
             timeAgo = timeAgo,
             category = badgeCategory,
