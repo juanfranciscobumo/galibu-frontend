@@ -2,8 +2,15 @@ package com.galibu.core.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.compose.ui.graphics.Color
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+import com.galibu.core.ui.theme.PolishGrayText
+import com.galibu.core.ui.theme.StatusAccepted
+import com.galibu.core.ui.theme.StatusCancelled
+import com.galibu.core.ui.theme.StatusCompleted
+import com.galibu.core.ui.theme.StatusNegotiating
+import com.galibu.core.ui.theme.StatusOpen
 import java.io.Serializable
 
 /**
@@ -155,6 +162,33 @@ data class JobRequest(
  * real job requests and must be hidden from solicitudes lists/counters.
  */
 fun JobRequest.isDirectChat(): Boolean = id.startsWith("chat_")
+
+/** Colores y textos de estado, compartidos entre cliente y profesional. */
+fun getStatusColor(status: String): Color {
+    return when (status.uppercase()) {
+        "OPEN", "ABIERTO" -> StatusOpen
+        "NEGOTIATING", "NEGOCIANDO" -> StatusNegotiating
+        "ACCEPTED", "ACEPTADO", "IN_PROGRESS", "EN_PROGRESO" -> StatusAccepted
+        "COMPLETED", "COMPLETADO" -> StatusCompleted
+        "CANCELLED", "CANCELADO" -> StatusCancelled
+        "PENDING_RATING", "PENDIENTE_CALIFICACION" -> Color(0xFFFF9800)
+        "PENDING", "PENDIENTE" -> Color(0xFFFF9800)
+        else -> PolishGrayText
+    }
+}
+
+fun getStatusText(status: String): String {
+    return when (status.uppercase()) {
+        "OPEN", "ABIERTO" -> "Abierto"
+        "NEGOTIATING", "NEGOCIANDO" -> "Negociando"
+        "ACCEPTED", "ACEPTADO", "IN_PROGRESS", "EN_PROGRESO" -> "Aceptado"
+        "COMPLETED", "COMPLETADO" -> "Completado"
+        "CANCELLED", "CANCELADO" -> "Cancelado"
+        "PENDING_RATING", "PENDIENTE_CALIFICACION" -> "Por calificar"
+        "PENDING", "PENDIENTE" -> "Pendiente"
+        else -> status
+    }
+}
 
 @Entity(tableName = "chat_messages")
 data class ChatMessage(

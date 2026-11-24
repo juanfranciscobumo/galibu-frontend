@@ -57,6 +57,8 @@ import com.galibu.core.data.model.hasMissingForMode
 import com.galibu.core.data.model.hasMissingRequiredFields
 import com.galibu.core.data.model.hasMissingProfessionalFields
 import com.galibu.core.data.model.isDirectChat
+import com.galibu.core.data.model.getStatusColor
+import com.galibu.core.data.model.getStatusText
 import com.galibu.core.data.remote.RatingDto
 import com.galibu.core.ui.components.CategoryBadge
 import com.galibu.core.ui.components.GalibuAlertDialog
@@ -2789,23 +2791,8 @@ fun JobRequestItem(
         job.budgetMin
     }
 
-    val statusTriple = when (job.status.uppercase()) {
-        "IN_PROGRESS", "EN_PROGRESO" -> Triple("En progreso", Color(0xFFDCFCE7), PolishGreen)
-        "ACCEPTED", "ACEPTADO" -> Triple("Aceptado", Color(0xFFEFF6FF), Color(0xFF2563EB))
-        "PENDING_RATING", "POR_CALIFICAR", "PENDIENTE_CALIFICACION" -> if (job.proRatingOfClient == null) {
-            Triple("Por calificar", Color(0xFFFFFBEB), Color(0xFFD97706))
-        } else {
-            Triple("Esperando cierre", Color(0xFFEFF6FF), Color(0xFF2563EB))
-        }
-        "COMPLETED", "COMPLETADO" -> if (job.proRatingOfClient == null) {
-            Triple("Por calificar", Color(0xFFFFFBEB), Color(0xFFD97706))
-        } else {
-            Triple("Completado", Color(0xFFF1F5F9), Color(0xFF475569))
-        }
-        "CANCELLED", "CANCELADO" -> Triple("Cancelado", Color(0xFFF1F5F9), PolishGrayText)
-        "NEGOTIATING", "NEGOCIANDO" -> Triple("En negociación", Color(0xFFFFFBEB), Color(0xFFD97706))
-        else -> Triple("Abierta", Color(0xFFEFF6FF), Color(0xFF2563EB))
-    }
+    val statusColor = getStatusColor(job.status)
+    val statusText = getStatusText(job.status)
     val cardPrice = job.suggestedPrice?.takeIf { it > 0 }
         ?: if (job.isDirectHire || (job.source ?: "PUBLISH") == "DIRECTORY") finalPriceVal.takeIf { it > 0 } else null
 
@@ -2822,9 +2809,9 @@ fun JobRequestItem(
         RequestSummaryCard(
             timeAgo = formatTimeAgo(job.createdAt),
             category = job.category,
-            statusLabel = statusTriple.first,
-            statusBackground = statusTriple.second,
-            statusContentColor = statusTriple.third,
+            statusLabel = statusText,
+            statusBackground = statusColor,
+            statusContentColor = Color.White,
             isDirect = (job.source ?: "PUBLISH") == "DIRECTORY",
             title = job.title.ifEmpty { "Servicio de ${job.category}" },
             description = job.description,
