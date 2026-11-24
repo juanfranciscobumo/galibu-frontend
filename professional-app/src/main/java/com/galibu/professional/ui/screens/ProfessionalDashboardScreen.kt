@@ -483,15 +483,13 @@ fun ProfessionalDashboardScreen(
     var showClientRatingsHistory by remember { mutableStateOf(false) }
 
     // Acciones directas desde la tarjeta del marketplace, sin abrir el detalle.
-    // "Enviar solicitud" toma la solicitud (OPEN -> NEGOTIATING) y abre el chat
-    // para acordar el precio, igual que el botón del detalle.
+    // "Contactar cliente" abre la conversación sin postularse: la postulación
+    // se envía recién con el primer mensaje del profesional.
     val sendJobRequest: (String) -> Unit = { jobId ->
-        viewModel.applyToJob(jobId) { applicationId ->
-            viewModel.selectJob(applicationId)
-            selectedClientIdForProfile = null
-            selectedJobForProfileDetails = null
-            onNavigateToChat(applicationId)
-        }
+        viewModel.prepareContactDraft(jobId)
+        selectedClientIdForProfile = null
+        selectedJobForProfileDetails = null
+        onNavigateToChat(jobId)
     }
     val openJobChat: (String) -> Unit = { jobId ->
         viewModel.selectJob(jobId)
@@ -2513,7 +2511,7 @@ fun ProfessionalDashboardScreen(
                                             text = if (assignedToMe) {
                                                 "El precio y los detalles del servicio se definen en la conversación con el cliente."
                                             } else {
-                                                "Envía tu solicitud para conversar con el cliente y acordar el precio por el chat."
+                                                "Conversa con el cliente y acuerda el precio por el chat. Tu solicitud se envía al escribir el primer mensaje."
                                             },
                                             color = proTextSec,
                                             fontSize = 12.sp
@@ -2526,11 +2524,12 @@ fun ProfessionalDashboardScreen(
                                          if (assignedToMe) {
                                              onOpenChatFromDetail(detail.id, detail.id)
                                          } else {
-                                             viewModel.applyToJob(detail.id) { applicationId ->
-                                                 selectedClientIdForProfile = null
-                                                 selectedJobForProfileDetails = null
-                                                 onOpenChatFromDetail(detail.id, applicationId)
-                                             }
+                                             // Solo abre la conversación: la postulación se
+                                             // envía cuando el profesional escribe el mensaje.
+                                             viewModel.prepareContactDraft(detail.id)
+                                             selectedClientIdForProfile = null
+                                             selectedJobForProfileDetails = null
+                                             onOpenChatFromDetail(detail.id, detail.id)
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
@@ -2539,14 +2538,14 @@ fun ProfessionalDashboardScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
-                                        imageVector = if (assignedToMe) Icons.Default.Chat else Icons.Default.CheckCircle,
+                                        imageVector = Icons.Default.Chat,
                                         contentDescription = null,
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = if (assignedToMe) "Ir al chat" else "Enviar solicitud",
+                                        text = if (assignedToMe) "Ir al chat" else "Contactar cliente",
                                         color = Color.White,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold

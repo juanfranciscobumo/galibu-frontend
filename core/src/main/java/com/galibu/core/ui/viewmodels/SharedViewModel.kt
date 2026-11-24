@@ -260,6 +260,15 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     private val _selectedJobId = MutableStateFlow<String?>(null)
     val selectedJobId = _selectedJobId.asStateFlow()
 
+    /**
+     * Solicitud publicada desde la que el profesional abrió el chat sin
+     * postularse todavía ("Contactar cliente"). Mientras esté activa no existe
+     * hilo en el servidor; la postulación se crea recién al enviar el primer
+     * mensaje, para que abrir el chat no envíe nada por sí solo.
+     */
+    private val _pendingApplyJobId = MutableStateFlow<String?>(null)
+    val pendingApplyJobId = _pendingApplyJobId.asStateFlow()
+
     private val _typingStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val typingStatus = _typingStatus.asStateFlow()
 
@@ -755,6 +764,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 val error = repository.deleteAccount()
                 if (error == null) {
                     _selectedJobId.value = null
+                    _pendingApplyJobId.value = null
                 }
                 onResult(error)
             } catch (e: Exception) {
@@ -845,6 +855,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
                 kotlinx.coroutines.delay(1000)
                 repository.logout()
                 _selectedJobId.value = null
+                _pendingApplyJobId.value = null
                 _activeRole.value = null
                 appRole = null
                 com.galibu.core.data.AppGraph.activeBannerNotification.value = null
@@ -917,7 +928,11 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         _selectedJobId.value = jobId
 
         if (jobId != null) {
-            activeChatsListener = repository.pullChatsForJob(jobId)
+            // En un chat en borrador todavía no hay conversación en el backend
+            // (no existe la postulación): no se intenta bajar mensajes.
+            if (jobId != _pendingApplyJobId.value) {
+                activeChatsListener = repository.pullChatsForJob(jobId)
+            }
             viewModelScope.launch {
                 try {
                     repository.refreshJobDetails(jobId)
@@ -946,8 +961,36 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
 
     private var typingJob: kotlinx.coroutines.Job? = null
 
+    /**
+     * Prepara un chat en borrador con el cliente de una solicitud publicada.
+     * No se envía ninguna postulación: eso ocurre con el primer mensaje (ver
+     * [sendMessage]).
+     */
+    fun prepareContactDraft(parentJobId: String) {
+        _pendingApplyJobId.value = parentJobId
+    }
+
+    /**
+     * Primer mensaje del chat en borrador: aquí sí se crea la postulación y el
+     * hilo pasa a ser el de la postulación (`app_...`).
+     */
+    private suspend fun ensureApplicationForDraft(): String? {
+        val parentId = _pendingApplyJobId.value ?: return null
+        val application = repository.applyToJob(parentId)
+        _pendingApplyJobId.value = null
+        selectJob(application.id)
+        return application.id
+    }
+
     fun startListening(jobId: String) {
         selectJob(jobId)
+        if (jobId == _pendingApplyJobId.value) {
+            // Chat en borrador: aún no hay hilo ni estado de escritura en el backend.
+            typingJob?.cancel()
+            typingJob = null
+            _typingStatus.value = emptyMap()
+            return
+        }
         typingJob?.cancel()
         typingJob = viewModelScope.launch {
             repository.listenTypingStatus(jobId).collect {
@@ -961,7 +1004,7 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
 
     fun stopListening() {
         val jobId = _selectedJobId.value
-        if (jobId != null) {
+        if (jobId != null && jobId != _pendingApplyJobId.value) {
             viewModelScope.launch {
                 repository.setTypingStatus(jobId, false)
             }
@@ -969,11 +1012,13 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         typingJob?.cancel()
         typingJob = null
         _typingStatus.value = emptyMap()
+        _pendingApplyJobId.value = null
         selectJob(null)
     }
 
     fun setTyping(typing: Boolean) {
         val jobId = _selectedJobId.value ?: return
+        if (jobId == _pendingApplyJobId.value) return
         viewModelScope.launch {
             repository.setTypingStatus(jobId, typing)
         }
@@ -986,6 +1031,22 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
     fun sendMessage(text: String) {
         val jobId = _selectedJobId.value ?: return
         if (text.trim().isEmpty()) return
+        // Chat en borrador: el primer mensaje es el que envía la postulación.
+        if (jobId == _pendingApplyJobId.value) {
+            viewModelScope.launch {
+                try {
+                    showLoading("Enviando mensaje...")
+                    val applicationId = ensureApplicationForDraft() ?: return@launch
+                    repository.sendChatMessage(applicationId, text)
+                } catch (e: Exception) {
+                    Log.e("SharedViewModel", "Falla enviando la solicitud: ${e.localizedMessage}")
+                    showError("No se pudo enviar el mensaje. Puede que la solicitud ya esté cerrada.")
+                } finally {
+                    hideLoading()
+                }
+            }
+            return
+        }
         viewModelScope.launch {
             try {
                 repository.sendChatMessage(jobId, text)
@@ -1006,7 +1067,12 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         val jobId = _selectedJobId.value ?: return
         viewModelScope.launch {
             try {
-                repository.sendMessage(jobId, message)
+                val targetId = if (jobId == _pendingApplyJobId.value) {
+                    ensureApplicationForDraft() ?: return@launch
+                } else {
+                    jobId
+                }
+                repository.sendMessage(targetId, message)
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla enviar mensaje: ${e.localizedMessage}")
             }
@@ -1018,9 +1084,15 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 showLoading("Enviando imagen...")
-                repository.sendImageMessage(jobId, imageBytes)
+                val targetId = if (jobId == _pendingApplyJobId.value) {
+                    ensureApplicationForDraft() ?: return@launch
+                } else {
+                    jobId
+                }
+                repository.sendImageMessage(targetId, imageBytes)
             } catch (e: Exception) {
                 Log.e("SharedViewModel", "Falla enviar imagen: ${e.localizedMessage}")
+                showError("No se pudo enviar la imagen. Puede que la solicitud ya esté cerrada.")
             } finally {
                 hideLoading()
             }

@@ -129,6 +129,7 @@ fun ChatAndPaymentsScreen(
         job?.status?.uppercase() in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO")
     }
     val jobId by viewModel.selectedJobId.collectAsState()
+    val pendingApplyJobId by viewModel.pendingApplyJobId.collectAsState()
 
     val messages by viewModel.messages.collectAsState()
     val isPartnerTyping by viewModel.isPartnerTyping.collectAsState()
@@ -748,6 +749,32 @@ fun ChatAndPaymentsScreen(
                     Text("Contratar profesional", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
+        // Chat en borrador ("Contactar cliente"): aún no se envió la postulación.
+        // Se avisa que el primer mensaje es el que la envía.
+        val isContactDraft = pendingApplyJobId != null && pendingApplyJobId == jobId
+        if (isContactDraft) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFEFF6FF))
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF1D4ED8),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Tu solicitud se envía al escribir el primer mensaje. Así solo contactas a los clientes que te interesan.",
+                    color = Color(0xFF1E3A8A),
+                    fontSize = 12.sp
+                )
+            }
+        }
+
         // Chat input bar matching Image 2 exactly
         Row(
             modifier = Modifier
