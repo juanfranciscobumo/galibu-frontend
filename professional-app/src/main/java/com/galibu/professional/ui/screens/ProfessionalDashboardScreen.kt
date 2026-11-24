@@ -402,6 +402,20 @@ fun ProfessionalDashboardScreen(
         emptyList<ProDisplayJob>()
     }
 
+    // Fotos de los clientes (solicitantes) para mostrarlas en las tarjetas.
+    val clientPhotoMap = remember { mutableStateMapOf<String, String?>() }
+    LaunchedEffect(allJobs) {
+        val uniqueIds = allJobs.map { it.clientId }.distinct().filter { it.isNotBlank() && !clientPhotoMap.containsKey(it) }
+        uniqueIds.forEach { clientId ->
+            try {
+                val profile = viewModel.repository.getUserById(clientId)
+                clientPhotoMap[clientId] = profile?.profilePhotoUrl
+            } catch (e: Exception) {
+                clientPhotoMap[clientId] = null
+            }
+        }
+    }
+
     // Direct hiring requests from clients (direct-chat threads are not solicitudes).
     // Incluye mi trabajo asignado activo (ACCEPTED/IN_PROGRESS): su hogar es esta
     // sección, no el marketplace (que excluye lo asignado a mí).
@@ -834,7 +848,8 @@ fun ProfessionalDashboardScreen(
                                 },
                                 onSendRequest = sendJobRequest,
                                 onOpenChat = openJobChat,
-                                onRateClient = rateClientFromCard
+                                onRateClient = rateClientFromCard,
+                                clientPhotoUrl = clientPhotoMap[job.clientId]
                             )
                         }
                         Spacer(modifier = Modifier.height(10.dp))
@@ -883,7 +898,8 @@ fun ProfessionalDashboardScreen(
                                     },
                                     onSendRequest = sendJobRequest,
                                     onOpenChat = openJobChat,
-                                    onRateClient = rateClientFromCard
+                                    onRateClient = rateClientFromCard,
+                                    clientPhotoUrl = clientPhotoMap[job.clientId]
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                             }
@@ -906,7 +922,8 @@ fun ProfessionalDashboardScreen(
                                     },
                                     onSendRequest = sendJobRequest,
                                     onOpenChat = openJobChat,
-                                    onRateClient = rateClientFromCard
+                                    onRateClient = rateClientFromCard,
+                                    clientPhotoUrl = clientPhotoMap[job.clientId]
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                             }
@@ -2761,7 +2778,8 @@ fun JobRequestItem(
     onClientClick: (String) -> Unit,
     onSendRequest: (String) -> Unit = {},
     onOpenChat: (String) -> Unit = {},
-    onRateClient: (String) -> Unit = {}
+    onRateClient: (String) -> Unit = {},
+    clientPhotoUrl: String? = null
 ) {
     val finalPriceVal = if (job.isDirectHire) {
         job.counterOfferAmount ?: job.budgetMin
@@ -2812,6 +2830,20 @@ fun JobRequestItem(
                 ?: "Precio a convenir",
             address = job.address.ifEmpty { "Sin dirección" },
             onClick = { onClientClick(job.clientId) },
+            photoContent = {
+                val photoModel = com.galibu.core.ui.utils.ImageUtils.getCoilModel(clientPhotoUrl)
+                if (photoModel != null) {
+                    AsyncImage(
+                        model = photoModel,
+                        contentDescription = "Cliente",
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, PolishBlue, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            },
             infoContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = proOrangeStyle, modifier = Modifier.size(15.dp))
