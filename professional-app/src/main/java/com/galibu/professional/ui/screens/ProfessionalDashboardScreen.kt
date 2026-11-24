@@ -1937,12 +1937,23 @@ fun ProfessionalDashboardScreen(
 
     SnackbarHost(hostState = snackbarHostState)
 
+    // DIAGNOSTICO: toast con el estado de restauracion.
+    if (pendingDetailJobId != null) {
+        val ctx = context
+        androidx.compose.runtime.LaunchedEffect(pendingDetailJobId, selectedClientProfile?.id, restoringDetail) {
+            android.widget.Toast.makeText(
+                ctx,
+                "pending=$pendingDetailJobId restoring=$restoringDetail profile=${selectedClientProfile?.id}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
     // Mientras se restaura el detalle al volver del chat, mostrar un spinner en
     // vez del Inicio para evitar el "flash" del menú. Se mantiene hasta que el
     // perfil del cliente termina de cargar.
-    if (restoringDetail) {
+    if (restoringDetail || (pendingDetailJobId != null && selectedClientProfile == null)) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(proBg),
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator(color = proPrimary)
