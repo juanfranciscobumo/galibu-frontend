@@ -7734,7 +7734,7 @@ fun ClientJobDetailScreen(
         }
 
 
-        val canCancel = job.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO", "CLOSED", "CERRADO")
+        val canCancel = job.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO", "CLOSED", "CERRADO", "IN_PROGRESS", "EN_PROGRESO")
         if (canCancel) {
             Spacer(modifier = Modifier.height(16.dp))
         OutlinedButton(
