@@ -818,6 +818,7 @@ fun ClientDashboardScreen(
         ClientJobDetailScreen(
             job = job,
             applications = applications,
+            professionalPhotoUrl = professionals.find { it.id == job.professionalId }?.profilePhotoUrl,
             onBack = { showJobDetail = false },
             onChat = { target ->
                 val detail = selectedJobDetail
@@ -7481,7 +7482,8 @@ fun ClientJobDetailScreen(
     onBack: () -> Unit,
     onChat: (JobRequest) -> Unit,
     onCancel: () -> Unit = {},
-    onRate: () -> Unit = {}
+    onRate: () -> Unit = {},
+    professionalPhotoUrl: String? = null
 ) {
     Column(
         modifier = Modifier
@@ -7620,6 +7622,70 @@ fun ClientJobDetailScreen(
             }
         }
 
+        if (job.isDirectChat()) {
+            // Consulta directa: mostrar la foto del profesional y el chat.
+            Spacer(modifier = Modifier.height(20.dp))
+            val proPhotoModel = decodePhotoModel(professionalPhotoUrl)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (proPhotoModel != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(proPhotoModel)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = job.professionalName ?: "Profesional",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, PolishBlue, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(PolishIce),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (job.professionalName ?: "P").trim().take(1).uppercase(),
+                            color = PolishBlue,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = job.professionalName ?: "Profesional",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PolishDark
+                    )
+                    Text(
+                        text = job.category,
+                        fontSize = 13.sp,
+                        color = PolishGrayText
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { onChat(job) },
+                colors = ButtonDefaults.buttonColors(containerColor = PolishBlue),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Ir al chat", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
@@ -7715,6 +7781,7 @@ fun ClientJobDetailScreen(
                 }
             }
         }
+        }  // end else (non-direct)
 
         Spacer(modifier = Modifier.height(16.dp))
         if (job.status.uppercase() in listOf("PENDING_RATING", "PENDIENTE_CALIFICACION", "COMPLETED", "COMPLETADO") &&
