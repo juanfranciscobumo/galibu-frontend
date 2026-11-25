@@ -577,26 +577,18 @@ fun ClientDashboardScreen(
         allJobs.filter { it.clientId == currentUser?.id }
     }
 
-    // Escucha en tiempo real de los chats de mis solicitudes activas (incluye
-    // hilos directos y abiertas sin asignar: el pro puede escribir antes de ofertar).
+    // Escucha inicial de mis chats activos al entrar al dashboard.
+    // Los mensajes nuevos llegan por push FCM; al abrir un chat específico
+    // se hace pull inmediato de ese hilo (ver ChatAndPaymentsScreen).
     val myActiveChatIds = remember(allJobs, currentUser) {
         allJobs.filter { job ->
             job.clientId == currentUser?.id &&
                 job.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO")
         }.map { it.id }
     }
-    DisposableEffect(myActiveChatIds) {
-        val regs = if (myActiveChatIds.isNotEmpty()) viewModel.pullChatsForJobs(myActiveChatIds) else emptyList()
-        onDispose { viewModel.stopListeningToChats(regs) }
-    }
-
-    // Polling de mensajes de chat desde el backend (fuente de verdad) para
-    // mantener las conversaciones actualizadas sin depender de Firestore.
-    LaunchedEffect(myActiveChatIds) {
-        if (myActiveChatIds.isEmpty()) return@LaunchedEffect
-        while (true) {
-            viewModel.refreshChatsForJobs(myActiveChatIds)
-            kotlinx.coroutines.delay(5000)
+    LaunchedEffect(Unit) {
+        if (myActiveChatIds.isNotEmpty()) {
+            viewModel.pullChatsForJobs(myActiveChatIds)
         }
     }
 

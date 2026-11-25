@@ -192,9 +192,9 @@ fun ProfessionalDashboardScreen(
         }
     }
 
-    // Escucha en tiempo real de mis chats activos (vistas previas y no leídos del tab Mensajes).
-    // Incluye abiertas donde escribí antes de ofertar/aceptar y los hilos de
-    // consulta creados para negociar una oferta (chat_*).
+    // Escucha inicial de mis chats activos al entrar al dashboard.
+    // Los mensajes nuevos llegan por push FCM; al abrir un chat específico
+    // se hace pull inmediato de ese hilo (ver ChatAndPaymentsScreen).
     val myChatJobIds = remember(allJobs, allMessages, currentUser) {
         val sentIds = allMessages.filter { it.senderId == currentUser?.id }.map { it.jobId }.toSet()
         allJobs.filter {
@@ -202,16 +202,9 @@ fun ProfessionalDashboardScreen(
                 it.status.uppercase() !in listOf("COMPLETED", "COMPLETADO", "CANCELLED", "CANCELADO")
         }.map { it.id }
     }
-    DisposableEffect(myChatJobIds) {
-        val regs = if (myChatJobIds.isNotEmpty()) viewModel.pullChatsForJobs(myChatJobIds) else emptyList()
-        onDispose { viewModel.stopListeningToChats(regs) }
-    }
-
-    LaunchedEffect(myChatJobIds) {
-        if (myChatJobIds.isEmpty()) return@LaunchedEffect
-        while (true) {
-            viewModel.refreshChatsForJobs(myChatJobIds)
-            kotlinx.coroutines.delay(5000)
+    LaunchedEffect(Unit) {
+        if (myChatJobIds.isNotEmpty()) {
+            viewModel.pullChatsForJobs(myChatJobIds)
         }
     }
 
