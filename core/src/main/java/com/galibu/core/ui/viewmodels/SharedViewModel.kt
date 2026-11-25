@@ -1173,19 +1173,19 @@ open class SharedViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    open fun startService(jobId: String, onResult: () -> Unit = {}) {
+    open fun startService(jobId: String, verificationCode: String, onResult: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 showLoading("Iniciando servicio...")
                 kotlinx.coroutines.delay(800)
-                repository.startService(jobId)
+                repository.startService(jobId, verificationCode)
                 repository.refreshJobDetails(jobId)
                 hideLoading()
                 onResult()
             } catch (e: Exception) {
                 hideLoading()
                 Log.e("SharedViewModel", "Error al iniciar servicio: ${e.localizedMessage}")
-                showError("No se pudo iniciar el servicio. Inténtalo de nuevo.")
+                showError("Código de verificación inválido o no se pudo iniciar el servicio.")
             }
         }
     }

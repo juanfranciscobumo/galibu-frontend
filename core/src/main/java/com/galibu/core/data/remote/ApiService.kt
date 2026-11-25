@@ -95,7 +95,7 @@ interface ApiService {
     suspend fun rejectApplication(@Path("id") id: String): JobRequest
 
     @POST("jobs/{id}/start")
-    suspend fun startService(@Path("id") id: String): JobRequest
+    suspend fun startService(@Path("id") id: String, @Body req: StartServiceRequest): JobRequest
 
     @POST("jobs/{id}/finish")
     suspend fun finishService(@Path("id") id: String, @Body req: RatingRequestDto): JobRequest

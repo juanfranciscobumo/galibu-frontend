@@ -154,7 +154,9 @@ data class JobRequest(
      */
     val parentJobId: String? = null,
   /** Fotos adjuntas a la solicitud (pipe-separated CSV de URLs/data URIs). */
-    val photos: String? = null
+    val photos: String? = null,
+    /** Código de verificación de 6 dígitos para iniciar el servicio. */
+    val verificationCode: String? = null
 ) : Serializable
 
 /**

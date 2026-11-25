@@ -7564,6 +7564,26 @@ fun ClientJobDetailScreen(
                         )
                     }
                 }
+                // Código de verificación para iniciar el servicio (solo lo ve el cliente).
+                val verificationCode = job.verificationCode
+                if (!verificationCode.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = PolishBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Código de verificación: $verificationCode",
+                            fontSize = 13.sp,
+                            color = PolishDark,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
 

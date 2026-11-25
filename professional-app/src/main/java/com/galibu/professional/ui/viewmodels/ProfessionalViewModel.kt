@@ -192,18 +192,18 @@ class ProfessionalViewModel(application: Application) : SharedViewModel(applicat
         }
     }
 
-    override fun startService(jobId: String, onResult: () -> Unit) {
+    override fun startService(jobId: String, verificationCode: String, onResult: () -> Unit) {
         viewModelScope.launch {
             try {
                 showLoading("Iniciando servicio...")
                 kotlinx.coroutines.delay(800)
-                repository.startService(jobId)
+                repository.startService(jobId, verificationCode)
                 repository.refreshJobDetails(jobId)
                 hideLoading()
                 onResult()
             } catch (e: Exception) {
                 hideLoading()
-                showError("No se pudo iniciar el servicio. Verifica tu conexión e inténtalo nuevamente.")
+                showError("Código de verificación inválido o no se pudo iniciar el servicio.")
                 Log.e("ProfessionalViewModel", "Error al iniciar servicio: ${e.localizedMessage}")
             }
         }

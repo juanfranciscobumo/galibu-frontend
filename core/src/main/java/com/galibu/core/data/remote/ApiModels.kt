@@ -156,6 +156,11 @@ data class RatingRequestDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class StartServiceRequest(
+    val verificationCode: String
+)
+
+@JsonClass(generateAdapter = true)
 data class RatingDto(
     val id: Long? = null,
     val jobId: String = "",

@@ -19,6 +19,7 @@ import com.galibu.core.data.remote.DeviceTokenRequestDto
 import com.galibu.core.data.remote.PasswordChangeDto
 import com.galibu.core.data.remote.RefreshRequestDto
 import com.galibu.core.data.remote.RegisterRequestDto
+import com.galibu.core.data.remote.StartServiceRequest
 import com.galibu.core.data.remote.SubscriptionCheckoutRequest
 import com.galibu.core.data.remote.SubscriptionDto
 import com.galibu.core.data.remote.TokenStore
@@ -1812,9 +1813,9 @@ class GalibuRepository(
         notificationDao.markAsRead(id)
     }
 
-    suspend fun startService(jobId: String) = withContext(Dispatchers.IO) {
+    suspend fun startService(jobId: String, verificationCode: String) = withContext(Dispatchers.IO) {
         val updatedJob = try {
-            apiService.startService(jobId)
+            apiService.startService(jobId, StartServiceRequest(verificationCode))
         } catch (e: Exception) {
             Log.e("GalibuRepository", "startService falló en backend: ${e.localizedMessage}")
             throw e

@@ -481,6 +481,9 @@ fun ProfessionalDashboardScreen(
     var showProRatingSheet by remember { mutableStateOf(false) }
     var clientRatings by remember { mutableStateOf<List<RatingDto>>(emptyList()) }
     var showClientRatingsHistory by remember { mutableStateOf(false) }
+    // Diálogo de código de verificación para iniciar el servicio.
+    var showStartServiceCodeDialog by remember { mutableStateOf(false) }
+    var startServiceVerificationCode by remember { mutableStateOf("") }
 
     // Acciones directas desde la tarjeta del marketplace, sin abrir el detalle.
     // "Contactar cliente" abre la conversación sin postularse: la postulación
@@ -1921,6 +1924,57 @@ fun ProfessionalDashboardScreen(
         )
     }
 
+    // Diálogo de código de verificación para iniciar el servicio.
+    if (showStartServiceCodeDialog && selectedJobForProfileDetails != null) {
+        val jobDetail = selectedJobForProfileDetails!!
+        AlertDialog(
+            onDismissRequest = { showStartServiceCodeDialog = false },
+            title = { Text("Iniciar servicio") },
+            text = {
+                Column {
+                    Text(
+                        text = "Ingresa el código de verificación de 6 dígitos que el cliente te compartió.",
+                        fontSize = 13.sp,
+                        color = proTextSec
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = startServiceVerificationCode,
+                        onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) startServiceVerificationCode = it },
+                        placeholder = { Text("000000", color = proTextSec) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (startServiceVerificationCode.length == 6) {
+                            viewModel.startService(jobDetail.id, startServiceVerificationCode) {
+                                showStartServiceCodeDialog = false
+                                startServiceVerificationCode = ""
+                            }
+                        }
+                    },
+                    enabled = startServiceVerificationCode.length == 6,
+                    colors = ButtonDefaults.buttonColors(containerColor = proPrimary)
+                ) {
+                    Text("Iniciar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showStartServiceCodeDialog = false
+                    startServiceVerificationCode = ""
+                }) { Text("Cancelar", color = proTextSec) }
+            }
+        )
+    }
+
     SnackbarHost(hostState = snackbarHostState)
 
     if (selectedClientProfile != null) {
@@ -2358,7 +2412,10 @@ fun ProfessionalDashboardScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     if (!(detailStatus == "NEGOTIATING" && !isApplication)) {
                                         Button(
-                                            onClick = { viewModel.startService(detail.id) },
+                                            onClick = {
+                                                startServiceVerificationCode = ""
+                                                showStartServiceCodeDialog = true
+                                            },
                                             colors = ButtonDefaults.buttonColors(containerColor = proPrimary),
                                             shape = RoundedCornerShape(14.dp),
                                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
